@@ -23,19 +23,14 @@ export default function CalendarScreen() {
 
   const fetchData = async () => {
     try {
-      // Fetch properties
       const { data: propsData } = await supabase.from('properties').select('*');
       setProperties(propsData || []);
 
-      // Fetch reservations for the current month
-      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
+      // Fetch all reservations (not just current month for better visualization)
       let query = supabase
         .from('reservations')
         .select('*, property:properties(*)')
-        .gte('check_in', startOfMonth.toISOString().split('T')[0])
-        .lte('check_in', endOfMonth.toISOString().split('T')[0])
+        .not('status', 'in', '("cancelled","no_show")')
         .order('check_in', { ascending: true });
 
       if (selectedProperty) {
@@ -51,13 +46,9 @@ export default function CalendarScreen() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [currentDate, selectedProperty]);
+  useEffect(() => { fetchData(); }, [selectedProperty]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchData();
-    }, [currentDate, selectedProperty])
-  );
+  useFocusEffect(useCallback(() => { fetchData(); }, [selectedProperty]));
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -67,28 +58,29 @@ export default function CalendarScreen() {
     return { firstDay, daysInMonth };
   };
 
-  const getReservationsForDay = (day: number) => {
+  const getDateStatus = (day: number): { status: 'available' | 'booked' | 'checkout' | 'checkin' | 'past'; reservation?: ReservationWithProperty } => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return reservations.filter((r) => {
-      const checkIn = r.check_in;
-      const checkOut = r.check_out;
-      return dateStr >= checkIn && dateStr < checkOut;
-    });
+    const today = new Date().toISOString().split('T')[0];
+
+    if (dateStr < today) return { status: 'past' };
+
+    for (const r of reservations) {
+      if (dateStr === r.check_in) return { status: 'checkin', reservation: r };
+      if (dateStr === r.check_out) return { status: 'checkout', reservation: r };
+      if (dateStr > r.check_in && dateStr < r.check_out) return { status: 'booked', reservation: r };
+    }
+
+    return { status: 'available' };
   };
 
-  const prevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
+  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
 
   const { firstDay, daysInMonth } = getDaysInMonth(currentDate);
   const today = new Date();
   const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
 
-  // Get upcoming reservations for the agenda view
+  // Get upcoming reservations for the agenda
   const upcomingReservations = reservations
     .filter((r) => new Date(r.check_in) >= new Date(today.toISOString().split('T')[0]))
     .slice(0, 5);
@@ -118,6 +110,26 @@ export default function CalendarScreen() {
         ))}
       </ScrollView>
 
+      {/* Legend */}
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, styles.availableDot]} />
+          <Text style={styles.legendText}>Available</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, styles.bookedDot]} />
+          <Text style={styles.legendText}>Booked</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, styles.checkinDot]} />
+          <Text style={styles.legendText}>Check-in</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, styles.checkoutDot]} />
+          <Text style={styles.legendText}>Check-out</Text>
+        </View>
+      </View>
+
       {/* Calendar Header */}
       <View style={styles.calendarHeader}>
         <Pressable onPress={prevMonth} style={styles.navButton}>
@@ -138,28 +150,53 @@ export default function CalendarScreen() {
 
       {/* Calendar Grid */}
       <View style={styles.calendarGrid}>
-        {/* Empty cells for days before the first of the month */}
         {Array.from({ length: firstDay }).map((_, i) => (
           <View key={`empty-${i}`} style={styles.dayCell} />
         ))}
 
-        {/* Days of the month */}
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
-          const dayReservations = getReservationsForDay(day);
+          const { status, reservation } = getDateStatus(day);
           const isToday = isCurrentMonth && today.getDate() === day;
 
           return (
-            <View key={day} style={[styles.dayCell, isToday && styles.todayCell]}>
-              <Text style={[styles.dayNumber, isToday && styles.todayNumber]}>{day}</Text>
-              {dayReservations.length > 0 && (
-                <View style={styles.reservationDots}>
-                  {dayReservations.slice(0, 3).map((r, idx) => (
-                    <View key={idx} style={[styles.dot, { backgroundColor: getStatusColor(r.status) }]} />
-                  ))}
-                </View>
+            <Pressable
+              key={day}
+              style={[
+                styles.dayCell,
+                status === 'booked' && styles.bookedCell,
+                status === 'checkin' && styles.checkinCell,
+                status === 'checkout' && styles.checkoutCell,
+                status === 'past' && styles.pastCell,
+                status === 'available' && styles.availableCell,
+                isToday && styles.todayCell,
+              ]}
+              onPress={() => {
+                if (reservation) {
+                  router.push(`/reservation/${reservation.id}`);
+                } else if (status === 'available' && selectedProperty) {
+                  router.push(`/reservation/add?propertyId=${selectedProperty}`);
+                } else if (status === 'available') {
+                  router.push('/reservation/add');
+                }
+              }}
+            >
+              <Text style={[
+                styles.dayNumber,
+                status === 'booked' && styles.bookedText,
+                status === 'checkin' && styles.checkinText,
+                status === 'checkout' && styles.checkoutText,
+                status === 'past' && styles.pastText,
+                isToday && styles.todayNumber,
+              ]}>
+                {day}
+              </Text>
+              {reservation && (status === 'checkin' || status === 'booked') && (
+                <Text style={styles.guestInitial} numberOfLines={1}>
+                  {reservation.guest_name.split(' ')[0].charAt(0)}
+                </Text>
               )}
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -233,6 +270,14 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: Colors.primary.teal },
   filterChipText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray600 },
   filterChipTextActive: { color: Colors.neutral.white, fontWeight: '600' },
+  legend: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: Colors.neutral.white, paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.neutral.gray100 },
+  legendItem: { flexDirection: 'row', alignItems: 'center' },
+  legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: Spacing.xs },
+  availableDot: { backgroundColor: Colors.semantic.success },
+  bookedDot: { backgroundColor: Colors.semantic.error },
+  checkinDot: { backgroundColor: Colors.primary.teal },
+  checkoutDot: { backgroundColor: Colors.semantic.warning },
+  legendText: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600 },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },
@@ -240,12 +285,20 @@ const styles = StyleSheet.create({
   daysHeader: { flexDirection: 'row', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.sm },
   dayLabel: { flex: 1, textAlign: 'center', fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, fontWeight: '500' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.md },
-  dayCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', padding: Spacing.xs },
-  todayCell: { backgroundColor: Colors.primary.teal + '10', borderRadius: BorderRadius.md },
+  dayCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', padding: 2 },
+  availableCell: { backgroundColor: Colors.semantic.success + '10' },
+  bookedCell: { backgroundColor: Colors.semantic.error + '20' },
+  checkinCell: { backgroundColor: Colors.primary.teal + '30' },
+  checkoutCell: { backgroundColor: Colors.semantic.warning + '25' },
+  pastCell: { backgroundColor: Colors.neutral.gray100 },
+  todayCell: { borderWidth: 2, borderColor: Colors.primary.teal, borderRadius: BorderRadius.md },
   dayNumber: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
+  bookedText: { color: Colors.semantic.error, fontWeight: '600' },
+  checkinText: { color: Colors.primary.teal, fontWeight: '600' },
+  checkoutText: { color: Colors.semantic.warning, fontWeight: '600' },
+  pastText: { color: Colors.neutral.gray400 },
   todayNumber: { fontWeight: 'bold', color: Colors.primary.teal },
-  reservationDots: { flexDirection: 'row', marginTop: 2 },
-  dot: { width: 6, height: 6, borderRadius: 3, marginHorizontal: 1 },
+  guestInitial: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600, marginTop: 1 },
   agendaSection: { padding: Spacing.lg },
   agendaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   agendaTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },

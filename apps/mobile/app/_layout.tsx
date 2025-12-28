@@ -51,6 +51,22 @@ export default function RootLayout() {
           }}
         />
         <Stack.Screen
+          name="property/edit"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="property/[id]/calendar"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
           name="reservation/add"
           options={{
             headerShown: true,
