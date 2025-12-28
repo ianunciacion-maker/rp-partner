@@ -7,11 +7,20 @@ import type { Database } from '@/types/database';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
+// Check if we're in a browser environment (not SSR/Node.js)
+const isBrowser = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string): Promise<string | null> => {
-    if (Platform.OS === 'web') {
-      return localStorage.getItem(key);
+    // Web browser - use localStorage
+    if (Platform.OS === 'web' && isBrowser) {
+      return window.localStorage.getItem(key);
     }
+    // SSR/Node.js - return null (no persistence)
+    if (Platform.OS === 'web') {
+      return null;
+    }
+    // Native - use SecureStore with AsyncStorage fallback
     try {
       return await SecureStore.getItemAsync(key);
     } catch {
@@ -19,9 +28,12 @@ const ExpoSecureStoreAdapter = {
     }
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    if (Platform.OS === 'web') {
-      localStorage.setItem(key, value);
+    if (Platform.OS === 'web' && isBrowser) {
+      window.localStorage.setItem(key, value);
       return;
+    }
+    if (Platform.OS === 'web') {
+      return; // SSR - no-op
     }
     try {
       await SecureStore.setItemAsync(key, value);
@@ -30,9 +42,12 @@ const ExpoSecureStoreAdapter = {
     }
   },
   removeItem: async (key: string): Promise<void> => {
-    if (Platform.OS === 'web') {
-      localStorage.removeItem(key);
+    if (Platform.OS === 'web' && isBrowser) {
+      window.localStorage.removeItem(key);
       return;
+    }
+    if (Platform.OS === 'web') {
+      return; // SSR - no-op
     }
     try {
       await SecureStore.deleteItemAsync(key);

@@ -34,6 +34,54 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="property/[id]"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="property/add"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="reservation/add"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="reservation/[id]"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="cashflow/add"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="cashflow/[id]"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </GestureHandlerRootView>

@@ -1,0 +1,138 @@
+import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
+interface ButtonProps {
+  title: string;
+  onPress: () => void;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  disabled?: boolean;
+  loading?: boolean;
+  icon?: React.ReactNode;
+  fullWidth?: boolean;
+  style?: ViewStyle;
+}
+
+export function Button({
+  title,
+  onPress,
+  variant = 'primary',
+  size = 'md',
+  disabled = false,
+  loading = false,
+  icon,
+  fullWidth = false,
+  style,
+}: ButtonProps) {
+  const isDisabled = disabled || loading;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={isDisabled}
+      style={({ pressed }) => [
+        styles.base,
+        styles[variant],
+        styles[`size_${size}`],
+        fullWidth && styles.fullWidth,
+        isDisabled && styles.disabled,
+        pressed && !isDisabled && styles.pressed,
+        style,
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={variant === 'outline' || variant === 'ghost' ? Colors.primary.teal : Colors.neutral.white} />
+      ) : (
+        <>
+          {icon}
+          <Text style={[styles.text, styles[`text_${variant}`], styles[`text_${size}`], icon && styles.textWithIcon]}>
+            {title}
+          </Text>
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.lg,
+  },
+  fullWidth: {
+    width: '100%',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  pressed: {
+    opacity: 0.8,
+  },
+  // Variants
+  primary: {
+    backgroundColor: Colors.primary.teal,
+  },
+  secondary: {
+    backgroundColor: Colors.primary.navy,
+  },
+  outline: {
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: Colors.primary.teal,
+  },
+  danger: {
+    backgroundColor: Colors.semantic.error,
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+  },
+  // Sizes
+  size_sm: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+  },
+  size_md: {
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+  },
+  size_lg: {
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+  },
+  // Text styles
+  text: {
+    fontWeight: '600',
+  },
+  text_primary: {
+    color: Colors.neutral.white,
+  },
+  text_secondary: {
+    color: Colors.neutral.white,
+  },
+  text_outline: {
+    color: Colors.primary.teal,
+  },
+  text_danger: {
+    color: Colors.neutral.white,
+  },
+  text_ghost: {
+    color: Colors.primary.teal,
+  },
+  text_sm: {
+    fontSize: Typography.fontSize.sm,
+  },
+  text_md: {
+    fontSize: Typography.fontSize.md,
+  },
+  text_lg: {
+    fontSize: Typography.fontSize.lg,
+  },
+  textWithIcon: {
+    marginLeft: Spacing.sm,
+  },
+});
