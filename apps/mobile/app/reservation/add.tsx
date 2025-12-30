@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Platform, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '@/services/supabase';
@@ -7,6 +7,45 @@ import { useAuthStore } from '@/stores/authStore';
 import type { Property } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
+
+// Web-only date input component
+const WebDateInput = ({ value, onChange, min, style, hasError }: {
+  value: Date;
+  onChange: (date: Date) => void;
+  min?: string;
+  style?: any;
+  hasError?: boolean;
+}) => {
+  if (!isWeb) return null;
+
+  return (
+    <input
+      type="date"
+      value={value.toISOString().split('T')[0]}
+      min={min}
+      onChange={(e) => {
+        const date = new Date(e.target.value + 'T00:00:00');
+        if (!isNaN(date.getTime())) {
+          onChange(date);
+        }
+      }}
+      style={{
+        backgroundColor: Colors.neutral.white,
+        border: `1px solid ${hasError ? Colors.semantic.error : Colors.neutral.gray200}`,
+        borderRadius: 12,
+        padding: '12px 16px',
+        fontSize: 16,
+        color: Colors.neutral.gray900,
+        width: '100%',
+        boxSizing: 'border-box',
+        cursor: 'pointer',
+        ...style,
+      }}
+    />
+  );
+};
 
 const BOOKING_SOURCES = [
   { label: 'Direct', value: 'direct' },
@@ -19,12 +58,26 @@ const BOOKING_SOURCES = [
 
 export default function AddReservationScreen() {
   const router = useRouter();
-  const { propertyId } = useLocalSearchParams<{ propertyId?: string }>();
-  const { user } = useAuthStore();
+  const { propertyId, date } = useLocalSearchParams<{ propertyId?: string; date?: string }>();
+  const { authUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showCheckOut, setShowCheckOut] = useState(false);
+
+  // Parse initial date from query params (for backdating)
+  const getInitialCheckIn = () => {
+    if (date) {
+      const parsed = new Date(date + 'T00:00:00');
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  };
+
+  const getInitialCheckOut = () => {
+    const checkIn = getInitialCheckIn();
+    return new Date(checkIn.getTime() + 86400000); // Next day
+  };
 
   const [form, setForm] = useState({
     property_id: propertyId || '',
@@ -32,12 +85,15 @@ export default function AddReservationScreen() {
     guest_phone: '',
     guest_email: '',
     guest_count: '2',
-    check_in: new Date(),
-    check_out: new Date(Date.now() + 86400000), // Tomorrow
+    check_in: getInitialCheckIn(),
+    check_out: getInitialCheckOut(),
     source: 'direct',
     notes: '',
     deposit_amount: '0',
   });
+
+  // Check if this is a backdated reservation
+  const isBackdated = date ? new Date(date + 'T00:00:00') < new Date(new Date().toISOString().split('T')[0] + 'T00:00:00') : false;
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -81,7 +137,7 @@ export default function AddReservationScreen() {
     try {
       const { error } = await supabase.from('reservations').insert({
         property_id: form.property_id,
-        user_id: user?.id,
+        user_id: authUser?.id,
         guest_name: form.guest_name.trim(),
         guest_phone: form.guest_phone.trim() || null,
         guest_email: form.guest_email.trim() || null,
@@ -171,43 +227,73 @@ export default function AddReservationScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dates</Text>
+          {isBackdated && (
+            <View style={styles.backdatedBanner}>
+              <Text style={styles.backdatedText}>📅 Adding backdated reservation for corrections</Text>
+            </View>
+          )}
           <Text style={styles.label}>Check-in Date *</Text>
-          <Pressable style={styles.dateButton} onPress={() => setShowCheckIn(true)}>
-            <Text style={styles.dateButtonText}>{formatDate(form.check_in)}</Text>
-          </Pressable>
-          {showCheckIn && (
-            <DateTimePicker
+          {isWeb ? (
+            <WebDateInput
               value={form.check_in}
-              mode="date"
-              minimumDate={new Date()}
-              onChange={(_, date) => {
-                setShowCheckIn(Platform.OS === 'ios');
-                if (date) {
-                  updateForm('check_in', date);
-                  // Auto-adjust check-out if needed
-                  if (date >= form.check_out) {
-                    updateForm('check_out', new Date(date.getTime() + 86400000));
-                  }
+              onChange={(date) => {
+                updateForm('check_in', date);
+                if (date >= form.check_out) {
+                  updateForm('check_out', new Date(date.getTime() + 86400000));
                 }
               }}
             />
+          ) : (
+            <>
+              <Pressable style={styles.dateButton} onPress={() => setShowCheckIn(true)}>
+                <Text style={styles.dateButtonText}>{formatDate(form.check_in)}</Text>
+              </Pressable>
+              {showCheckIn && (
+                <DateTimePicker
+                  value={form.check_in}
+                  mode="date"
+                  onChange={(_, date) => {
+                    setShowCheckIn(Platform.OS === 'ios');
+                    if (date) {
+                      updateForm('check_in', date);
+                      if (date >= form.check_out) {
+                        updateForm('check_out', new Date(date.getTime() + 86400000));
+                      }
+                    }
+                  }}
+                />
+              )}
+            </>
           )}
 
           <Text style={[styles.label, { marginTop: Spacing.md }]}>Check-out Date *</Text>
-          <Pressable style={[styles.dateButton, errors.check_out && styles.dateButtonError]} onPress={() => setShowCheckOut(true)}>
-            <Text style={styles.dateButtonText}>{formatDate(form.check_out)}</Text>
-          </Pressable>
-          {errors.check_out && <Text style={styles.errorText}>{errors.check_out}</Text>}
-          {showCheckOut && (
-            <DateTimePicker
-              value={form.check_out}
-              mode="date"
-              minimumDate={new Date(form.check_in.getTime() + 86400000)}
-              onChange={(_, date) => {
-                setShowCheckOut(Platform.OS === 'ios');
-                if (date) updateForm('check_out', date);
-              }}
-            />
+          {isWeb ? (
+            <>
+              <WebDateInput
+                value={form.check_out}
+                min={new Date(form.check_in.getTime() + 86400000).toISOString().split('T')[0]}
+                onChange={(date) => updateForm('check_out', date)}
+                hasError={!!errors.check_out}
+              />
+              {errors.check_out && <Text style={styles.errorText}>{errors.check_out}</Text>}
+            </>
+          ) : (
+            <>
+              <Pressable style={[styles.dateButton, errors.check_out && styles.dateButtonError]} onPress={() => setShowCheckOut(true)}>
+                <Text style={styles.dateButtonText}>{formatDate(form.check_out)}</Text>
+              </Pressable>
+              {errors.check_out && <Text style={styles.errorText}>{errors.check_out}</Text>}
+              {showCheckOut && (
+                <DateTimePicker
+                  value={form.check_out}
+                  mode="date"
+                  onChange={(_, date) => {
+                    setShowCheckOut(Platform.OS === 'ios');
+                    if (date) updateForm('check_out', date);
+                  }}
+                />
+              )}
+            </>
           )}
 
           {nights > 0 && (
@@ -271,9 +357,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   section: { backgroundColor: Colors.neutral.white, padding: Spacing.lg, marginBottom: Spacing.md },
   sectionTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900, marginBottom: Spacing.md },
+  backdatedBanner: { backgroundColor: Colors.semantic.warning + '20', padding: Spacing.sm, borderRadius: BorderRadius.md, marginBottom: Spacing.md },
+  backdatedText: { fontSize: Typography.fontSize.sm, color: Colors.semantic.warning, fontWeight: '500', textAlign: 'center' },
   rateInfo: { fontSize: Typography.fontSize.sm, color: Colors.primary.teal, fontWeight: '500' },
   label: { fontSize: Typography.fontSize.sm, fontWeight: '500', color: Colors.neutral.gray700, marginBottom: Spacing.xs },
   dateButton: { backgroundColor: Colors.neutral.white, borderWidth: 1, borderColor: Colors.neutral.gray200, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md },
+  dateInput: { backgroundColor: Colors.neutral.white, borderWidth: 1, borderColor: Colors.neutral.gray200, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md, fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
   dateButtonError: { borderColor: Colors.semantic.error },
   dateButtonText: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
   errorText: { fontSize: Typography.fontSize.sm, color: Colors.semantic.error, marginTop: Spacing.xs },

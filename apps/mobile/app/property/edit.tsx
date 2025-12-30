@@ -20,7 +20,7 @@ const PROPERTY_TYPES = [
 export default function EditPropertyScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuthStore();
+  const { authUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export default function EditPropertyScreen() {
       const response = await fetch(coverImage);
       const blob = await response.blob();
       const fileExt = coverImage.split('.').pop() || 'jpg';
-      const fileName = `${user?.id}/${id}/cover.${fileExt}`;
+      const fileName = `${authUser?.id}/${id}/cover.${fileExt}`;
 
       const { error } = await supabase.storage
         .from('property-images')

@@ -58,17 +58,23 @@ export default function CalendarScreen() {
     return { firstDay, daysInMonth };
   };
 
-  const getDateStatus = (day: number): { status: 'available' | 'booked' | 'checkout' | 'checkin' | 'past'; reservation?: ReservationWithProperty } => {
+  const getDateStatus = (day: number): { status: 'available' | 'booked' | 'completed' | 'past'; reservation?: ReservationWithProperty } => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const today = new Date().toISOString().split('T')[0];
 
-    if (dateStr < today) return { status: 'past' };
-
+    // Check if date falls within any reservation (check_in <= date < check_out)
     for (const r of reservations) {
-      if (dateStr === r.check_in) return { status: 'checkin', reservation: r };
-      if (dateStr === r.check_out) return { status: 'checkout', reservation: r };
-      if (dateStr > r.check_in && dateStr < r.check_out) return { status: 'booked', reservation: r };
+      if (dateStr >= r.check_in && dateStr < r.check_out) {
+        // If the reservation's check_out date has passed, it's completed
+        if (r.check_out <= today) {
+          return { status: 'completed', reservation: r };
+        }
+        return { status: 'booked', reservation: r };
+      }
     }
+
+    // Past date with no reservation
+    if (dateStr < today) return { status: 'past' };
 
     return { status: 'available' };
   };
@@ -84,6 +90,20 @@ export default function CalendarScreen() {
   const upcomingReservations = reservations
     .filter((r) => new Date(r.check_in) >= new Date(today.toISOString().split('T')[0]))
     .slice(0, 5);
+
+  // Get completed reservations for the currently viewed month
+  const monthStart = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
+  const monthEnd = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()}`;
+  const todayStr = today.toISOString().split('T')[0];
+
+  const monthHistory = reservations
+    .filter((r) => {
+      // Reservation overlaps with current month AND checkout has passed (completed)
+      const overlapsMonth = r.check_in <= monthEnd && r.check_out > monthStart;
+      const isCompleted = r.check_out <= todayStr;
+      return overlapsMonth && isCompleted;
+    })
+    .sort((a, b) => b.check_out.localeCompare(a.check_out)); // Most recent first
 
   if (isLoading) {
     return <View style={styles.loading}><ActivityIndicator size="large" color={Colors.primary.teal} /></View>;
@@ -121,12 +141,8 @@ export default function CalendarScreen() {
           <Text style={styles.legendText}>Booked</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.checkinDot]} />
-          <Text style={styles.legendText}>Check-in</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.checkoutDot]} />
-          <Text style={styles.legendText}>Check-out</Text>
+          <View style={[styles.legendDot, styles.completedDot]} />
+          <Text style={styles.legendText}>Completed</Text>
         </View>
       </View>
 
@@ -165,8 +181,7 @@ export default function CalendarScreen() {
               style={[
                 styles.dayCell,
                 status === 'booked' && styles.bookedCell,
-                status === 'checkin' && styles.checkinCell,
-                status === 'checkout' && styles.checkoutCell,
+                status === 'completed' && styles.completedCell,
                 status === 'past' && styles.pastCell,
                 status === 'available' && styles.availableCell,
                 isToday && styles.todayCell,
@@ -174,25 +189,28 @@ export default function CalendarScreen() {
               onPress={() => {
                 if (reservation) {
                   router.push(`/reservation/${reservation.id}`);
-                } else if (status === 'available' && selectedProperty) {
-                  router.push(`/reservation/add?propertyId=${selectedProperty}`);
-                } else if (status === 'available') {
-                  router.push('/reservation/add');
+                } else if (status === 'available' || status === 'past') {
+                  // Allow adding reservations on past dates for corrections
+                  const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                  if (selectedProperty) {
+                    router.push(`/reservation/add?propertyId=${selectedProperty}&date=${dateStr}`);
+                  } else {
+                    router.push(`/reservation/add?date=${dateStr}`);
+                  }
                 }
               }}
             >
               <Text style={[
                 styles.dayNumber,
                 status === 'booked' && styles.bookedText,
-                status === 'checkin' && styles.checkinText,
-                status === 'checkout' && styles.checkoutText,
+                status === 'completed' && styles.completedText,
                 status === 'past' && styles.pastText,
                 isToday && styles.todayNumber,
               ]}>
                 {day}
               </Text>
-              {reservation && (status === 'checkin' || status === 'booked') && (
-                <Text style={styles.guestInitial} numberOfLines={1}>
+              {reservation && (status === 'booked' || status === 'completed') && (
+                <Text style={[styles.guestInitial, status === 'completed' && styles.completedInitial]} numberOfLines={1}>
                   {reservation.guest_name.split(' ')[0].charAt(0)}
                 </Text>
               )}
@@ -242,6 +260,46 @@ export default function CalendarScreen() {
           ))
         )}
       </View>
+
+      {/* Month History */}
+      <View style={styles.agendaSection}>
+        <View style={styles.agendaHeader}>
+          <Text style={styles.agendaTitle}>Month History</Text>
+          <Text style={styles.historySubtitle}>{MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}</Text>
+        </View>
+
+        {monthHistory.length === 0 ? (
+          <View style={styles.emptyAgenda}>
+            <Text style={styles.emptyAgendaText}>No completed reservations this month</Text>
+          </View>
+        ) : (
+          monthHistory.map((reservation) => (
+            <Pressable
+              key={reservation.id}
+              style={styles.reservationCard}
+              onPress={() => router.push(`/reservation/${reservation.id}`)}
+            >
+              <View style={[styles.statusBar, { backgroundColor: Colors.neutral.gray400 }]} />
+              <View style={styles.reservationContent}>
+                <Text style={styles.guestName}>{reservation.guest_name}</Text>
+                <Text style={styles.propertyName}>{reservation.property?.name || 'Unknown Property'}</Text>
+                <View style={styles.dateRow}>
+                  <Text style={styles.dateText}>{formatDate(reservation.check_in)} - {formatDate(reservation.check_out)}</Text>
+                  <Text style={styles.nightsText}>{reservation.nights} nights</Text>
+                </View>
+              </View>
+              <View style={styles.amountContainer}>
+                <Text style={styles.amountText}>PHP {reservation.total_amount?.toLocaleString()}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: Colors.neutral.gray400 + '20' }]}>
+                  <Text style={[styles.statusText, { color: Colors.neutral.gray500 }]}>
+                    Completed
+                  </Text>
+                </View>
+              </View>
+            </Pressable>
+          ))
+        )}
+      </View>
     </ScrollView>
   );
 }
@@ -275,8 +333,7 @@ const styles = StyleSheet.create({
   legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: Spacing.xs },
   availableDot: { backgroundColor: Colors.semantic.success },
   bookedDot: { backgroundColor: Colors.semantic.error },
-  checkinDot: { backgroundColor: Colors.primary.teal },
-  checkoutDot: { backgroundColor: Colors.semantic.warning },
+  completedDot: { backgroundColor: Colors.neutral.gray400 },
   legendText: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600 },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
@@ -286,22 +343,22 @@ const styles = StyleSheet.create({
   dayLabel: { flex: 1, textAlign: 'center', fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, fontWeight: '500' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.md },
   dayCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', padding: 2 },
-  availableCell: { backgroundColor: Colors.semantic.success + '10' },
-  bookedCell: { backgroundColor: Colors.semantic.error + '20' },
-  checkinCell: { backgroundColor: Colors.primary.teal + '30' },
-  checkoutCell: { backgroundColor: Colors.semantic.warning + '25' },
+  availableCell: { backgroundColor: Colors.semantic.success + '20' },
+  bookedCell: { backgroundColor: Colors.semantic.error + '25' },
+  completedCell: { backgroundColor: Colors.neutral.gray300 + '40' },
   pastCell: { backgroundColor: Colors.neutral.gray100 },
   todayCell: { borderWidth: 2, borderColor: Colors.primary.teal, borderRadius: BorderRadius.md },
   dayNumber: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
   bookedText: { color: Colors.semantic.error, fontWeight: '600' },
-  checkinText: { color: Colors.primary.teal, fontWeight: '600' },
-  checkoutText: { color: Colors.semantic.warning, fontWeight: '600' },
+  completedText: { color: Colors.neutral.gray500, fontWeight: '500' },
   pastText: { color: Colors.neutral.gray400 },
   todayNumber: { fontWeight: 'bold', color: Colors.primary.teal },
   guestInitial: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600, marginTop: 1 },
+  completedInitial: { color: Colors.neutral.gray400 },
   agendaSection: { padding: Spacing.lg },
   agendaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   agendaTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },
+  historySubtitle: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
   addButton: { fontSize: Typography.fontSize.md, color: Colors.primary.teal, fontWeight: '600' },
   emptyAgenda: { padding: Spacing.xl, alignItems: 'center' },
   emptyAgendaText: { color: Colors.neutral.gray500 },

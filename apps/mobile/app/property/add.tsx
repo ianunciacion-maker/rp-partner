@@ -1,11 +1,24 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
+
+// Web-compatible notification
+const showNotification = (title: string, message: string, onOk?: () => void) => {
+  if (isWeb) {
+    if (window.confirm(`${title}\n\n${message}`)) {
+      onOk?.();
+    }
+  } else {
+    Alert.alert(title, message, [{ text: 'OK', onPress: onOk }]);
+  }
+};
 
 const PROPERTY_TYPES = [
   { label: 'Villa', value: 'villa' },
@@ -18,7 +31,7 @@ const PROPERTY_TYPES = [
 
 export default function AddPropertyScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { authUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
@@ -45,7 +58,7 @@ export default function AddPropertyScreen() {
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      showNotification('Permission Required', 'Please allow access to your photo library.');
       return;
     }
 
@@ -80,7 +93,7 @@ export default function AddPropertyScreen() {
       const response = await fetch(coverImage);
       const blob = await response.blob();
       const fileExt = coverImage.split('.').pop() || 'jpg';
-      const fileName = `${user?.id}/${propertyId}/cover.${fileExt}`;
+      const fileName = `${authUser?.id}/${propertyId}/cover.${fileExt}`;
 
       const { error } = await supabase.storage
         .from('property-images')
@@ -104,11 +117,20 @@ export default function AddPropertyScreen() {
 
     setIsLoading(true);
     try {
+      // Get the current session to ensure we're authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Current session:', session?.user?.id);
+      console.log('authUser from store:', authUser?.id);
+
+      if (!session?.user) {
+        throw new Error('You must be logged in to create a property');
+      }
+
       // Create property first
       const { data: property, error } = await supabase
         .from('properties')
         .insert({
-          user_id: user?.id,
+          user_id: session.user.id,
           name: form.name.trim(),
           description: form.description.trim() || null,
           address: form.address.trim() || null,
@@ -134,11 +156,9 @@ export default function AddPropertyScreen() {
         }
       }
 
-      Alert.alert('Success', 'Property created successfully!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      showNotification('Success', 'Property created successfully!', () => router.back());
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to create property');
+      showNotification('Error', error.message || 'Failed to create property');
     } finally {
       setIsLoading(false);
     }
@@ -240,13 +260,22 @@ export default function AddPropertyScreen() {
             loading={isLoading}
             fullWidth
           />
-          <Button
-            title="Cancel"
-            variant="ghost"
-            onPress={() => router.back()}
-            fullWidth
-            style={{ marginTop: Spacing.sm }}
-          />
+          {isWeb ? (
+            <Pressable
+              style={[styles.cancelButton, { cursor: 'pointer' } as any]}
+              onPress={() => router.replace('/(tabs)')}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </Pressable>
+          ) : (
+            <Button
+              title="Cancel"
+              variant="ghost"
+              onPress={() => router.back()}
+              fullWidth
+              style={{ marginTop: Spacing.sm }}
+            />
+          )}
         </View>
       </ScrollView>
     </>
@@ -295,5 +324,17 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     padding: Spacing.lg,
+  },
+  cancelButton: {
+    width: '100%',
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+  },
+  cancelButtonText: {
+    color: Colors.primary.teal,
+    fontSize: Typography.fontSize.md,
+    fontWeight: '600',
   },
 });

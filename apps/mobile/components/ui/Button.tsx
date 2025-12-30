@@ -1,4 +1,4 @@
-import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle } from 'react-native';
+import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle, Platform } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
@@ -40,6 +40,10 @@ export function Button({
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
+        Platform.OS === 'web' && ({
+          cursor: isDisabled ? 'not-allowed' : 'pointer',
+          ...(variant === 'ghost' && { backgroundColor: 'rgba(0,0,0,0.02)' }),
+        } as ViewStyle),
         style,
       ]}
     >
@@ -90,6 +94,7 @@ const styles = StyleSheet.create({
   },
   ghost: {
     backgroundColor: 'transparent',
+    minHeight: 44,
   },
   // Sizes
   size_sm: {

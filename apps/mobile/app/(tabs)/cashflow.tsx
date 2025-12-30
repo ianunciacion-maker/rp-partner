@@ -1,10 +1,36 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl, Modal, Platform, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { documentDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
+import { isAvailableAsync, shareAsync } from 'expo-sharing';
 import { supabase } from '@/services/supabase';
 import type { Property, CashflowEntry } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
+
+interface MonthOption {
+  label: string;
+  value: string; // YYYY-MM format
+  year: number;
+  month: number;
+}
+
+const generateMonthOptions = (): MonthOption[] => {
+  const options: MonthOption[] = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    options.push({
+      label: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
+      year: date.getFullYear(),
+      month: date.getMonth(),
+    });
+  }
+  return options;
+};
 
 interface CashflowWithProperty extends CashflowEntry {
   property?: Property;
@@ -21,6 +47,11 @@ export default function CashflowScreen() {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [exportType, setExportType] = useState<'both' | 'income' | 'expense'>('both');
+  const [isExporting, setIsExporting] = useState(false);
+  const monthOptions = generateMonthOptions();
 
   const fetchData = async () => {
     try {
@@ -83,6 +114,148 @@ export default function CashflowScreen() {
     }
   };
 
+  const toggleMonthSelection = (monthValue: string) => {
+    setSelectedMonths((prev) =>
+      prev.includes(monthValue)
+        ? prev.filter((m) => m !== monthValue)
+        : [...prev, monthValue]
+    );
+  };
+
+  const selectAllMonths = () => {
+    if (selectedMonths.length === monthOptions.length) {
+      setSelectedMonths([]);
+    } else {
+      setSelectedMonths(monthOptions.map((m) => m.value));
+    }
+  };
+
+  const generateCSV = (data: CashflowWithProperty[]): string => {
+    const headers = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Property', 'Payment Method', 'Reference', 'Notes'];
+    const rows = data.map((entry) => [
+      entry.transaction_date,
+      entry.type,
+      entry.category,
+      `"${(entry.description || '').replace(/"/g, '""')}"`,
+      entry.amount?.toString() || '0',
+      `"${(entry.property?.name || 'Unknown').replace(/"/g, '""')}"`,
+      entry.payment_method || '',
+      entry.reference_number || '',
+      `"${(entry.notes || '').replace(/"/g, '""')}"`,
+    ]);
+    return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+  };
+
+  const handleExport = async () => {
+    if (selectedMonths.length === 0) {
+      if (isWeb) {
+        window.alert('Please select at least one month to export.');
+      } else {
+        const Alert = require('react-native').Alert;
+        Alert.alert('No Months Selected', 'Please select at least one month to export.');
+      }
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      // Fetch all entries for selected months
+      const allEntries: CashflowWithProperty[] = [];
+
+      for (const monthValue of selectedMonths) {
+        const [year, month] = monthValue.split('-').map(Number);
+        const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
+        const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+
+        let query = supabase
+          .from('cashflow_entries')
+          .select('*, property:properties(*)')
+          .gte('transaction_date', startDate)
+          .lte('transaction_date', endDate)
+          .order('transaction_date', { ascending: true });
+
+        if (selectedProperty) {
+          query = query.eq('property_id', selectedProperty);
+        }
+
+        const { data } = await query;
+        if (data) {
+          allEntries.push(...data);
+        }
+      }
+
+      // Filter by export type
+      let filteredEntries = allEntries;
+      if (exportType === 'income') {
+        filteredEntries = allEntries.filter((e) => e.type === 'income');
+      } else if (exportType === 'expense') {
+        filteredEntries = allEntries.filter((e) => e.type === 'expense');
+      }
+
+      // Sort by date
+      filteredEntries.sort((a, b) => a.transaction_date.localeCompare(b.transaction_date));
+
+      if (filteredEntries.length === 0) {
+        if (isWeb) {
+          window.alert('No transactions found for the selected filters.');
+        } else {
+          const Alert = require('react-native').Alert;
+          Alert.alert('No Data', 'No transactions found for the selected filters.');
+        }
+        setIsExporting(false);
+        return;
+      }
+
+      const csv = generateCSV(filteredEntries);
+      const typeLabel = exportType === 'both' ? 'all' : exportType;
+      const filename = `cashflow_${typeLabel}_${new Date().toISOString().split('T')[0]}.csv`;
+
+      if (isWeb) {
+        // Web: Create blob and download
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        window.alert(`Exported ${filteredEntries.length} transactions successfully!`);
+      } else {
+        // Native: Save to file and share
+        const fileUri = documentDirectory + filename;
+        await writeAsStringAsync(fileUri, csv, {
+          encoding: EncodingType.UTF8,
+        });
+
+        if (await isAvailableAsync()) {
+          await shareAsync(fileUri, {
+            mimeType: 'text/csv',
+            dialogTitle: 'Export Cashflow Data',
+          });
+        } else {
+          const Alert = require('react-native').Alert;
+          Alert.alert('Success', `Exported ${filteredEntries.length} transactions to ${filename}`);
+        }
+      }
+
+      setShowExportModal(false);
+      setSelectedMonths([]);
+      setExportType('both');
+    } catch (error: any) {
+      console.error('Export error:', error);
+      if (isWeb) {
+        window.alert('Failed to export data. Please try again.');
+      } else {
+        const Alert = require('react-native').Alert;
+        Alert.alert('Export Error', error.message || 'Failed to export data');
+      }
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (isLoading) {
     return <View style={styles.loading}><ActivityIndicator size="large" color={Colors.primary.teal} /></View>;
   }
@@ -114,12 +287,17 @@ export default function CashflowScreen() {
 
         {/* Month Selector */}
         <View style={styles.monthSelector}>
-          <Pressable onPress={prevMonth} style={styles.navButton}>
-            <Text style={styles.navButtonText}>‹</Text>
-          </Pressable>
-          <Text style={styles.monthTitle}>{MONTHS[selectedMonth]} {selectedYear}</Text>
-          <Pressable onPress={nextMonth} style={styles.navButton}>
-            <Text style={styles.navButtonText}>›</Text>
+          <View style={styles.monthNav}>
+            <Pressable onPress={prevMonth} style={styles.navButton}>
+              <Text style={styles.navButtonText}>‹</Text>
+            </Pressable>
+            <Text style={styles.monthTitle}>{MONTHS[selectedMonth]} {selectedYear}</Text>
+            <Pressable onPress={nextMonth} style={styles.navButton}>
+              <Text style={styles.navButtonText}>›</Text>
+            </Pressable>
+          </View>
+          <Pressable onPress={() => setShowExportModal(true)} style={styles.exportButton}>
+            <Text style={styles.exportButtonText}>Export</Text>
           </Pressable>
         </View>
 
@@ -183,6 +361,98 @@ export default function CashflowScreen() {
           <Text style={styles.fabText}>+</Text>
         </Pressable>
       </View>
+
+      {/* Export Modal */}
+      <Modal
+        visible={showExportModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowExportModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Export Cashflow Data</Text>
+            <Text style={styles.modalSubtitle}>Select months to export (CSV format)</Text>
+
+            <Pressable style={styles.selectAllButton} onPress={selectAllMonths}>
+              <View style={[styles.checkbox, selectedMonths.length === monthOptions.length && styles.checkboxChecked]}>
+                {selectedMonths.length === monthOptions.length && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.selectAllText}>
+                {selectedMonths.length === monthOptions.length ? 'Deselect All' : 'Select All'}
+              </Text>
+            </Pressable>
+
+            <ScrollView style={styles.monthList}>
+              {monthOptions.map((option) => (
+                <Pressable
+                  key={option.value}
+                  style={styles.monthItem}
+                  onPress={() => toggleMonthSelection(option.value)}
+                >
+                  <View style={[styles.checkbox, selectedMonths.includes(option.value) && styles.checkboxChecked]}>
+                    {selectedMonths.includes(option.value) && <Text style={styles.checkmark}>✓</Text>}
+                  </View>
+                  <Text style={styles.monthItemText}>{option.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+
+            {/* Transaction Type Filter */}
+            <View style={styles.typeFilterSection}>
+              <Text style={styles.typeFilterLabel}>Transaction Type</Text>
+              <View style={styles.typeFilterOptions}>
+                <Pressable
+                  style={[styles.typeFilterButton, exportType === 'both' && styles.typeFilterButtonActive]}
+                  onPress={() => setExportType('both')}
+                >
+                  <Text style={[styles.typeFilterText, exportType === 'both' && styles.typeFilterTextActive]}>Both</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.typeFilterButton, exportType === 'income' && styles.typeFilterButtonActiveIncome]}
+                  onPress={() => setExportType('income')}
+                >
+                  <Text style={[styles.typeFilterText, exportType === 'income' && styles.typeFilterTextActive]}>Income</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.typeFilterButton, exportType === 'expense' && styles.typeFilterButtonActiveExpense]}
+                  onPress={() => setExportType('expense')}
+                >
+                  <Text style={[styles.typeFilterText, exportType === 'expense' && styles.typeFilterTextActive]}>Expense</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {selectedProperty && (
+              <Text style={styles.filterNote}>
+                Exporting for: {properties.find((p) => p.id === selectedProperty)?.name || 'Selected property'}
+              </Text>
+            )}
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => { setShowExportModal(false); setSelectedMonths([]); setExportType('both'); }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.exportModalButton, isExporting && styles.buttonDisabled]}
+                onPress={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <ActivityIndicator size="small" color={Colors.neutral.white} />
+                ) : (
+                  <Text style={styles.exportModalButtonText}>
+                    Export {selectedMonths.length > 0 ? `(${selectedMonths.length})` : ''}
+                  </Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -201,7 +471,8 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: Colors.primary.teal },
   filterChipText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray600 },
   filterChipTextActive: { color: Colors.neutral.white, fontWeight: '600' },
-  monthSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
+  monthSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
+  monthNav: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },
   monthTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900 },
@@ -237,4 +508,35 @@ const styles = StyleSheet.create({
   incomeFab: { backgroundColor: Colors.semantic.success },
   expenseFab: { backgroundColor: Colors.semantic.error },
   fabText: { fontSize: 28, color: Colors.neutral.white, lineHeight: 30 },
+  exportButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md },
+  exportButtonText: { color: Colors.neutral.white, fontSize: Typography.fontSize.sm, fontWeight: '600' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
+  modalContent: { backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.xl, padding: Spacing.lg, width: '100%', maxWidth: 400, maxHeight: '80%' },
+  modalTitle: { fontSize: Typography.fontSize.xl, fontWeight: 'bold', color: Colors.neutral.gray900, marginBottom: Spacing.xs },
+  modalSubtitle: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, marginBottom: Spacing.lg },
+  selectAllButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray200, marginBottom: Spacing.sm },
+  selectAllText: { fontSize: Typography.fontSize.md, color: Colors.primary.teal, fontWeight: '600' },
+  monthList: { maxHeight: 300 },
+  monthItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm },
+  monthItemText: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
+  checkbox: { width: 24, height: 24, borderRadius: BorderRadius.sm, borderWidth: 2, borderColor: Colors.neutral.gray300, marginRight: Spacing.md, justifyContent: 'center', alignItems: 'center' },
+  checkboxChecked: { backgroundColor: Colors.primary.teal, borderColor: Colors.primary.teal },
+  checkmark: { color: Colors.neutral.white, fontSize: 14, fontWeight: 'bold' },
+  filterNote: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, fontStyle: 'italic', marginTop: Spacing.sm },
+  typeFilterSection: { marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.neutral.gray200 },
+  typeFilterLabel: { fontSize: Typography.fontSize.sm, fontWeight: '600', color: Colors.neutral.gray700, marginBottom: Spacing.sm },
+  typeFilterOptions: { flexDirection: 'row', gap: Spacing.sm },
+  typeFilterButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md, backgroundColor: Colors.neutral.gray100, alignItems: 'center' },
+  typeFilterButtonActive: { backgroundColor: Colors.primary.teal },
+  typeFilterButtonActiveIncome: { backgroundColor: Colors.semantic.success },
+  typeFilterButtonActiveExpense: { backgroundColor: Colors.semantic.error },
+  typeFilterText: { fontSize: Typography.fontSize.sm, fontWeight: '500', color: Colors.neutral.gray600 },
+  typeFilterTextActive: { color: Colors.neutral.white },
+  modalButtons: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.lg },
+  modalButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg, alignItems: 'center' },
+  cancelButton: { backgroundColor: Colors.neutral.gray100 },
+  cancelButtonText: { color: Colors.neutral.gray600, fontWeight: '600' },
+  exportModalButton: { backgroundColor: Colors.primary.teal },
+  exportModalButtonText: { color: Colors.neutral.white, fontWeight: '600' },
+  buttonDisabled: { opacity: 0.6 },
 });

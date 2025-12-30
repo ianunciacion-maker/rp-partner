@@ -45,17 +45,23 @@ export default function PropertyCalendarScreen() {
     return { firstDay, daysInMonth };
   };
 
-  const getDateStatus = (day: number): 'available' | 'booked' | 'checkout' | 'checkin' | 'past' => {
+  const getDateStatus = (day: number): 'available' | 'booked' | 'completed' | 'past' => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const today = new Date().toISOString().split('T')[0];
 
-    if (dateStr < today) return 'past';
-
+    // Check if date falls within any reservation (check_in <= date < check_out)
     for (const r of reservations) {
-      if (dateStr === r.check_in) return 'checkin';
-      if (dateStr === r.check_out) return 'checkout';
-      if (dateStr > r.check_in && dateStr < r.check_out) return 'booked';
+      if (dateStr >= r.check_in && dateStr < r.check_out) {
+        // If the reservation's check_out date has passed, it's completed
+        if (r.check_out <= today) {
+          return 'completed';
+        }
+        return 'booked';
+      }
     }
+
+    // Past date with no reservation
+    if (dateStr < today) return 'past';
 
     return 'available';
   };
@@ -91,12 +97,8 @@ export default function PropertyCalendarScreen() {
             <Text style={styles.legendText}>Booked</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendDot, styles.checkinDot]} />
-            <Text style={styles.legendText}>Check-in</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, styles.checkoutDot]} />
-            <Text style={styles.legendText}>Check-out</Text>
+            <View style={[styles.legendDot, styles.completedDot]} />
+            <Text style={styles.legendText}>Completed</Text>
           </View>
         </View>
 
@@ -136,8 +138,7 @@ export default function PropertyCalendarScreen() {
                 style={[
                   styles.dayCell,
                   status === 'booked' && styles.bookedCell,
-                  status === 'checkin' && styles.checkinCell,
-                  status === 'checkout' && styles.checkoutCell,
+                  status === 'completed' && styles.completedCell,
                   status === 'past' && styles.pastCell,
                   status === 'available' && styles.availableCell,
                   isToday && styles.todayCell,
@@ -145,23 +146,24 @@ export default function PropertyCalendarScreen() {
                 onPress={() => {
                   if (reservation) {
                     router.push(`/reservation/${reservation.id}`);
-                  } else if (status === 'available') {
-                    router.push(`/reservation/add?propertyId=${id}`);
+                  } else if (status === 'available' || status === 'past') {
+                    // Allow adding reservations on past dates for corrections
+                    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    router.push(`/reservation/add?propertyId=${id}&date=${dateStr}`);
                   }
                 }}
               >
                 <Text style={[
                   styles.dayNumber,
                   status === 'booked' && styles.bookedText,
-                  status === 'checkin' && styles.checkinText,
-                  status === 'checkout' && styles.checkoutText,
+                  status === 'completed' && styles.completedText,
                   status === 'past' && styles.pastText,
                   isToday && styles.todayNumber,
                 ]}>
                   {day}
                 </Text>
-                {reservation && (status === 'checkin' || status === 'booked') && (
-                  <Text style={styles.guestInitial} numberOfLines={1}>
+                {reservation && (status === 'booked' || status === 'completed') && (
+                  <Text style={[styles.guestInitial, status === 'completed' && styles.completedInitial]} numberOfLines={1}>
                     {reservation.guest_name.split(' ')[0].charAt(0)}
                   </Text>
                 )}
@@ -237,8 +239,7 @@ const styles = StyleSheet.create({
   legendDot: { width: 12, height: 12, borderRadius: 6, marginRight: Spacing.xs },
   availableDot: { backgroundColor: Colors.semantic.success },
   bookedDot: { backgroundColor: Colors.semantic.error },
-  checkinDot: { backgroundColor: Colors.primary.teal },
-  checkoutDot: { backgroundColor: Colors.semantic.warning },
+  completedDot: { backgroundColor: Colors.neutral.gray400 },
   legendText: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600 },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
@@ -248,19 +249,18 @@ const styles = StyleSheet.create({
   dayLabel: { flex: 1, textAlign: 'center', fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, fontWeight: '500' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.md },
   dayCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', padding: 2 },
-  availableCell: { backgroundColor: Colors.semantic.success + '15' },
-  bookedCell: { backgroundColor: Colors.semantic.error + '20' },
-  checkinCell: { backgroundColor: Colors.primary.teal + '30' },
-  checkoutCell: { backgroundColor: Colors.semantic.warning + '30' },
+  availableCell: { backgroundColor: Colors.semantic.success + '20' },
+  bookedCell: { backgroundColor: Colors.semantic.error + '25' },
+  completedCell: { backgroundColor: Colors.neutral.gray300 + '40' },
   pastCell: { backgroundColor: Colors.neutral.gray100 },
   todayCell: { borderWidth: 2, borderColor: Colors.primary.teal, borderRadius: BorderRadius.md },
   dayNumber: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
   bookedText: { color: Colors.semantic.error, fontWeight: '600' },
-  checkinText: { color: Colors.primary.teal, fontWeight: '600' },
-  checkoutText: { color: Colors.semantic.warning, fontWeight: '600' },
+  completedText: { color: Colors.neutral.gray500, fontWeight: '500' },
   pastText: { color: Colors.neutral.gray400 },
   todayNumber: { fontWeight: 'bold', color: Colors.primary.teal },
   guestInitial: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600, marginTop: 1 },
+  completedInitial: { color: Colors.neutral.gray400 },
   section: { backgroundColor: Colors.neutral.white, padding: Spacing.lg, marginTop: Spacing.md },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   sectionTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },

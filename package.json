@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "apps/*",
+    "apps/admin",
     "packages/*"
   ],
   "scripts": {
-    "mobile": "npm run start --workspace=apps/mobile",
+    "mobile": "cd apps/mobile && npm run start",
     "admin": "npm run dev --workspace=apps/admin",
-    "mobile:build": "npm run build --workspace=apps/mobile"
+    "mobile:build": "cd apps/mobile && npm run build"
   }
 }

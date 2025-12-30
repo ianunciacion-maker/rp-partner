@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Alert, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Alert, Pressable, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import type { Property, CashflowEntry } from '@/types/database';
 import { Button } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
 
 interface CashflowWithProperty extends CashflowEntry {
   property?: Property;
@@ -36,32 +38,44 @@ export default function CashflowDetailScreen() {
 
   useEffect(() => { fetchEntry(); }, [id]);
 
-  const handleDelete = () => {
-    Alert.alert(
-      'Delete Transaction',
-      'Are you sure you want to delete this transaction? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setIsDeleting(true);
-            try {
-              const { error } = await supabase
-                .from('cashflow_entries')
-                .delete()
-                .eq('id', id);
-              if (error) throw error;
-              router.back();
-            } catch (error: any) {
-              Alert.alert('Error', error.message);
-              setIsDeleting(false);
-            }
-          },
-        },
-      ]
-    );
+  const handleDelete = async () => {
+    const confirmDelete = isWeb
+      ? window.confirm('Delete Transaction\n\nAre you sure you want to delete this transaction? This cannot be undone.')
+      : await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            'Delete Transaction',
+            'Are you sure you want to delete this transaction? This cannot be undone.',
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Delete', style: 'destructive', onPress: () => resolve(true) },
+            ]
+          );
+        });
+
+    if (!confirmDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('cashflow_entries')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+
+      if (isWeb) {
+        window.alert('Transaction deleted successfully!');
+      } else {
+        Alert.alert('Success', 'Transaction deleted successfully!');
+      }
+      router.back();
+    } catch (error: any) {
+      if (isWeb) {
+        window.alert(`Error: ${error.message}`);
+      } else {
+        Alert.alert('Error', error.message);
+      }
+      setIsDeleting(false);
+    }
   };
 
   if (isLoading) {

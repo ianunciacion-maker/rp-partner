@@ -62,13 +62,19 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     storage: ExpoSecureStoreAdapter,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    // Enable URL session detection for web (password reset, OAuth callbacks)
+    detectSessionInUrl: Platform.OS === 'web',
   },
 });
 
 export const signInWithEmail = async (email: string, password: string) => {
+  console.log('Attempting sign in for:', email);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  if (error) {
+    console.error('Sign in error:', error.message, error.status);
+    throw error;
+  }
+  console.log('Sign in successful');
   return data;
 };
 
@@ -88,8 +94,18 @@ export const signOut = async () => {
 };
 
 export const resetPassword = async (email: string) => {
+  // Use web URL for web, deep link for native
+  const redirectUrl = Platform.OS === 'web'
+    ? `${window.location.origin}/reset-password`
+    : 'rp-partner://reset-password';
+
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: 'rp-partner://reset-password',
+    redirectTo: redirectUrl,
   });
+  if (error) throw error;
+};
+
+export const updatePassword = async (newPassword: string) => {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
 };

@@ -9,6 +9,56 @@ import type { Property } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 
+const isWeb = Platform.OS === 'web';
+
+// Web-compatible notification
+const showNotification = (title: string, message: string, onOk?: () => void) => {
+  if (isWeb) {
+    if (window.confirm(`${title}\n\n${message}`)) {
+      onOk?.();
+    }
+  } else {
+    Alert.alert(title, message, [{ text: 'OK', onPress: onOk }]);
+  }
+};
+
+// Web-only date input component
+const WebDateInput = ({ value, onChange, max, style }: {
+  value: Date;
+  onChange: (date: Date) => void;
+  max?: string;
+  style?: any;
+}) => {
+  if (!isWeb) return null;
+
+  return (
+    <input
+      type="date"
+      value={value.toISOString().split('T')[0]}
+      max={max}
+      onChange={(e) => {
+        const date = new Date(e.target.value + 'T00:00:00');
+        if (!isNaN(date.getTime())) {
+          onChange(date);
+        }
+      }}
+      style={{
+        backgroundColor: Colors.neutral.white,
+        border: `1px solid ${Colors.neutral.gray200}`,
+        borderRadius: 12,
+        padding: '12px 16px',
+        fontSize: 16,
+        color: Colors.neutral.gray900,
+        width: '100%',
+        boxSizing: 'border-box',
+        cursor: 'pointer',
+        marginBottom: 16,
+        ...style,
+      }}
+    />
+  );
+};
+
 const INCOME_CATEGORIES = [
   { label: 'Rental Income', value: 'rental_income' },
   { label: 'Security Deposit', value: 'security_deposit' },
@@ -42,7 +92,7 @@ const PAYMENT_METHODS = [
 export default function AddCashflowScreen() {
   const router = useRouter();
   const { type: initialType } = useLocalSearchParams<{ type?: string }>();
-  const { user } = useAuthStore();
+  const { authUser } = useAuthStore();
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -83,7 +133,7 @@ export default function AddCashflowScreen() {
   const pickReceipt = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission Required', 'Please allow access to your photo library.');
+      showNotification('Permission Required', 'Please allow access to your photo library.');
       return;
     }
 
@@ -101,7 +151,7 @@ export default function AddCashflowScreen() {
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission Required', 'Please allow access to your camera.');
+      showNotification('Permission Required', 'Please allow access to your camera.');
       return;
     }
 
@@ -135,7 +185,7 @@ export default function AddCashflowScreen() {
       const response = await fetch(receiptImage);
       const blob = await response.blob();
       const fileExt = receiptImage.split('.').pop() || 'jpg';
-      const fileName = `${user?.id}/${entryId}/receipt.${fileExt}`;
+      const fileName = `${authUser?.id}/${entryId}/receipt.${fileExt}`;
 
       const { error } = await supabase.storage
         .from('receipts')
@@ -163,7 +213,7 @@ export default function AddCashflowScreen() {
         .from('cashflow_entries')
         .insert({
           property_id: form.property_id,
-          user_id: user?.id,
+          user_id: authUser?.id,
           type: form.type,
           category: form.category,
           description: form.description.trim(),
@@ -189,11 +239,9 @@ export default function AddCashflowScreen() {
         }
       }
 
-      Alert.alert('Success', `${form.type === 'income' ? 'Income' : 'Expense'} recorded successfully!`, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      showNotification('Success', `${form.type === 'income' ? 'Income' : 'Expense'} recorded successfully!`, () => router.back());
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to record transaction');
+      showNotification('Error', error.message || 'Failed to record transaction');
     } finally {
       setIsLoading(false);
     }
@@ -270,19 +318,29 @@ export default function AddCashflowScreen() {
           />
 
           <Text style={styles.label}>Transaction Date *</Text>
-          <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.dateButtonText}>{formatDate(form.transaction_date)}</Text>
-          </Pressable>
-          {showDatePicker && (
-            <DateTimePicker
+          {isWeb ? (
+            <WebDateInput
               value={form.transaction_date}
-              mode="date"
-              maximumDate={new Date()}
-              onChange={(_, date) => {
-                setShowDatePicker(Platform.OS === 'ios');
-                if (date) updateForm('transaction_date', date);
-              }}
+              max={new Date().toISOString().split('T')[0]}
+              onChange={(date) => updateForm('transaction_date', date)}
             />
+          ) : (
+            <>
+              <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
+                <Text style={styles.dateButtonText}>{formatDate(form.transaction_date)}</Text>
+              </Pressable>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={form.transaction_date}
+                  mode="date"
+                  maximumDate={new Date()}
+                  onChange={(_, date) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (date) updateForm('transaction_date', date);
+                  }}
+                />
+              )}
+            </>
           )}
 
           <Select
@@ -344,13 +402,25 @@ export default function AddCashflowScreen() {
             fullWidth
             variant={form.type === 'income' ? 'primary' : 'danger'}
           />
-          <Button
-            title="Cancel"
-            variant="ghost"
-            onPress={() => router.back()}
-            fullWidth
-            style={{ marginTop: Spacing.sm }}
-          />
+          {isWeb ? (
+            <Pressable
+              style={[styles.cancelButton, { cursor: 'pointer' } as any]}
+              onPress={() => {
+                console.log('Cancel button pressed');
+                router.replace('/(tabs)/cashflow');
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </Pressable>
+          ) : (
+            <Button
+              title="Cancel"
+              variant="ghost"
+              onPress={() => router.back()}
+              fullWidth
+              style={{ marginTop: Spacing.sm }}
+            />
+          )}
         </View>
       </ScrollView>
     </>
@@ -380,4 +450,16 @@ const styles = StyleSheet.create({
   removeReceipt: { marginTop: Spacing.sm },
   removeReceiptText: { fontSize: Typography.fontSize.sm, color: Colors.semantic.error, fontWeight: '600' },
   buttonContainer: { padding: Spacing.lg },
+  cancelButton: {
+    width: '100%',
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+  },
+  cancelButtonText: {
+    color: Colors.primary.teal,
+    fontSize: Typography.fontSize.md,
+    fontWeight: '600',
+  },
 });

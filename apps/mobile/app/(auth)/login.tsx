@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/authStore';
+import { resetPassword } from '@/services/supabase';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 
 export default function LoginScreen() {
@@ -10,6 +11,9 @@ export default function LoginScreen() {
   const { signIn, isLoading, error, clearError } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -19,9 +23,31 @@ export default function LoginScreen() {
     try {
       await signIn(email.trim(), password);
       router.replace('/(tabs)');
-    } catch (err) {
-      Alert.alert('Login Failed', error || 'Please check your credentials');
+    } catch (err: any) {
+      const errorMessage = err?.message || error || 'Please check your credentials';
+      Alert.alert('Login Failed', errorMessage);
       clearError();
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!resetEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    setIsResetting(true);
+    try {
+      await resetPassword(resetEmail.trim());
+      Alert.alert(
+        'Check Your Email',
+        'If an account exists with this email, you will receive a password reset link.',
+        [{ text: 'OK', onPress: () => setShowForgotPassword(false) }]
+      );
+      setResetEmail('');
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Failed to send reset email');
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -60,8 +86,56 @@ export default function LoginScreen() {
           <Pressable style={styles.loginButton} onPress={handleLogin} disabled={isLoading}>
             {isLoading ? <ActivityIndicator color={Colors.primary.navy} /> : <Text style={styles.loginButtonText}>Log In</Text>}
           </Pressable>
+
+          <Pressable onPress={() => { setResetEmail(email); setShowForgotPassword(true); }} style={styles.forgotPasswordButton}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </Pressable>
         </View>
       </View>
+
+      {/* Forgot Password Modal */}
+      <Modal visible={showForgotPassword} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reset Password</Text>
+            <Text style={styles.modalDescription}>
+              Enter your email address and we'll send you a link to reset your password.
+            </Text>
+
+            <TextInput
+              style={styles.modalInput}
+              value={resetEmail}
+              onChangeText={setResetEmail}
+              placeholder="you@example.com"
+              placeholderTextColor={Colors.neutral.gray400}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <View style={styles.modalButtons}>
+              <Pressable
+                style={styles.modalCancelButton}
+                onPress={() => setShowForgotPassword(false)}
+                disabled={isResetting}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.modalSubmitButton}
+                onPress={handleForgotPassword}
+                disabled={isResetting}
+              >
+                {isResetting ? (
+                  <ActivityIndicator color={Colors.neutral.white} size="small" />
+                ) : (
+                  <Text style={styles.modalSubmitText}>Send Reset Link</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -77,4 +151,16 @@ const styles = StyleSheet.create({
   input: { backgroundColor: Colors.dark.surface, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, fontSize: Typography.fontSize.md, color: Colors.neutral.white, borderWidth: 1, borderColor: Colors.dark.border, marginBottom: Spacing.lg },
   loginButton: { backgroundColor: Colors.primary.teal, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg, alignItems: 'center', marginTop: Spacing.md },
   loginButtonText: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.primary.navy },
+  forgotPasswordButton: { alignItems: 'center', marginTop: Spacing.lg },
+  forgotPasswordText: { color: Colors.primary.teal, fontSize: Typography.fontSize.md },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
+  modalContent: { backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.xl, padding: Spacing.xl, width: '100%', maxWidth: 400 },
+  modalTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900, marginBottom: Spacing.sm },
+  modalDescription: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray600, marginBottom: Spacing.lg },
+  modalInput: { backgroundColor: Colors.neutral.gray50, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, fontSize: Typography.fontSize.md, color: Colors.neutral.gray900, borderWidth: 1, borderColor: Colors.neutral.gray200, marginBottom: Spacing.lg },
+  modalButtons: { flexDirection: 'row', gap: Spacing.md },
+  modalCancelButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg, alignItems: 'center', borderWidth: 1, borderColor: Colors.neutral.gray300 },
+  modalCancelText: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.gray600 },
+  modalSubmitButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg, alignItems: 'center', backgroundColor: Colors.primary.teal },
+  modalSubmitText: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.white },
 });

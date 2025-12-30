@@ -98,6 +98,12 @@ export default function RootLayout() {
             headerStyle: { backgroundColor: Colors.neutral.white },
           }}
         />
+        <Stack.Screen
+          name="reset-password"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
       <StatusBar style="auto" />
     </GestureHandlerRootView>
