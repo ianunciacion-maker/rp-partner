@@ -1,11 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase';
 import type { Property, Reservation, CashflowEntry } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
 
 interface Stats {
   totalProperties: number;
@@ -103,17 +105,24 @@ export default function MoreScreen() {
   );
 
   const handleSignOut = async () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          await signOut();
-          router.replace('/(auth)/welcome');
+    if (isWeb) {
+      if (window.confirm('Are you sure you want to sign out?')) {
+        await signOut();
+        router.replace('/(auth)/welcome');
+      }
+    } else {
+      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            router.replace('/(auth)/welcome');
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   if (isLoading) {
