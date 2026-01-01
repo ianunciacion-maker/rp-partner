@@ -134,10 +134,6 @@ export default function PropertyDetailScreen() {
             <Text style={styles.statLabel}>Max Guests</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statValue}>{property.currency} {property.base_rate?.toLocaleString()}</Text>
-            <Text style={styles.statLabel}>Base Rate</Text>
-          </View>
-          <View style={styles.statCard}>
             <Text style={styles.statValue}>{upcomingReservations.length}</Text>
             <Text style={styles.statLabel}>Upcoming</Text>
           </View>

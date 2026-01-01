@@ -97,6 +97,18 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['cashflow_entries']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['cashflow_entries']['Insert']>;
       };
+      locked_dates: {
+        Row: {
+          id: string;
+          property_id: string;
+          user_id: string;
+          date: string;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['locked_dates']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['locked_dates']['Insert']>;
+      };
     };
     Views: {};
     Functions: {};
@@ -109,6 +121,7 @@ export type User = Database['public']['Tables']['users']['Row'];
 export type Property = Database['public']['Tables']['properties']['Row'];
 export type Reservation = Database['public']['Tables']['reservations']['Row'];
 export type CashflowEntry = Database['public']['Tables']['cashflow_entries']['Row'];
+export type LockedDate = Database['public']['Tables']['locked_dates']['Row'];
 
 export type InsertTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
 export type UpdateTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];

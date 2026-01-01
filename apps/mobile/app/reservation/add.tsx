@@ -90,6 +90,7 @@ export default function AddReservationScreen() {
     check_out: getInitialCheckOut(),
     source: 'direct',
     notes: '',
+    total_amount: '',
     deposit_amount: '0',
   });
 
@@ -112,8 +113,7 @@ export default function AddReservationScreen() {
   const selectedProperty = properties.find((p) => p.id === form.property_id);
 
   const nights = Math.ceil((form.check_out.getTime() - form.check_in.getTime()) / 86400000);
-  const baseAmount = (selectedProperty?.base_rate || 0) * Math.max(nights, 0);
-  const totalAmount = baseAmount;
+  const totalAmount = parseFloat(form.total_amount) || 0;
 
   const updateForm = (key: string, value: any) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -126,6 +126,9 @@ export default function AddReservationScreen() {
     if (!form.guest_name.trim()) newErrors.guest_name = 'Guest name is required';
     if (!form.guest_count || isNaN(Number(form.guest_count))) newErrors.guest_count = 'Valid guest count required';
     if (form.check_out <= form.check_in) newErrors.check_out = 'Check-out must be after check-in';
+    if (!form.total_amount || isNaN(Number(form.total_amount)) || Number(form.total_amount) <= 0) {
+      newErrors.total_amount = 'Valid total amount is required';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -145,7 +148,7 @@ export default function AddReservationScreen() {
         guest_count: parseInt(form.guest_count),
         check_in: form.check_in.toISOString().split('T')[0],
         check_out: form.check_out.toISOString().split('T')[0],
-        base_amount: baseAmount,
+        base_amount: totalAmount,
         total_amount: totalAmount,
         deposit_amount: parseFloat(form.deposit_amount) || 0,
         source: form.source,
@@ -195,9 +198,6 @@ export default function AddReservationScreen() {
             onChange={(v) => updateForm('property_id', v)}
             error={errors.property_id}
           />
-          {selectedProperty && (
-            <Text style={styles.rateInfo}>Rate: PHP {selectedProperty.base_rate?.toLocaleString()}/night</Text>
-          )}
         </View>
 
         <View style={styles.section}>
@@ -320,6 +320,15 @@ export default function AddReservationScreen() {
             onChange={(v) => updateForm('source', v)}
           />
           <Input
+            label="Total Amount (PHP) *"
+            placeholder="Enter reservation cost"
+            value={form.total_amount}
+            onChangeText={(v) => updateForm('total_amount', v)}
+            keyboardType="decimal-pad"
+            error={errors.total_amount}
+            hint={nights > 0 ? `${nights} ${nights === 1 ? 'night' : 'nights'}` : ''}
+          />
+          <Input
             label="Deposit Amount (PHP)"
             placeholder="0"
             value={form.deposit_amount}
@@ -339,14 +348,20 @@ export default function AddReservationScreen() {
         <View style={styles.summarySection}>
           <Text style={styles.summaryTitle}>Booking Summary</Text>
           <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{nights} nights × PHP {selectedProperty?.base_rate?.toLocaleString() || 0}</Text>
-            <Text style={styles.summaryValue}>PHP {baseAmount.toLocaleString()}</Text>
+            <Text style={styles.summaryLabel}>Duration</Text>
+            <Text style={styles.summaryValue}>{nights} {nights === 1 ? 'night' : 'nights'}</Text>
           </View>
           <View style={[styles.summaryRow, styles.totalRow]}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalValue}>PHP {totalAmount.toLocaleString()}</Text>
           </View>
           {parseFloat(form.deposit_amount) > 0 && (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Deposit</Text>
+              <Text style={styles.summaryValue}>PHP {parseFloat(form.deposit_amount).toLocaleString()}</Text>
+            </View>
+          )}
+          {parseFloat(form.deposit_amount) > 0 && totalAmount > 0 && (
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Balance Due</Text>
               <Text style={styles.balanceValue}>PHP {(totalAmount - parseFloat(form.deposit_amount)).toLocaleString()}</Text>
@@ -371,7 +386,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900, marginBottom: Spacing.md },
   backdatedBanner: { backgroundColor: Colors.semantic.warning + '20', padding: Spacing.sm, borderRadius: BorderRadius.md, marginBottom: Spacing.md },
   backdatedText: { fontSize: Typography.fontSize.sm, color: Colors.semantic.warning, fontWeight: '500', textAlign: 'center' },
-  rateInfo: { fontSize: Typography.fontSize.sm, color: Colors.primary.teal, fontWeight: '500' },
   label: { fontSize: Typography.fontSize.sm, fontWeight: '500', color: Colors.neutral.gray700, marginBottom: Spacing.xs },
   dateButton: { backgroundColor: Colors.neutral.white, borderWidth: 1, borderColor: Colors.neutral.gray200, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md },
   dateInput: { backgroundColor: Colors.neutral.white, borderWidth: 1, borderColor: Colors.neutral.gray200, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.md, fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
