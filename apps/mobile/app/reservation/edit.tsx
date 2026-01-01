@@ -73,6 +73,55 @@ const STATUS_OPTIONS = [
   { label: 'No Show', value: 'no_show' },
 ];
 
+// Helper to record income when reservation is completed
+const recordReservationIncome = async (reservation: Reservation, formData: {
+  guest_name: string;
+  check_in: Date;
+  check_out: Date;
+  total_amount: string;
+}) => {
+  try {
+    // Check if income already recorded for this reservation
+    const { data: existing } = await supabase
+      .from('cashflow_entries')
+      .select('id')
+      .eq('reservation_id', reservation.id)
+      .eq('type', 'income')
+      .eq('category', 'rental_income')
+      .single();
+
+    if (existing) {
+      console.log('Income already recorded for reservation:', reservation.id);
+      return { alreadyExists: true };
+    }
+
+    // Format dates for description
+    const checkIn = formData.check_in.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const checkOut = formData.check_out.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const nights = Math.ceil((formData.check_out.getTime() - formData.check_in.getTime()) / 86400000);
+
+    // Create income entry
+    const { error } = await supabase.from('cashflow_entries').insert({
+      property_id: reservation.property_id,
+      user_id: reservation.user_id,
+      reservation_id: reservation.id,
+      type: 'income',
+      category: 'rental_income',
+      description: `Reservation payment - ${formData.guest_name} (${checkIn} - ${checkOut})`,
+      amount: parseFloat(formData.total_amount) || 0,
+      transaction_date: formData.check_out.toISOString().split('T')[0],
+      payment_method: null,
+      notes: `Auto-recorded from completed reservation. ${nights} nights.`,
+    });
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error('Error recording reservation income:', error);
+    return { error };
+  }
+};
+
 export default function EditReservationScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -193,7 +242,28 @@ export default function EditReservationScreen() {
 
       if (error) throw error;
 
-      showNotification('Success', 'Reservation updated successfully!', () => {
+      // Auto-record income when status changes to completed
+      const wasCompleted = reservation.status === 'completed';
+      const isNowCompleted = form.status === 'completed';
+      let incomeRecorded = false;
+
+      if (isNowCompleted && !wasCompleted) {
+        const incomeResult = await recordReservationIncome(reservation, {
+          guest_name: form.guest_name.trim(),
+          check_in: form.check_in,
+          check_out: form.check_out,
+          total_amount: form.total_amount,
+        });
+        if (incomeResult.success) {
+          incomeRecorded = true;
+        }
+      }
+
+      const message = incomeRecorded
+        ? `Reservation updated successfully!\n\nIncome of PHP ${totalAmount.toLocaleString()} has been automatically recorded in Cashflow.`
+        : 'Reservation updated successfully!';
+
+      showNotification('Success', message, () => {
         if (isWeb) {
           router.replace(`/reservation/${reservation.id}`);
         } else {

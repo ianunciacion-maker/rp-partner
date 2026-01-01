@@ -22,6 +22,49 @@ const STATUS_OPTIONS = [
   { label: 'No Show', value: 'no_show', color: Colors.semantic.error },
 ];
 
+// Helper to record income when reservation is completed
+const recordReservationIncome = async (reservation: ReservationWithProperty) => {
+  try {
+    // Check if income already recorded for this reservation
+    const { data: existing } = await supabase
+      .from('cashflow_entries')
+      .select('id')
+      .eq('reservation_id', reservation.id)
+      .eq('type', 'income')
+      .eq('category', 'rental_income')
+      .single();
+
+    if (existing) {
+      console.log('Income already recorded for reservation:', reservation.id);
+      return { alreadyExists: true };
+    }
+
+    // Format dates for description
+    const checkIn = new Date(reservation.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const checkOut = new Date(reservation.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+    // Create income entry
+    const { error } = await supabase.from('cashflow_entries').insert({
+      property_id: reservation.property_id,
+      user_id: reservation.user_id,
+      reservation_id: reservation.id,
+      type: 'income',
+      category: 'rental_income',
+      description: `Reservation payment - ${reservation.guest_name} (${checkIn} - ${checkOut})`,
+      amount: reservation.total_amount || 0,
+      transaction_date: reservation.check_out, // Use checkout date as transaction date
+      payment_method: null,
+      notes: `Auto-recorded from completed reservation. ${reservation.nights} nights.`,
+    });
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error('Error recording reservation income:', error);
+    return { error };
+  }
+};
+
 export default function ReservationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -59,6 +102,24 @@ export default function ReservationDetailScreen() {
           .update({ status: newStatus })
           .eq('id', reservation.id);
         if (error) throw error;
+
+        // Auto-record income when marking as completed
+        if (newStatus === 'completed' && reservation.status !== 'completed') {
+          const incomeResult = await recordReservationIncome(reservation);
+          if (incomeResult.success) {
+            const message = `Status updated to Completed.\n\nIncome of PHP ${reservation.total_amount?.toLocaleString()} has been automatically recorded in Cashflow.`;
+            if (isWeb) {
+              window.alert(message);
+            } else {
+              Alert.alert('Reservation Completed', message);
+            }
+          } else if (incomeResult.alreadyExists) {
+            // Income already recorded, just update status silently
+          } else if (incomeResult.error) {
+            console.error('Failed to record income:', incomeResult.error);
+          }
+        }
+
         setReservation((prev) => prev ? { ...prev, status: newStatus } : null);
       } catch (error: any) {
         if (isWeb) {
