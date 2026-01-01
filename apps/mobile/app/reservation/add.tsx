@@ -154,14 +154,23 @@ export default function AddReservationScreen() {
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Reservation created successfully!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (error: any) {
-      if (error.code === '23P01') {
-        Alert.alert('Booking Conflict', 'These dates overlap with an existing reservation.');
+      if (isWeb) {
+        window.alert('Reservation created successfully!');
+        router.replace('/(tabs)/calendar');
       } else {
-        Alert.alert('Error', error.message || 'Failed to create reservation');
+        Alert.alert('Success', 'Reservation created successfully!', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
+    } catch (error: any) {
+      const errorMessage = error.code === '23P01'
+        ? 'These dates overlap with an existing reservation.'
+        : (error.message || 'Failed to create reservation');
+
+      if (isWeb) {
+        window.alert(errorMessage);
+      } else {
+        Alert.alert(error.code === '23P01' ? 'Booking Conflict' : 'Error', errorMessage);
       }
     } finally {
       setIsLoading(false);

@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, RefreshControl, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import type { Property, Reservation } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
 
 export default function PropertyDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,27 +42,39 @@ export default function PropertyDetailScreen() {
     }, [id])
   );
 
-  const handleDelete = () => {
-    Alert.alert(
-      'Delete Property',
-      'Are you sure you want to delete this property? All reservations and cashflow entries will also be deleted.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const { error } = await supabase.from('properties').delete().eq('id', id);
-              if (error) throw error;
-              router.back();
-            } catch (error: any) {
-              Alert.alert('Error', error.message);
-            }
-          },
-        },
-      ]
-    );
+  const handleDelete = async () => {
+    const doDelete = async () => {
+      try {
+        const { error } = await supabase.from('properties').delete().eq('id', id);
+        if (error) throw error;
+        if (isWeb) {
+          router.replace('/(tabs)');
+        } else {
+          router.back();
+        }
+      } catch (error: any) {
+        if (isWeb) {
+          window.alert(error.message);
+        } else {
+          Alert.alert('Error', error.message);
+        }
+      }
+    };
+
+    if (isWeb) {
+      if (window.confirm('Are you sure you want to delete this property? All reservations and cashflow entries will also be deleted.')) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Delete Property',
+        'Are you sure you want to delete this property? All reservations and cashflow entries will also be deleted.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: doDelete },
+        ]
+      );
+    }
   };
 
   if (isLoading) {

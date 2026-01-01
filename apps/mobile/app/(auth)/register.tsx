@@ -1,9 +1,11 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/authStore';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -15,20 +17,37 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!fullName.trim() || !email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all fields');
+      if (isWeb) {
+        window.alert('Please fill in all fields');
+      } else {
+        Alert.alert('Error', 'Please fill in all fields');
+      }
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      if (isWeb) {
+        window.alert('Passwords do not match');
+      } else {
+        Alert.alert('Error', 'Passwords do not match');
+      }
       return;
     }
     try {
       await signUp(email.trim(), password, fullName.trim());
-      Alert.alert('Success', 'Account created! Please check your email to verify.', [
-        { text: 'OK', onPress: () => router.replace('/(auth)/login') }
-      ]);
+      if (isWeb) {
+        window.alert('Account created! Please check your email to verify.');
+        router.replace('/(auth)/login');
+      } else {
+        Alert.alert('Success', 'Account created! Please check your email to verify.', [
+          { text: 'OK', onPress: () => router.replace('/(auth)/login') }
+        ]);
+      }
     } catch (err) {
-      Alert.alert('Registration Failed', error || 'Please try again');
+      if (isWeb) {
+        window.alert(error || 'Please try again');
+      } else {
+        Alert.alert('Registration Failed', error || 'Please try again');
+      }
       clearError();
     }
   };

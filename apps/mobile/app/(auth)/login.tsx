@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator, Modal, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/authStore';
 import { resetPassword } from '@/services/supabase';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -17,7 +19,11 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please enter both email and password');
+      if (isWeb) {
+        window.alert('Please enter both email and password');
+      } else {
+        Alert.alert('Error', 'Please enter both email and password');
+      }
       return;
     }
     try {
@@ -25,27 +31,44 @@ export default function LoginScreen() {
       router.replace('/(tabs)');
     } catch (err: any) {
       const errorMessage = err?.message || error || 'Please check your credentials';
-      Alert.alert('Login Failed', errorMessage);
+      if (isWeb) {
+        window.alert(errorMessage);
+      } else {
+        Alert.alert('Login Failed', errorMessage);
+      }
       clearError();
     }
   };
 
   const handleForgotPassword = async () => {
     if (!resetEmail.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      if (isWeb) {
+        window.alert('Please enter your email address');
+      } else {
+        Alert.alert('Error', 'Please enter your email address');
+      }
       return;
     }
     setIsResetting(true);
     try {
       await resetPassword(resetEmail.trim());
-      Alert.alert(
-        'Check Your Email',
-        'If an account exists with this email, you will receive a password reset link.',
-        [{ text: 'OK', onPress: () => setShowForgotPassword(false) }]
-      );
+      if (isWeb) {
+        window.alert('If an account exists with this email, you will receive a password reset link.');
+        setShowForgotPassword(false);
+      } else {
+        Alert.alert(
+          'Check Your Email',
+          'If an account exists with this email, you will receive a password reset link.',
+          [{ text: 'OK', onPress: () => setShowForgotPassword(false) }]
+        );
+      }
       setResetEmail('');
     } catch (err: any) {
-      Alert.alert('Error', err?.message || 'Failed to send reset email');
+      if (isWeb) {
+        window.alert(err?.message || 'Failed to send reset email');
+      } else {
+        Alert.alert('Error', err?.message || 'Failed to send reset email');
+      }
     } finally {
       setIsResetting(false);
     }

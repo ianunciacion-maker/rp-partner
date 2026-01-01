@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import type { Property, Reservation } from '@/types/database';
 import { Button } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
 
 interface ReservationWithProperty extends Reservation {
   property?: Property;
@@ -48,31 +50,40 @@ export default function ReservationDetailScreen() {
   const updateStatus = async (newStatus: string) => {
     if (!reservation) return;
 
-    Alert.alert(
-      'Update Status',
-      `Change status to "${newStatus}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Update',
-          onPress: async () => {
-            setIsUpdating(true);
-            try {
-              const { error } = await supabase
-                .from('reservations')
-                .update({ status: newStatus })
-                .eq('id', reservation.id);
-              if (error) throw error;
-              setReservation((prev) => prev ? { ...prev, status: newStatus } : null);
-            } catch (error: any) {
-              Alert.alert('Error', error.message);
-            } finally {
-              setIsUpdating(false);
-            }
-          },
-        },
-      ]
-    );
+    const doUpdate = async () => {
+      setIsUpdating(true);
+      try {
+        const { error } = await supabase
+          .from('reservations')
+          .update({ status: newStatus })
+          .eq('id', reservation.id);
+        if (error) throw error;
+        setReservation((prev) => prev ? { ...prev, status: newStatus } : null);
+      } catch (error: any) {
+        if (isWeb) {
+          window.alert(error.message);
+        } else {
+          Alert.alert('Error', error.message);
+        }
+      } finally {
+        setIsUpdating(false);
+      }
+    };
+
+    if (isWeb) {
+      if (window.confirm(`Change status to "${newStatus}"?`)) {
+        doUpdate();
+      }
+    } else {
+      Alert.alert(
+        'Update Status',
+        `Change status to "${newStatus}"?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Update', onPress: doUpdate },
+        ]
+      );
+    }
   };
 
   const markDepositPaid = async () => {
@@ -86,40 +97,60 @@ export default function ReservationDetailScreen() {
         .eq('id', reservation.id);
       if (error) throw error;
       setReservation((prev) => prev ? { ...prev, deposit_paid: true } : null);
-      Alert.alert('Success', 'Deposit marked as paid');
+      if (isWeb) {
+        window.alert('Deposit marked as paid');
+      } else {
+        Alert.alert('Success', 'Deposit marked as paid');
+      }
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      if (isWeb) {
+        window.alert(error.message);
+      } else {
+        Alert.alert('Error', error.message);
+      }
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const deleteReservation = () => {
-    Alert.alert(
-      'Delete Reservation',
-      'Are you sure you want to delete this reservation? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setIsUpdating(true);
-            try {
-              const { error } = await supabase
-                .from('reservations')
-                .delete()
-                .eq('id', id);
-              if (error) throw error;
-              router.back();
-            } catch (error: any) {
-              Alert.alert('Error', error.message);
-              setIsUpdating(false);
-            }
-          },
-        },
-      ]
-    );
+  const deleteReservation = async () => {
+    const doDelete = async () => {
+      setIsUpdating(true);
+      try {
+        const { error } = await supabase
+          .from('reservations')
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+        if (isWeb) {
+          router.replace('/(tabs)/calendar');
+        } else {
+          router.back();
+        }
+      } catch (error: any) {
+        if (isWeb) {
+          window.alert(error.message);
+        } else {
+          Alert.alert('Error', error.message);
+        }
+        setIsUpdating(false);
+      }
+    };
+
+    if (isWeb) {
+      if (window.confirm('Are you sure you want to delete this reservation? This cannot be undone.')) {
+        doDelete();
+      }
+    } else {
+      Alert.alert(
+        'Delete Reservation',
+        'Are you sure you want to delete this reservation? This cannot be undone.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: doDelete },
+        ]
+      );
+    }
   };
 
   if (isLoading) {
