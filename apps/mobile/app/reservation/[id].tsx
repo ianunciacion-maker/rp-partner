@@ -5,6 +5,7 @@ import { supabase } from '@/services/supabase';
 import type { Property, Reservation } from '@/types/database';
 import { Button } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+import { BottomNav } from '@/components/BottomNav';
 
 const isWeb = Platform.OS === 'web';
 
@@ -170,7 +171,7 @@ export default function ReservationDetailScreen() {
   const balance = (reservation.total_amount || 0) - (reservation.deposit_amount || 0);
 
   return (
-    <>
+    <View style={styles.wrapper}>
       <Stack.Screen options={{ title: 'Reservation', headerBackTitle: 'Back' }} />
       <ScrollView style={styles.container}>
         {/* Status Header */}
@@ -288,7 +289,8 @@ export default function ReservationDetailScreen() {
           />
         </View>
       </ScrollView>
-    </>
+      <BottomNav />
+    </View>
   );
 }
 
@@ -298,6 +300,7 @@ const formatDate = (dateStr: string) => {
 };
 
 const styles = StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { fontSize: Typography.fontSize.lg, color: Colors.neutral.gray500, marginBottom: Spacing.md },

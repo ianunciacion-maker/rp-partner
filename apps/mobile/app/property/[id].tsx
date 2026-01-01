@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-rou
 import { supabase } from '@/services/supabase';
 import type { Property, Reservation } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+import { BottomNav } from '@/components/BottomNav';
 
 const isWeb = Platform.OS === 'web';
 
@@ -101,7 +102,7 @@ export default function PropertyDetailScreen() {
   );
 
   return (
-    <>
+    <View style={styles.wrapper}>
       <Stack.Screen
         options={{
           title: property.name,
@@ -208,7 +209,8 @@ export default function PropertyDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
-    </>
+      <BottomNav />
+    </View>
   );
 }
 
@@ -229,6 +231,7 @@ const formatDate = (dateStr: string) => {
 };
 
 const styles = StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.neutral.gray50 },
   errorText: { fontSize: Typography.fontSize.lg, color: Colors.neutral.gray500, marginBottom: Spacing.md },

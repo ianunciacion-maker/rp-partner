@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import type { Property } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+import { BottomNav } from '@/components/BottomNav';
 
 const isWeb = Platform.OS === 'web';
 
@@ -182,7 +183,7 @@ export default function AddReservationScreen() {
   };
 
   return (
-    <>
+    <View style={styles.wrapper}>
       <Stack.Screen options={{ title: 'New Reservation', headerBackTitle: 'Back' }} />
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
@@ -358,11 +359,13 @@ export default function AddReservationScreen() {
           <Button title="Cancel" variant="ghost" onPress={() => router.back()} fullWidth style={{ marginTop: Spacing.sm }} />
         </View>
       </ScrollView>
-    </>
+      <BottomNav />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   section: { backgroundColor: Colors.neutral.white, padding: Spacing.lg, marginBottom: Spacing.md },
   sectionTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900, marginBottom: Spacing.md },
