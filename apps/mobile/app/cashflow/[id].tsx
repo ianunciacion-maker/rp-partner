@@ -163,6 +163,16 @@ export default function CashflowDetailScreen() {
           </View>
         </View>
 
+        {/* Action Buttons */}
+        <View style={styles.actionSection}>
+          <Button
+            title="Edit Transaction"
+            variant="primary"
+            onPress={() => router.push(`/cashflow/edit?id=${id}`)}
+            fullWidth
+          />
+        </View>
+
         {/* Delete Button */}
         <View style={styles.dangerSection}>
           <Button
@@ -223,5 +233,6 @@ const styles = StyleSheet.create({
   detailValue: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray900, fontWeight: '500', textAlign: 'right', flex: 1, marginLeft: Spacing.md },
   receiptImage: { width: '100%', height: 300, borderRadius: BorderRadius.lg, resizeMode: 'contain', backgroundColor: Colors.neutral.gray100 },
   notes: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray600, lineHeight: 22 },
+  actionSection: { padding: Spacing.lg, paddingBottom: 0 },
   dangerSection: { padding: Spacing.lg, marginBottom: Spacing.xxl },
 });
