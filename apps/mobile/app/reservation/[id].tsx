@@ -172,7 +172,17 @@ export default function ReservationDetailScreen() {
 
   return (
     <View style={styles.wrapper}>
-      <Stack.Screen options={{ title: 'Reservation', headerBackTitle: 'Back' }} />
+      <Stack.Screen
+        options={{
+          title: 'Reservation',
+          headerBackTitle: 'Back',
+          headerRight: () => (
+            <Pressable onPress={() => router.push(`/reservation/edit?id=${id}`)} style={styles.headerButton}>
+              <Text style={styles.headerButtonText}>Edit</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <ScrollView style={styles.container}>
         {/* Status Header */}
         <View style={[styles.statusHeader, { backgroundColor: currentStatus?.color + '20' }]}>
@@ -304,6 +314,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { fontSize: Typography.fontSize.lg, color: Colors.neutral.gray500, marginBottom: Spacing.md },
+  headerButton: { marginRight: Spacing.sm },
+  headerButtonText: { color: Colors.primary.teal, fontSize: Typography.fontSize.md, fontWeight: '600' },
   statusHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.md },
   statusDot: { width: 10, height: 10, borderRadius: 5, marginRight: Spacing.sm },
   statusText: { fontSize: Typography.fontSize.md, fontWeight: '600', textTransform: 'uppercase' },
