@@ -64,10 +64,12 @@ export default function CashflowDetailScreen() {
 
       if (isWeb) {
         window.alert('Transaction deleted successfully!');
+        setTimeout(() => router.replace('/(tabs)/cashflow'), 0);
       } else {
-        Alert.alert('Success', 'Transaction deleted successfully!');
+        Alert.alert('Success', 'Transaction deleted successfully!', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
       }
-      router.back();
     } catch (error: any) {
       if (isWeb) {
         window.alert(`Error: ${error.message}`);

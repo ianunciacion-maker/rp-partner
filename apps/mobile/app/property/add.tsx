@@ -13,9 +13,8 @@ const isWeb = Platform.OS === 'web';
 // Web-compatible notification
 const showNotification = (title: string, message: string, onOk?: () => void) => {
   if (isWeb) {
-    if (window.confirm(`${title}\n\n${message}`)) {
-      onOk?.();
-    }
+    window.alert(`${title}\n\n${message}`);
+    onOk?.();
   } else {
     Alert.alert(title, message, [{ text: 'OK', onPress: onOk }]);
   }
@@ -157,7 +156,13 @@ export default function AddPropertyScreen() {
         }
       }
 
-      showNotification('Success', 'Property created successfully!', () => router.back());
+      showNotification('Success', 'Property created successfully!', () => {
+        if (isWeb) {
+          router.replace('/(tabs)/');
+        } else {
+          router.back();
+        }
+      });
     } catch (error: any) {
       showNotification('Error', error.message || 'Failed to create property');
     } finally {

@@ -15,9 +15,8 @@ const isWeb = Platform.OS === 'web';
 // Web-compatible notification
 const showNotification = (title: string, message: string, onOk?: () => void) => {
   if (isWeb) {
-    if (window.confirm(`${title}\n\n${message}`)) {
-      onOk?.();
-    }
+    window.alert(`${title}\n\n${message}`);
+    onOk?.();
   } else {
     Alert.alert(title, message, [{ text: 'OK', onPress: onOk }]);
   }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, ActivityIndicator, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/services/supabase';
@@ -7,6 +7,18 @@ import { useAuthStore } from '@/stores/authStore';
 import type { Property } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+
+const isWeb = Platform.OS === 'web';
+
+// Web-compatible notification
+const showNotification = (title: string, message: string, onOk?: () => void) => {
+  if (isWeb) {
+    window.alert(`${title}\n\n${message}`);
+    onOk?.();
+  } else {
+    Alert.alert(title, message, [{ text: 'OK', onPress: onOk }]);
+  }
+};
 
 const PROPERTY_TYPES = [
   { label: 'Villa', value: 'villa' },
@@ -163,11 +175,15 @@ export default function EditPropertyScreen() {
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Property updated successfully!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      showNotification('Success', 'Property updated successfully!', () => {
+        if (isWeb) {
+          router.replace(`/property/${id}`);
+        } else {
+          router.back();
+        }
+      });
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update property');
+      showNotification('Error', error.message || 'Failed to update property');
     } finally {
       setIsSaving(false);
     }

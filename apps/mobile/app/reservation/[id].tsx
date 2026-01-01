@@ -110,6 +110,8 @@ export default function ReservationDetailScreen() {
             const message = `Status updated to Completed.\n\nIncome of PHP ${reservation.total_amount?.toLocaleString()} has been automatically recorded in Cashflow.`;
             if (isWeb) {
               window.alert(message);
+              // Refresh the page to show updated data
+              setTimeout(() => window.location.reload(), 0);
             } else {
               Alert.alert('Reservation Completed', message);
             }
