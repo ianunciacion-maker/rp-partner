@@ -12,6 +12,14 @@ import { BottomNav } from '@/components/BottomNav';
 
 const isWeb = Platform.OS === 'web';
 
+// Format date to YYYY-MM-DD in LOCAL timezone (not UTC)
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Web-compatible notification
 const showNotification = (title: string, message: string, onOk?: () => void) => {
   if (isWeb) {
@@ -34,7 +42,7 @@ const WebDateInput = ({ value, onChange, max, style }: {
   return (
     <input
       type="date"
-      value={value.toISOString().split('T')[0]}
+      value={formatDateLocal(value)}
       max={max}
       onChange={(e) => {
         const date = new Date(e.target.value + 'T00:00:00');
@@ -218,7 +226,7 @@ export default function AddCashflowScreen() {
           category: form.category,
           description: form.description.trim(),
           amount: parseFloat(form.amount),
-          transaction_date: form.transaction_date.toISOString().split('T')[0],
+          transaction_date: formatDateLocal(form.transaction_date),
           payment_method: form.payment_method,
           reference_number: form.reference_number.trim() || null,
           notes: form.notes.trim() || null,
@@ -327,7 +335,7 @@ export default function AddCashflowScreen() {
           {isWeb ? (
             <WebDateInput
               value={form.transaction_date}
-              max={new Date().toISOString().split('T')[0]}
+              max={formatDateLocal(new Date())}
               onChange={(date) => updateForm('transaction_date', date)}
             />
           ) : (

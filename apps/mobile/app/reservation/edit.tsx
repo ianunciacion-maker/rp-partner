@@ -10,6 +10,14 @@ import { BottomNav } from '@/components/BottomNav';
 
 const isWeb = Platform.OS === 'web';
 
+// Format date to YYYY-MM-DD in LOCAL timezone (not UTC)
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Web-compatible notification
 const showNotification = (title: string, message: string, onOk?: () => void) => {
   if (isWeb) {
@@ -32,7 +40,7 @@ const WebDateInput = ({ value, onChange, style, hasError }: {
   return (
     <input
       type="date"
-      value={value.toISOString().split('T')[0]}
+      value={formatDateLocal(value)}
       onChange={(e) => {
         const date = new Date(e.target.value + 'T00:00:00');
         if (!isNaN(date.getTime())) {
@@ -109,7 +117,7 @@ const recordReservationIncome = async (reservation: Reservation, formData: {
       category: 'rental_income',
       description: `Reservation payment - ${formData.guest_name} (${checkIn} - ${checkOut})`,
       amount: parseFloat(formData.total_amount) || 0,
-      transaction_date: formData.check_out.toISOString().split('T')[0],
+      transaction_date: formatDateLocal(formData.check_out),
       payment_method: null,
       notes: `Auto-recorded from completed reservation. ${nights} nights.`,
     });
@@ -228,8 +236,8 @@ export default function EditReservationScreen() {
           guest_phone: form.guest_phone.trim() || null,
           guest_email: form.guest_email.trim() || null,
           guest_count: parseInt(form.guest_count),
-          check_in: form.check_in.toISOString().split('T')[0],
-          check_out: form.check_out.toISOString().split('T')[0],
+          check_in: formatDateLocal(form.check_in),
+          check_out: formatDateLocal(form.check_out),
           base_amount: totalAmount,
           total_amount: totalAmount,
           deposit_amount: parseFloat(form.deposit_amount) || 0,

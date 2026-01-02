@@ -11,6 +11,14 @@ import { BottomNav } from '@/components/BottomNav';
 
 const isWeb = Platform.OS === 'web';
 
+// Format date to YYYY-MM-DD in LOCAL timezone (not UTC)
+const formatDateLocal = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Web-only date input component
 const WebDateInput = ({ value, onChange, min, style, hasError }: {
   value: Date;
@@ -24,7 +32,7 @@ const WebDateInput = ({ value, onChange, min, style, hasError }: {
   return (
     <input
       type="date"
-      value={value.toISOString().split('T')[0]}
+      value={formatDateLocal(value)}
       min={min}
       onChange={(e) => {
         const date = new Date(e.target.value + 'T00:00:00');
@@ -95,7 +103,7 @@ export default function AddReservationScreen() {
   });
 
   // Check if this is a backdated reservation
-  const isBackdated = date ? new Date(date + 'T00:00:00') < new Date(new Date().toISOString().split('T')[0] + 'T00:00:00') : false;
+  const isBackdated = date ? new Date(date + 'T00:00:00') < new Date(formatDateLocal(new Date()) + 'T00:00:00') : false;
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -146,8 +154,8 @@ export default function AddReservationScreen() {
         guest_phone: form.guest_phone.trim() || null,
         guest_email: form.guest_email.trim() || null,
         guest_count: parseInt(form.guest_count),
-        check_in: form.check_in.toISOString().split('T')[0],
-        check_out: form.check_out.toISOString().split('T')[0],
+        check_in: formatDateLocal(form.check_in),
+        check_out: formatDateLocal(form.check_out),
         base_amount: totalAmount,
         total_amount: totalAmount,
         deposit_amount: parseFloat(form.deposit_amount) || 0,
@@ -282,7 +290,7 @@ export default function AddReservationScreen() {
             <>
               <WebDateInput
                 value={form.check_out}
-                min={new Date(form.check_in.getTime() + 86400000).toISOString().split('T')[0]}
+                min={formatDateLocal(new Date(form.check_in.getTime() + 86400000))}
                 onChange={(date) => updateForm('check_out', date)}
                 hasError={!!errors.check_out}
               />
