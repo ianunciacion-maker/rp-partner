@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, RefreshControl, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, RefreshControl, Platform, Image } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import type { Property, Reservation } from '@/types/database';
@@ -120,7 +120,11 @@ export default function PropertyDetailScreen() {
       >
         <View style={styles.header}>
           <View style={styles.coverImage}>
-            <Text style={styles.coverInitial}>{property.name.charAt(0)}</Text>
+            {property.cover_image_url ? (
+              <Image source={{ uri: property.cover_image_url }} style={styles.coverImageActual} />
+            ) : (
+              <Text style={styles.coverInitial}>{property.name.charAt(0)}</Text>
+            )}
           </View>
           <Text style={styles.propertyName}>{property.name}</Text>
           <Text style={styles.propertyType}>{property.property_type || 'Property'}</Text>
@@ -236,7 +240,8 @@ const styles = StyleSheet.create({
   headerButton: { marginRight: Spacing.sm },
   headerButtonText: { color: Colors.primary.teal, fontSize: Typography.fontSize.md, fontWeight: '600' },
   header: { alignItems: 'center', paddingVertical: Spacing.xl, backgroundColor: Colors.neutral.white, marginBottom: Spacing.md },
-  coverImage: { width: 100, height: 100, borderRadius: 50, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.md },
+  coverImage: { width: 100, height: 100, borderRadius: 50, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.md, overflow: 'hidden' },
+  coverImageActual: { width: 100, height: 100, resizeMode: 'cover' },
   coverInitial: { fontSize: 40, fontWeight: 'bold', color: Colors.neutral.white },
   propertyName: { fontSize: Typography.fontSize['2xl'], fontWeight: 'bold', color: Colors.neutral.gray900 },
   propertyType: { fontSize: Typography.fontSize.md, color: Colors.primary.teal, textTransform: 'capitalize', marginTop: Spacing.xs },

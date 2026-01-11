@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
@@ -62,7 +62,13 @@ export default function HomeScreen() {
         ) : (
           properties.map((property) => (
             <Pressable key={property.id} style={styles.propertyCard} onPress={() => router.push(`/property/${property.id}`)}>
-              <View style={styles.propertyImage}><Text style={styles.propertyInitial}>{property.name.charAt(0)}</Text></View>
+              <View style={styles.propertyImage}>
+                {property.cover_image_url ? (
+                  <Image source={{ uri: property.cover_image_url }} style={styles.propertyImageActual} />
+                ) : (
+                  <Text style={styles.propertyInitial}>{property.name.charAt(0)}</Text>
+                )}
+              </View>
               <View style={styles.propertyInfo}>
                 <Text style={styles.propertyName}>{property.name}</Text>
                 <Text style={styles.propertyLocation}>{property.city || 'Location not set'}</Text>
@@ -96,7 +102,8 @@ const styles = StyleSheet.create({
   emptyButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg },
   emptyButtonText: { color: Colors.neutral.white, fontWeight: '600', fontSize: Typography.fontSize.md },
   propertyCard: { flexDirection: 'row', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.md, ...Shadows.sm },
-  propertyImage: { width: 60, height: 60, borderRadius: BorderRadius.md, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md },
+  propertyImage: { width: 60, height: 60, borderRadius: BorderRadius.md, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md, overflow: 'hidden' },
+  propertyImageActual: { width: 60, height: 60, resizeMode: 'cover' },
   propertyInitial: { fontSize: 24, fontWeight: 'bold', color: Colors.neutral.white },
   propertyInfo: { flex: 1, justifyContent: 'center' },
   propertyName: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },

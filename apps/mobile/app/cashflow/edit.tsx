@@ -333,6 +333,11 @@ export default function EditCashflowScreen() {
         }}
       />
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.header}>
+          <Pressable onPress={() => router.back()}>
+            <Text style={styles.backButton}>← Back</Text>
+          </Pressable>
+        </View>
         {/* Type Toggle */}
         <View style={styles.section}>
           <View style={styles.typeToggle}>
@@ -510,6 +515,8 @@ export default function EditCashflowScreen() {
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm, backgroundColor: Colors.neutral.white },
+  backButton: { color: Colors.primary.teal, fontSize: Typography.fontSize.md, fontWeight: '600' },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.neutral.gray50 },
   errorText: { fontSize: Typography.fontSize.lg, color: Colors.neutral.gray500, marginBottom: Spacing.md },
   section: { backgroundColor: Colors.neutral.white, padding: Spacing.lg, marginBottom: Spacing.md },
