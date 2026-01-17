@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl, Modal, Platform, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -84,8 +84,7 @@ export default function CashflowScreen() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [selectedProperty, selectedMonth, selectedYear]);
-
+  // Refresh when screen comes into focus (also fires on initial mount)
   useFocusEffect(
     useCallback(() => {
       fetchData();

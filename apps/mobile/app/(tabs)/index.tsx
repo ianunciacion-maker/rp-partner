@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -6,6 +6,36 @@ import { useAuthStore } from '@/stores/authStore';
 import { supabase } from '@/services/supabase';
 import type { Property } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+
+// Optimized image component with loading placeholder
+function PropertyImage({ property }: { property: Property }) {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  if (!property.cover_image_url || error) {
+    return (
+      <View style={styles.propertyImage}>
+        <Text style={styles.propertyInitial}>{property.name.charAt(0)}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.propertyImage}>
+      {!loaded && (
+        <View style={styles.imagePlaceholder}>
+          <Text style={styles.propertyInitial}>{property.name.charAt(0)}</Text>
+        </View>
+      )}
+      <Image
+        source={{ uri: property.cover_image_url }}
+        style={[styles.propertyImageActual, !loaded && styles.imageHidden]}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+      />
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -27,9 +57,7 @@ export default function HomeScreen() {
     }
   };
 
-  useEffect(() => { fetchProperties(); }, []);
-
-  // Refresh when screen comes into focus
+  // Refresh when screen comes into focus (also fires on initial mount)
   useFocusEffect(
     useCallback(() => {
       fetchProperties();
@@ -62,13 +90,7 @@ export default function HomeScreen() {
         ) : (
           properties.map((property) => (
             <Pressable key={property.id} style={styles.propertyCard} onPress={() => router.push(`/property/${property.id}`)}>
-              <View style={styles.propertyImage}>
-                {property.cover_image_url ? (
-                  <Image source={{ uri: property.cover_image_url }} style={styles.propertyImageActual} />
-                ) : (
-                  <Text style={styles.propertyInitial}>{property.name.charAt(0)}</Text>
-                )}
-              </View>
+              <PropertyImage property={property} />
               <View style={styles.propertyInfo}>
                 <Text style={styles.propertyName}>{property.name}</Text>
                 <Text style={styles.propertyLocation}>{property.city || 'Location not set'}</Text>
@@ -102,8 +124,10 @@ const styles = StyleSheet.create({
   emptyButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg },
   emptyButtonText: { color: Colors.neutral.white, fontWeight: '600', fontSize: Typography.fontSize.md },
   propertyCard: { flexDirection: 'row', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.md, ...Shadows.sm },
-  propertyImage: { width: 60, height: 60, borderRadius: BorderRadius.md, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md, overflow: 'hidden' },
-  propertyImageActual: { width: 60, height: 60, resizeMode: 'cover' },
+  propertyImage: { width: 60, height: 60, borderRadius: BorderRadius.md, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md, overflow: 'hidden', position: 'relative' },
+  propertyImageActual: { width: 60, height: 60, resizeMode: 'cover', position: 'absolute', top: 0, left: 0 },
+  imageHidden: { opacity: 0 },
+  imagePlaceholder: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   propertyInitial: { fontSize: 24, fontWeight: 'bold', color: Colors.neutral.white },
   propertyInfo: { flex: 1, justifyContent: 'center' },
   propertyName: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },

@@ -21,7 +21,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   session: null,
   authUser: null,
   user: null,
-  isLoading: true,
+  isLoading: false, // Start false - isInitialized gates the UI
   isInitialized: false,
   error: null,
 

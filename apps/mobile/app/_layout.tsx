@@ -14,7 +14,8 @@ export default function RootLayout() {
     initialize();
   }, []);
 
-  if (!isInitialized || isLoading) {
+  // Only block on isInitialized - isLoading is also used during sign-in/out
+  if (!isInitialized) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary.teal} />

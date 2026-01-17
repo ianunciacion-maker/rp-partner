@@ -1,97 +1,104 @@
-# RP-Partner
+# CLAUDE.md
 
-Rental property management platform for Filipino property owners.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Architecture
+## Project Overview
 
-- **Monorepo**: npm workspaces with `apps/` and `packages/`
-- **Mobile**: React Native (Expo SDK 54) with expo-router 6.x
-- **Admin**: Next.js 15 with App Router (planned)
-- **Backend**: Supabase (PostgreSQL, Auth, Storage, Edge Functions)
-- **State**: Zustand with persist middleware
+Rental property management platform for Filipino property owners. Monorepo with Expo React Native mobile app and planned Next.js admin dashboard.
 
 ## Commands
 
 ```bash
-# Root level
-npm run mobile          # Start Expo dev server
-npm run admin           # Start Next.js admin (when built)
+# Development
+npm run mobile              # Start Expo dev server (from root)
+npx expo start --clear      # Clear cache and start (from apps/mobile)
 
-# Mobile app (apps/mobile)
-npx expo start          # Start Expo Go
-npx expo start --clear  # Clear cache and start
-npx expo install        # Install Expo-compatible deps
+# Mobile builds
+npm run mobile:build        # Web export
+npx eas build --platform android  # Android build
+npx eas build --platform ios      # iOS build
+
+# Code quality (from apps/mobile)
+npm run lint               # Run ESLint
+npm run test               # Run Jest tests
 
 # Database
 # Apply migrations via Supabase Dashboard SQL Editor
 ```
 
-## Project Structure
+## Architecture
 
-```
-rp-partner/
-├── apps/
-│   ├── mobile/              # Expo React Native app
-│   │   ├── app/             # expo-router file-based routes
-│   │   │   ├── (auth)/      # Auth screens (welcome, login, register)
-│   │   │   ├── (tabs)/      # Tab navigation (properties, calendar, cashflow, more)
-│   │   │   └── property/    # Property detail screens
-│   │   ├── components/      # Reusable UI components
-│   │   ├── constants/       # Theme, colors, typography
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── services/        # Supabase client, API calls
-│   │   ├── stores/          # Zustand state stores
-│   │   └── types/           # TypeScript types
-│   └── admin/               # Next.js admin dashboard (planned)
-├── packages/
-│   └── shared/              # Shared types and utilities (planned)
-└── supabase/
-    └── migrations/          # SQL migration files
+### Tech Stack
+- **Mobile**: Expo SDK 54, React Native 0.81, expo-router 6.x
+- **Backend**: Supabase (PostgreSQL with RLS, Auth, Storage)
+- **State**: Zustand (no persist middleware needed - auth uses SecureStore)
+- **Forms**: react-hook-form + zod validation
+- **Dates**: date-fns v4
+
+### Path Aliases
+Use `@/` prefix for imports from the mobile app root:
+```typescript
+import { supabase } from '@/services/supabase';
+import { Colors } from '@/constants/theme';
+import type { Property } from '@/types/database';
 ```
 
-## Key Patterns
+### Navigation Structure
+expo-router file-based routing with route groups:
+- `(auth)/` - Unauthenticated screens (welcome, login, register)
+- `(tabs)/` - Main tab navigation (properties, calendar, cashflow, more)
+- `property/[id]`, `reservation/[id]`, `cashflow/[id]` - Detail screens
+- `property/[id]/calendar` - Property-specific calendar with share feature
 
-### Authentication
-- Supabase Auth with email/password
-- Tokens stored in `expo-secure-store`
-- Auth state managed in `stores/authStore.ts`
-- Protected routes via `app/_layout.tsx`
-
-### Navigation
-- expo-router 6.x file-based routing
-- `(auth)` group for unauthenticated screens
-- `(tabs)` group for main tab navigation
-- Dynamic routes: `property/[id]`, `reservation/[id]`
-
-### Database
-- Row Level Security (RLS) enabled on all tables
-- Users can only access their own data
-- Policies check `auth.uid() = user_id`
-
-### Styling
-- Design tokens in `constants/theme.ts`
-- Colors: primary (teal), semantic (success, warning, error)
-- Typography: size scale from xs to 3xl
-- Spacing: 4px base unit (xs, sm, md, lg, xl, 2xl)
-
-## Database Schema
-
-Core tables:
-- `users` - User profiles with subscription status
-- `properties` - Rental properties
-- `reservations` - Bookings with date constraints (no overlaps)
-- `cashflow_entries` - Income/expense tracking
-
-## Environment Variables
-
-Mobile app (`apps/mobile/.env`):
-```
-EXPO_PUBLIC_SUPABASE_URL=your-supabase-url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+### Database Types
+Types are manually defined in `apps/mobile/types/database.ts` mirroring Supabase schema. The `Database` interface provides full typing for Supabase client:
+```typescript
+import type { Database } from '@/types/database';
+const supabase = createClient<Database>(url, key);
 ```
 
-## Important Notes
+### Auth Flow
+1. `services/supabase.ts` - Supabase client with platform-aware storage (SecureStore on native, localStorage on web)
+2. `stores/authStore.ts` - Zustand store managing session state
+3. `app/_layout.tsx` - Root layout that initializes auth and shows loading state
+4. `app/index.tsx` - Redirects based on auth state
 
-- **No react-native-reanimated animations in Expo Go**: Removed due to Worklets version mismatch
-- **Currency**: PHP (Philippine Peso) formatting
-- **Property limit**: Users have configurable property limits based on subscription
+### Reservation Date Constraints
+Database enforces no overlapping reservations using PostgreSQL exclusion constraint with `btree_gist` extension. The `[)` range means check-out day can be another guest's check-in day.
+
+## Code Patterns
+
+### Form Validation
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const schema = z.object({ /* ... */ });
+const { control, handleSubmit } = useForm({
+  resolver: zodResolver(schema),
+  defaultValues: { /* ... */ }
+});
+```
+
+### Supabase Queries
+Always scope queries by property ownership (RLS enforces this server-side but be explicit):
+```typescript
+const { data } = await supabase
+  .from('reservations')
+  .select('*')
+  .eq('property_id', propertyId);
+```
+
+### Date Handling
+Use date-fns and work with Date objects. Store dates as ISO strings in database. Be careful with timezone handling - the app uses local dates for display.
+
+### UI Components
+Reusable components in `components/ui/` (Button, Input, Select, Modal) follow the design system in `constants/theme.ts`. Use design tokens instead of hardcoded values.
+
+## Important Constraints
+
+- **No reanimated in Expo Go**: Avoid complex animations due to Worklets version mismatch
+- **PHP currency**: All amounts displayed in Philippine Peso
+- **Property limits**: Users have configurable `property_limit` based on subscription
+- **RLS enabled**: All tables have Row Level Security - users only see their own data

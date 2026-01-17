@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -83,8 +83,7 @@ export default function CalendarScreen() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [selectedProperty]);
-
+  // Refresh when screen comes into focus (also fires on initial mount)
   useFocusEffect(useCallback(() => { fetchData(); }, [selectedProperty]));
 
   const getDaysInMonth = (date: Date) => {
@@ -95,26 +94,46 @@ export default function CalendarScreen() {
     return { firstDay, daysInMonth };
   };
 
+  // Memoized date status map - computed once when data changes, O(1) lookup per day
+  const dateStatusMap = useMemo(() => {
+    const map = new Map<string, { status: 'available' | 'booked' | 'completed' | 'past' | 'locked'; reservation?: ReservationWithProperty; lockedDate?: LockedDate }>();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Pre-index locked dates
+    for (const locked of lockedDates) {
+      map.set(locked.date, { status: 'locked', lockedDate: locked });
+    }
+
+    // Pre-index reservations (expand date ranges)
+    for (const r of reservations) {
+      const checkIn = new Date(r.check_in);
+      const checkOut = new Date(r.check_out);
+      const current = new Date(checkIn);
+
+      while (current < checkOut) {
+        const dateStr = current.toISOString().split('T')[0];
+        if (!map.has(dateStr)) {
+          const isCompleted = r.check_out <= today;
+          map.set(dateStr, {
+            status: isCompleted ? 'completed' : 'booked',
+            reservation: r,
+          });
+        }
+        current.setDate(current.getDate() + 1);
+      }
+    }
+
+    return map;
+  }, [reservations, lockedDates]);
+
   const getDateStatus = (day: number): { status: 'available' | 'booked' | 'completed' | 'past' | 'locked'; reservation?: ReservationWithProperty; lockedDate?: LockedDate } => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const today = new Date().toISOString().split('T')[0];
 
-    const locked = lockedDates.find((l) => l.date === dateStr);
-    if (locked) {
-      return { status: 'locked', lockedDate: locked };
-    }
-
-    for (const r of reservations) {
-      if (dateStr >= r.check_in && dateStr < r.check_out) {
-        if (r.check_out <= today) {
-          return { status: 'completed', reservation: r };
-        }
-        return { status: 'booked', reservation: r };
-      }
-    }
+    const cached = dateStatusMap.get(dateStr);
+    if (cached) return cached;
 
     if (dateStr < today) return { status: 'past' };
-
     return { status: 'available' };
   };
 
@@ -122,17 +141,12 @@ export default function CalendarScreen() {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const today = new Date().toISOString().split('T')[0];
 
-    const locked = lockedDates.find((l) => l.date === dateStr);
-    if (locked) return 'notAvailable';
-
-    for (const r of reservations) {
-      if (dateStr >= r.check_in && dateStr < r.check_out) {
-        return 'notAvailable';
-      }
+    const cached = dateStatusMap.get(dateStr);
+    if (cached && (cached.status === 'locked' || cached.status === 'booked' || cached.status === 'completed')) {
+      return 'notAvailable';
     }
 
     if (dateStr < today) return 'notAvailable';
-
     return 'available';
   };
 
