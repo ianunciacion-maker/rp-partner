@@ -1,11 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
+import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import { supabase } from '@/services/supabase';
 import type { Property } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+import { SubscriptionBanner } from '@/components/subscription/SubscriptionBanner';
 
 // Optimized image component with loading placeholder
 function PropertyImage({ property }: { property: Property }) {
@@ -40,9 +43,18 @@ function PropertyImage({ property }: { property: Property }) {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { fetchSubscription, checkPendingSubmission } = useSubscriptionStore();
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Fetch subscription data on mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchSubscription(user.id);
+      checkPendingSubmission(user.id);
+    }
+  }, [user?.id]);
 
   const fetchProperties = async () => {
     try {
@@ -70,11 +82,15 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.wrapper}>
+      <SubscriptionBanner />
       <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchProperties(); }} />}>
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Hello, {user?.full_name?.split(' ')[0] || 'there'}!</Text>
-            <Text style={styles.subtitle}>{properties.length} {properties.length === 1 ? 'property' : 'properties'}</Text>
+            <View style={styles.subtitleRow}>
+              <FeatureLimitIndicator feature="properties" currentUsage={properties.length} />
+              <Text style={styles.subtitleSuffix}> {properties.length === 1 ? 'property' : 'properties'}</Text>
+            </View>
           </View>
         </View>
 
@@ -117,6 +133,8 @@ const styles = StyleSheet.create({
   header: { marginBottom: Spacing.lg },
   greeting: { fontSize: Typography.fontSize['2xl'], fontWeight: 'bold', color: Colors.neutral.gray900 },
   subtitle: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
+  subtitleRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs },
+  subtitleSuffix: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray500 },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.md },
   emptyTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900 },

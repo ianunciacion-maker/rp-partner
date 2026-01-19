@@ -1,18 +1,87 @@
-import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { useEffect, useRef } from 'react';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '@/stores/authStore';
+import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { supabase } from '@/services/supabase';
 import { Colors } from '@/constants/theme';
 import { WebContainer } from '@/components/WebContainer';
 
 export default function RootLayout() {
-  const { initialize, isInitialized, isLoading } = useAuthStore();
+  const router = useRouter();
+  const { initialize, isInitialized, user } = useAuthStore();
+  const notificationListener = useRef<any>();
+  const responseListener = useRef<any>();
 
   useEffect(() => {
     initialize();
   }, []);
+
+  // Subscribe to realtime subscription updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('subscription-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscriptions',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          // Refresh subscription data when it changes
+          useSubscriptionStore.getState().fetchSubscription(user.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [user?.id]);
+
+  // Register for push notifications when user is authenticated (native only)
+  useEffect(() => {
+    if (user?.id && Platform.OS !== 'web') {
+      // Dynamically import notifications for native platforms only
+      import('@/services/notifications').then(({
+        registerForPushNotifications,
+        addNotificationReceivedListener,
+        addNotificationResponseListener
+      }) => {
+        registerForPushNotifications(user.id);
+
+        notificationListener.current = addNotificationReceivedListener((notification: any) => {
+          console.log('Notification received:', notification);
+        });
+
+        responseListener.current = addNotificationResponseListener((response: any) => {
+          const data = response.notification.request.content.data;
+          if (data?.screen) {
+            router.push(data.screen as any);
+          }
+        });
+      });
+
+      return () => {
+        if (Platform.OS !== 'web') {
+          import('expo-notifications').then((Notifications) => {
+            if (notificationListener.current) {
+              Notifications.removeNotificationSubscription(notificationListener.current);
+            }
+            if (responseListener.current) {
+              Notifications.removeNotificationSubscription(responseListener.current);
+            }
+          });
+        }
+      };
+    }
+  }, [user?.id]);
 
   // Only block on isInitialized - isLoading is also used during sign-in/out
   if (!isInitialized) {
@@ -105,6 +174,57 @@ export default function RootLayout() {
             name="reset-password"
             options={{
               headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="subscription/index"
+            options={{
+              headerShown: true,
+              title: 'Subscription',
+              headerTintColor: Colors.primary.teal,
+              headerStyle: { backgroundColor: Colors.neutral.white },
+            }}
+          />
+          <Stack.Screen
+            name="subscription/upgrade"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="subscription/pay"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="subscription/pending"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="settings/profile"
+            options={{
+              headerShown: true,
+              headerTintColor: Colors.primary.teal,
+              headerStyle: { backgroundColor: Colors.neutral.white },
+            }}
+          />
+          <Stack.Screen
+            name="settings/notifications"
+            options={{
+              headerShown: true,
+              headerTintColor: Colors.primary.teal,
+              headerStyle: { backgroundColor: Colors.neutral.white },
+            }}
+          />
+          <Stack.Screen
+            name="settings/help"
+            options={{
+              headerShown: true,
+              headerTintColor: Colors.primary.teal,
+              headerStyle: { backgroundColor: Colors.neutral.white },
             }}
           />
         </Stack>

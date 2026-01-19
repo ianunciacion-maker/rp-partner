@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform, Modal, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -6,6 +6,9 @@ import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
+import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import type { Property, Reservation, LockedDate } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 
@@ -40,6 +43,7 @@ interface CustomerViewCalendarProps {
 export default function CalendarScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { canAccessCalendarMonth, fetchSubscription, fetchPlans } = useSubscriptionStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState<ReservationWithProperty[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -53,7 +57,22 @@ export default function CalendarScreen() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [customerViewProperty, setCustomerViewProperty] = useState<Property | null>(null);
   const [propertySelectorVisible, setPropertySelectorVisible] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const calendarRef = useRef<View>(null);
+
+  // Fetch subscription data on mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchSubscription(user.id);
+      fetchPlans();
+    }
+  }, [user?.id]);
+
+  // Calculate months from current date
+  const getMonthsFromNow = (date: Date) => {
+    const now = new Date();
+    return (date.getFullYear() - now.getFullYear()) * 12 + (date.getMonth() - now.getMonth());
+  };
 
   const fetchData = async () => {
     try {
@@ -272,8 +291,25 @@ export default function CalendarScreen() {
     }
   };
 
-  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  const prevMonth = () => {
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    const monthsFromNow = getMonthsFromNow(newDate);
+    if (!canAccessCalendarMonth(monthsFromNow)) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    setCurrentDate(newDate);
+  };
+
+  const nextMonth = () => {
+    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    const monthsFromNow = getMonthsFromNow(newDate);
+    if (!canAccessCalendarMonth(monthsFromNow)) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    setCurrentDate(newDate);
+  };
 
   const { firstDay, daysInMonth } = getDaysInMonth(currentDate);
   const today = new Date();
@@ -354,6 +390,10 @@ export default function CalendarScreen() {
           </View>
 
           <Text style={styles.lockHint}>Long-press a date to lock/unlock</Text>
+
+          <View style={styles.limitIndicatorContainer}>
+            <FeatureLimitIndicator feature="calendar" />
+          </View>
 
           <View style={styles.calendarHeader}>
             <Pressable onPress={prevMonth} style={styles.navButton}>
@@ -611,6 +651,7 @@ export default function CalendarScreen() {
                   onPress={() => {
                     setCustomerViewProperty(prop);
                     setPropertySelectorVisible(false);
+                    setIsCustomerView(true);
                   }}
                 >
                   <Text style={styles.propertySelectorName}>{prop.name}</Text>
@@ -632,6 +673,12 @@ export default function CalendarScreen() {
           </View>
         </View>
       </Modal>
+
+      <UpgradePrompt
+        visible={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        feature="calendar"
+      />
     </>
   );
 }
@@ -649,11 +696,13 @@ function CustomerViewCalendar({ property, currentDate, prevMonth, nextMonth, onS
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const today = new Date().toISOString().split('T')[0];
 
-    const locked = lockedDates.find((l) => l.date === dateStr);
+    // Filter locked dates by property
+    const locked = lockedDates.find((l) => l.date === dateStr && l.property_id === property.id);
     if (locked) return 'notAvailable';
 
+    // Filter reservations by property
     for (const r of reservations) {
-      if (dateStr >= r.check_in && dateStr < r.check_out) {
+      if (r.property_id === property.id && dateStr >= r.check_in && dateStr < r.check_out) {
         return 'notAvailable';
       }
     }
@@ -788,6 +837,7 @@ const styles = StyleSheet.create({
   lockedDot: { backgroundColor: Colors.neutral.gray500 },
   legendText: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600 },
   lockHint: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray400, textAlign: 'center', paddingVertical: Spacing.xs, backgroundColor: Colors.neutral.white },
+  limitIndicatorContainer: { backgroundColor: Colors.neutral.white, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, alignItems: 'center' },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },

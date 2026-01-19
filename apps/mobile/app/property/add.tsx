@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
+import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { BottomNav } from '@/components/BottomNav';
+import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 
 const isWeb = Platform.OS === 'web';
 
@@ -32,8 +34,11 @@ const PROPERTY_TYPES = [
 export default function AddPropertyScreen() {
   const router = useRouter();
   const { authUser } = useAuthStore();
+  const { canAddProperty, plan, fetchSubscription } = useSubscriptionStore();
   const [isLoading, setIsLoading] = useState(false);
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [propertyCount, setPropertyCount] = useState(0);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -47,6 +52,37 @@ export default function AddPropertyScreen() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Fetch property count and subscription on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      if (authUser?.id) {
+        // Fetch subscription
+        await fetchSubscription(authUser.id);
+
+        // Fetch property count
+        const { count, error } = await supabase
+          .from('properties')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', authUser.id);
+
+        if (!error && count !== null) {
+          setPropertyCount(count);
+        }
+      }
+    };
+    fetchData();
+  }, [authUser?.id]);
+
+  // Get property limit from plan
+  const propertyLimit = plan?.property_limit ?? 1;
+
+  // Show upgrade prompt immediately if already at limit
+  useEffect(() => {
+    if (propertyCount > 0 && propertyCount >= propertyLimit) {
+      setShowUpgradePrompt(true);
+    }
+  }, [propertyCount, propertyLimit]);
 
   const updateForm = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -115,6 +151,12 @@ export default function AddPropertyScreen() {
   const handleSubmit = async () => {
     if (!validate()) return;
 
+    // Check property limit before proceeding
+    if (!canAddProperty(propertyCount)) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
       // Get the current session to ensure we're authenticated
@@ -174,6 +216,18 @@ export default function AddPropertyScreen() {
     <View style={styles.wrapper}>
       <Stack.Screen options={{ title: 'Add Property', headerBackTitle: 'Back' }} />
       <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        {/* Property count indicator */}
+        <View style={styles.limitIndicator}>
+          <Text style={styles.limitText}>
+            Properties: {propertyCount}/{propertyLimit}
+          </Text>
+          {propertyCount >= propertyLimit && (
+            <Pressable onPress={() => setShowUpgradePrompt(true)}>
+              <Text style={styles.upgradeLink}>Upgrade for more</Text>
+            </Pressable>
+          )}
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Cover Image</Text>
           <Pressable style={styles.imagePickerContainer} onPress={pickImage}>
@@ -285,6 +339,23 @@ export default function AddPropertyScreen() {
         </View>
       </ScrollView>
       <BottomNav />
+
+      <UpgradePrompt
+        visible={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        onCancel={() => {
+          setShowUpgradePrompt(false);
+          if (isWeb) {
+            router.replace('/(tabs)/');
+          } else {
+            router.back();
+          }
+        }}
+        feature="properties"
+        reason="limit_reached"
+        cancelText="Cancel"
+        isPremiumUser={plan?.name === 'premium'}
+      />
     </View>
   );
 }
@@ -297,6 +368,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.neutral.gray50,
+  },
+  limitIndicator: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.neutral.white,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  limitText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.neutral.gray600,
+  },
+  upgradeLink: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.primary.teal,
+    fontWeight: '600',
   },
   section: {
     backgroundColor: Colors.neutral.white,

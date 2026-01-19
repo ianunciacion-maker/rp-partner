@@ -1,10 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl, Modal, Platform, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { documentDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { isAvailableAsync, shareAsync } from 'expo-sharing';
 import { supabase } from '@/services/supabase';
+import { useAuthStore } from '@/stores/authStore';
+import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
+import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import type { Property, CashflowEntry } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 
@@ -17,10 +21,11 @@ interface MonthOption {
   month: number;
 }
 
-const generateMonthOptions = (): MonthOption[] => {
+const generateMonthOptions = (limit?: number | null): MonthOption[] => {
   const options: MonthOption[] = [];
   const now = new Date();
-  for (let i = 0; i < 12; i++) {
+  const maxMonths = limit === null ? 12 : Math.min(limit || 2, 12);
+  for (let i = 0; i < maxMonths; i++) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     options.push({
       label: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
@@ -40,6 +45,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export default function CashflowScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
+  const { plan, canExportReportMonth, fetchSubscription, fetchPlans } = useSubscriptionStore();
   const [entries, setEntries] = useState<CashflowWithProperty[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
@@ -51,7 +58,18 @@ export default function CashflowScreen() {
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [exportType, setExportType] = useState<'both' | 'income' | 'expense'>('both');
   const [isExporting, setIsExporting] = useState(false);
-  const monthOptions = generateMonthOptions();
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+  // Fetch subscription data on mount
+  useEffect(() => {
+    if (user?.id) {
+      fetchSubscription(user.id);
+      fetchPlans();
+    }
+  }, [user?.id]);
+
+  // Generate month options based on subscription plan
+  const monthOptions = generateMonthOptions(plan?.report_months_limit);
 
   const fetchData = async () => {
     try {
@@ -95,13 +113,30 @@ export default function CashflowScreen() {
   const totalExpense = entries.filter((e) => e.type === 'expense').reduce((sum, e) => sum + (e.amount || 0), 0);
   const netCashflow = totalIncome - totalExpense;
 
+  // Calculate months back from current date
+  const getMonthsBack = (year: number, month: number) => {
+    const now = new Date();
+    return (now.getFullYear() - year) * 12 + (now.getMonth() - month);
+  };
+
   const prevMonth = () => {
+    let newMonth = selectedMonth;
+    let newYear = selectedYear;
     if (selectedMonth === 0) {
-      setSelectedMonth(11);
-      setSelectedYear((y) => y - 1);
+      newMonth = 11;
+      newYear = selectedYear - 1;
     } else {
-      setSelectedMonth((m) => m - 1);
+      newMonth = selectedMonth - 1;
     }
+
+    const monthsBack = getMonthsBack(newYear, newMonth);
+    if (!canExportReportMonth(monthsBack)) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+
+    setSelectedMonth(newMonth);
+    setSelectedYear(newYear);
   };
 
   const nextMonth = () => {
@@ -300,6 +335,11 @@ export default function CashflowScreen() {
           </Pressable>
         </View>
 
+        {/* Feature Limit Indicator */}
+        <View style={styles.limitIndicatorContainer}>
+          <FeatureLimitIndicator feature="reports" />
+        </View>
+
         {/* Summary Cards */}
         <View style={styles.summaryContainer}>
           <View style={[styles.summaryCard, styles.incomeCard]}>
@@ -452,6 +492,12 @@ export default function CashflowScreen() {
           </View>
         </View>
       </Modal>
+
+      <UpgradePrompt
+        visible={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        feature="reports"
+      />
     </View>
   );
 }
@@ -471,6 +517,7 @@ const styles = StyleSheet.create({
   filterChipText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray600 },
   filterChipTextActive: { color: Colors.neutral.white, fontWeight: '600' },
   monthSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
+  limitIndicatorContainer: { backgroundColor: Colors.neutral.white, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, alignItems: 'center' },
   monthNav: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },

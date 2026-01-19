@@ -201,25 +201,25 @@ export default function MoreScreen() {
       {/* Menu Items */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
-        <Pressable style={styles.menuItem}>
+        <Pressable style={styles.menuItem} onPress={() => router.push('/settings/profile')}>
           <Text style={styles.menuIcon}>👤</Text>
           <Text style={styles.menuText}>Edit Profile</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
-        <Pressable style={styles.menuItem}>
+        <Pressable style={styles.menuItem} onPress={() => router.push('/settings/notifications')}>
           <Text style={styles.menuIcon}>🔔</Text>
           <Text style={styles.menuText}>Notifications</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
-        <Pressable style={styles.menuItem}>
+        <Pressable style={styles.menuItem} onPress={() => router.push('/subscription')}>
           <Text style={styles.menuIcon}>💳</Text>
           <Text style={styles.menuText}>Subscription</Text>
           <View style={styles.subscriptionBadge}>
-            <Text style={styles.subscriptionBadgeText}>{user?.subscription_status || 'trial'}</Text>
+            <Text style={styles.subscriptionBadgeText}>{user?.subscription_status || 'free'}</Text>
           </View>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
-        <Pressable style={styles.menuItem}>
+        <Pressable style={styles.menuItem} onPress={() => router.push('/settings/help')}>
           <Text style={styles.menuIcon}>❓</Text>
           <Text style={styles.menuText}>Help & Support</Text>
           <Text style={styles.menuArrow}>›</Text>
