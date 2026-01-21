@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,7 @@ export default function SubscriptionScreen() {
   const {
     subscription,
     plan,
+    userOverrides,
     pendingSubmission,
     isLoading,
     fetchSubscription,
@@ -19,13 +21,16 @@ export default function SubscriptionScreen() {
     checkPendingSubmission,
   } = useSubscriptionStore();
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchSubscription(user.id);
-      fetchPlans();
-      checkPendingSubmission(user.id);
-    }
-  }, [user?.id]);
+  // Refresh subscription data when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      if (user?.id) {
+        fetchSubscription(user.id);
+        fetchPlans();
+        checkPendingSubmission(user.id);
+      }
+    }, [user?.id])
+  );
 
   if (isLoading) {
     return (
@@ -118,7 +123,13 @@ export default function SubscriptionScreen() {
             <View style={styles.featureContent}>
               <Text style={styles.featureLabel}>Calendar History</Text>
               <Text style={styles.featureValue}>
-                {plan?.calendar_months_limit === null ? 'Unlimited' : `${plan?.calendar_months_limit || 2} months`}
+                {userOverrides?.calendar_months_override === -1
+                  ? 'Unlimited'
+                  : userOverrides?.calendar_months_override != null
+                    ? `${userOverrides.calendar_months_override} months`
+                    : plan?.calendar_months_limit === null
+                      ? 'Unlimited'
+                      : `${plan?.calendar_months_limit || 2} months`}
               </Text>
             </View>
           </View>
@@ -127,7 +138,13 @@ export default function SubscriptionScreen() {
             <View style={styles.featureContent}>
               <Text style={styles.featureLabel}>Report Exports</Text>
               <Text style={styles.featureValue}>
-                {plan?.report_months_limit === null ? 'Unlimited' : `${plan?.report_months_limit || 2} months`}
+                {userOverrides?.report_months_override === -1
+                  ? 'Unlimited'
+                  : userOverrides?.report_months_override != null
+                    ? `${userOverrides.report_months_override} months`
+                    : plan?.report_months_limit === null
+                      ? 'Unlimited'
+                      : `${plan?.report_months_limit || 2} months`}
               </Text>
             </View>
           </View>
@@ -135,7 +152,7 @@ export default function SubscriptionScreen() {
             <Text style={styles.featureIcon}>🏠</Text>
             <View style={styles.featureContent}>
               <Text style={styles.featureLabel}>Properties</Text>
-              <Text style={styles.featureValue}>Up to {plan?.property_limit || 1}</Text>
+              <Text style={styles.featureValue}>Up to {userOverrides?.property_limit ?? plan?.property_limit ?? 1}</Text>
             </View>
           </View>
         </View>
