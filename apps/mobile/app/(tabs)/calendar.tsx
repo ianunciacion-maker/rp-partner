@@ -453,12 +453,18 @@ export default function CalendarScreen() {
                     <Text style={styles.lockIcon}>🔒</Text>
                   )}
                   {reservation && (status === 'booked' || status === 'completed') && (
-                    <View style={styles.avatarContainer}>
+                    <View style={styles.avatarWithBadge}>
                       <Avatar
                         size="sm"
                         name={reservation.guest_name}
                         backgroundColor={status === 'completed' ? Colors.neutral.gray400 : Colors.primary.teal}
                       />
+                      <View style={[
+                        styles.paxBadge,
+                        status === 'completed' && styles.paxBadgeCompleted
+                      ]}>
+                        <Text style={styles.paxBadgeText}>{reservation.guest_count}</Text>
+                      </View>
                     </View>
                   )}
                 </Pressable>
@@ -833,6 +839,10 @@ const styles = StyleSheet.create({
   todayNumber: { fontWeight: Typography.fontWeight.bold, color: Colors.primary.teal },
   lockIcon: { fontSize: 10 },
   avatarContainer: { marginTop: 2 },
+  avatarWithBadge: { position: 'relative', marginTop: 2 },
+  paxBadge: { position: 'absolute', bottom: -4, right: -6, backgroundColor: Colors.primary.navy, borderRadius: 8, minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: Colors.neutral.white },
+  paxBadgeCompleted: { backgroundColor: Colors.neutral.gray500 },
+  paxBadgeText: { fontSize: 9, fontWeight: Typography.fontWeight.bold, color: Colors.neutral.white },
   agendaSection: { padding: Spacing.lg },
   agendaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   agendaTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },
