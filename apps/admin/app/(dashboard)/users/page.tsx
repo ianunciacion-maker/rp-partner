@@ -67,6 +67,12 @@ export default function UsersPage() {
     cancelled: 'bg-gray-100 text-gray-600',
   };
 
+  const isPastDue = (user: User): boolean => {
+    if (!user.subscription_expires_at) return false;
+    if (user.subscription_status === 'free') return false;
+    return new Date(user.subscription_expires_at) < new Date();
+  };
+
   return (
     <div className="p-4 lg:p-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
@@ -131,6 +137,11 @@ export default function UsersPage() {
                           Admin
                         </span>
                       )}
+                      {isPastDue(user) && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error/20 text-error">
+                          Past Due
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
@@ -187,6 +198,11 @@ export default function UsersPage() {
                       {user.role === 'admin' && (
                         <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                           Admin
+                        </span>
+                      )}
+                      {isPastDue(user) && (
+                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-error/20 text-error">
+                          Past Due
                         </span>
                       )}
                     </td>
