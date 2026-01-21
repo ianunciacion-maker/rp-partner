@@ -80,7 +80,6 @@ export default function PaymentDetailPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error('Not authenticated');
 
-      // Update payment submission
       const { error: updateError } = await supabase
         .from('payment_submissions')
         .update({
@@ -92,7 +91,6 @@ export default function PaymentDetailPage() {
 
       if (updateError) throw updateError;
 
-      // Get the premium plan
       const { data: premiumPlan, error: planError } = await supabase
         .from('subscription_plans')
         .select('id')
@@ -101,12 +99,10 @@ export default function PaymentDetailPage() {
 
       if (planError) throw planError;
 
-      // Calculate subscription period
       const now = new Date();
       const periodEnd = new Date(now);
       periodEnd.setMonth(periodEnd.getMonth() + payment.months_purchased);
 
-      // Check for existing active subscription
       const { data: existingSub } = await supabase
         .from('subscriptions')
         .select('*')
@@ -115,7 +111,6 @@ export default function PaymentDetailPage() {
         .single();
 
       if (existingSub) {
-        // Extend existing subscription
         const currentEnd = new Date(existingSub.current_period_end);
         const newEnd = new Date(Math.max(currentEnd.getTime(), now.getTime()));
         newEnd.setMonth(newEnd.getMonth() + payment.months_purchased);
@@ -133,13 +128,11 @@ export default function PaymentDetailPage() {
 
         if (extendError) throw extendError;
 
-        // Link submission to subscription
         await supabase
           .from('payment_submissions')
           .update({ subscription_id: existingSub.id })
           .eq('id', payment.id);
       } else {
-        // Create new subscription
         const { data: newSub, error: createError } = await supabase
           .from('subscriptions')
           .insert({
@@ -154,14 +147,12 @@ export default function PaymentDetailPage() {
 
         if (createError) throw createError;
 
-        // Link submission to subscription
         await supabase
           .from('payment_submissions')
           .update({ subscription_id: newSub.id })
           .eq('id', payment.id);
       }
 
-      // Update user's subscription status
       await supabase
         .from('users')
         .update({
@@ -215,7 +206,7 @@ export default function PaymentDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
+      <div className="p-4 lg:p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-48"></div>
           <div className="h-64 bg-gray-200 rounded-xl"></div>
@@ -226,7 +217,7 @@ export default function PaymentDetailPage() {
 
   if (!payment) {
     return (
-      <div className="p-8 text-center">
+      <div className="p-4 lg:p-8 text-center">
         <p className="text-gray-500">Payment not found</p>
       </div>
     );
@@ -235,16 +226,15 @@ export default function PaymentDetailPage() {
   const screenshotUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/payment-screenshots/${payment.screenshot_url}`;
 
   return (
-    <div className="p-8 max-w-4xl">
-      <Link href="/payments" className="text-teal-600 hover:text-teal-700 mb-4 inline-block">
+    <div className="p-4 lg:p-8 max-w-4xl">
+      <Link href="/payments" className="text-teal hover:opacity-80 mb-4 inline-block font-medium">
         ← Back to Payments
       </Link>
 
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Payment Review</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Screenshot */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
+        <div className="bg-white rounded-xl shadow-card p-4 lg:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Screenshot</h2>
           <div className="relative aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
             <Image
@@ -257,22 +247,19 @@ export default function PaymentDetailPage() {
           </div>
         </div>
 
-        {/* Details */}
-        <div className="space-y-6">
-          {/* Status Badge */}
+        <div className="space-y-4 lg:space-y-6">
           <div
             className={cn(
               'inline-flex items-center px-4 py-2 rounded-full text-sm font-medium',
-              payment.status === 'pending' && 'bg-yellow-100 text-yellow-800',
-              payment.status === 'approved' && 'bg-green-100 text-green-800',
-              payment.status === 'rejected' && 'bg-red-100 text-red-800'
+              payment.status === 'pending' && 'bg-warning/20 text-warning',
+              payment.status === 'approved' && 'bg-success/20 text-success',
+              payment.status === 'rejected' && 'bg-error/20 text-error'
             )}
           >
             {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
           </div>
 
-          {/* Payment Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-xl shadow-card p-4 lg:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Details</h2>
             <dl className="space-y-4">
               <div className="flex justify-between">
@@ -302,8 +289,7 @@ export default function PaymentDetailPage() {
             </dl>
           </div>
 
-          {/* User Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="bg-white rounded-xl shadow-card p-4 lg:p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">User Information</h2>
             <dl className="space-y-4">
               <div className="flex justify-between">
@@ -321,15 +307,14 @@ export default function PaymentDetailPage() {
             </dl>
             <Link
               href={`/users/${payment.user?.id}`}
-              className="mt-4 text-teal-600 hover:text-teal-700 text-sm font-medium inline-block"
+              className="mt-4 text-teal hover:opacity-80 text-sm font-medium inline-block"
             >
               View User Profile →
             </Link>
           </div>
 
-          {/* Review Info (if already reviewed) */}
           {payment.reviewed_at && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div className="bg-white rounded-xl shadow-card p-4 lg:p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Review Details</h2>
               <dl className="space-y-4">
                 <div className="flex justify-between">
@@ -345,7 +330,7 @@ export default function PaymentDetailPage() {
                 {payment.rejection_reason && (
                   <div>
                     <dt className="text-gray-500 mb-1">Rejection Reason</dt>
-                    <dd className="text-red-600 bg-red-50 p-3 rounded-lg">
+                    <dd className="text-error bg-error/10 p-3 rounded-lg">
                       {payment.rejection_reason}
                     </dd>
                   </div>
@@ -354,20 +339,19 @@ export default function PaymentDetailPage() {
             </div>
           )}
 
-          {/* Action Buttons (only for pending) */}
           {payment.status === 'pending' && (
             <div className="flex gap-4">
               <button
                 onClick={handleApprove}
                 disabled={isProcessing}
-                className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 bg-success text-white rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
               >
                 {isProcessing ? 'Processing...' : 'Approve Payment'}
               </button>
               <button
                 onClick={() => setShowRejectModal(true)}
                 disabled={isProcessing}
-                className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-6 py-3 bg-error text-white rounded-lg font-semibold hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
               >
                 Reject
               </button>
@@ -376,7 +360,6 @@ export default function PaymentDetailPage() {
         </div>
       </div>
 
-      {/* Reject Modal */}
       {showRejectModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
@@ -388,20 +371,20 @@ export default function PaymentDetailPage() {
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               placeholder="Enter rejection reason..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 mb-4"
+              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-teal focus:border-2 focus:outline-none mb-4 min-h-[100px]"
               rows={3}
             />
             <div className="flex gap-3">
               <button
                 onClick={() => setShowRejectModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 font-medium min-h-[44px]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleReject}
                 disabled={isProcessing || !rejectionReason.trim()}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-3 bg-error text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-semibold min-h-[44px]"
               >
                 {isProcessing ? 'Processing...' : 'Reject Payment'}
               </button>

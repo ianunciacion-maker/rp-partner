@@ -24,7 +24,6 @@ export default function LoginPage() {
 
       if (authError) throw authError;
 
-      // Check if user is admin
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('role')
@@ -56,8 +55,8 @@ export default function LoginPage() {
 
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="rounded-lg bg-error/10 p-4">
+              <p className="text-sm text-error">{error}</p>
             </div>
           )}
 
@@ -74,7 +73,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                className="mt-1 block w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-teal focus:border-2 focus:outline-none min-h-[44px]"
               />
             </div>
 
@@ -90,7 +89,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                className="mt-1 block w-full px-4 py-3 border border-gray-200 rounded-lg focus:border-teal focus:border-2 focus:outline-none min-h-[44px]"
               />
             </div>
           </div>
@@ -98,7 +97,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex justify-center py-3 px-6 border border-transparent rounded-lg text-base font-semibold text-white bg-teal hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal disabled:opacity-50 disabled:cursor-not-allowed min-h-[48px]"
           >
             {isLoading ? 'Signing in...' : 'Sign in'}
           </button>

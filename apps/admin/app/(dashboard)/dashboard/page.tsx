@@ -38,19 +38,16 @@ export default function DashboardPage() {
 
   const fetchStats = async () => {
     try {
-      // Fetch total users
       const { count: totalUsers } = await supabase
         .from('users')
         .select('*', { count: 'exact', head: true });
 
-      // Fetch premium users (active premium subscriptions)
       const { count: premiumUsers } = await supabase
         .from('subscriptions')
         .select('*, plan:subscription_plans!inner(*)', { count: 'exact', head: true })
         .eq('status', 'active')
         .eq('plan.name', 'premium');
 
-      // Fetch pending payments
       const { count: pendingPayments, data: pendingData } = await supabase
         .from('payment_submissions')
         .select('*, user:users(full_name, email)', { count: 'exact' })
@@ -58,7 +55,6 @@ export default function DashboardPage() {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Fetch monthly revenue (approved payments this month)
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
@@ -88,10 +84,10 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
+      <div className="p-4 lg:p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-48"></div>
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-32 bg-gray-200 rounded-xl"></div>
             ))}
@@ -102,14 +98,13 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-8">
+    <div className="p-4 lg:p-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-8">Dashboard</h1>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+        <div className="bg-white rounded-xl p-6 shadow-card">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-lg bg-info/20 flex items-center justify-center">
               <span className="text-2xl">👥</span>
             </div>
             <div>
@@ -119,9 +114,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-6 shadow-card">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-lg bg-teal/20 flex items-center justify-center">
               <span className="text-2xl">⭐</span>
             </div>
             <div>
@@ -131,9 +126,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-6 shadow-card">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-lg bg-warning/20 flex items-center justify-center">
               <span className="text-2xl">⏳</span>
             </div>
             <div>
@@ -144,16 +139,16 @@ export default function DashboardPage() {
           {stats.pendingPayments > 0 && (
             <Link
               href="/payments"
-              className="mt-4 inline-block text-sm text-teal-600 hover:text-teal-700 font-medium"
+              className="mt-4 inline-block text-sm text-teal hover:opacity-80 font-medium"
             >
               Review now →
             </Link>
           )}
         </div>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+        <div className="bg-white rounded-xl p-6 shadow-card">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-lg bg-success/20 flex items-center justify-center">
               <span className="text-2xl">💰</span>
             </div>
             <div>
@@ -164,14 +159,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Pending Payments */}
       {recentPending.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <div className="bg-white rounded-xl shadow-card">
+          <div className="px-4 lg:px-6 py-4 border-b border-gray-100 flex justify-between items-center">
             <h2 className="text-lg font-semibold text-gray-900">Pending Payments</h2>
             <Link
               href="/payments"
-              className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+              className="text-sm text-teal hover:opacity-80 font-medium"
             >
               View all
             </Link>
@@ -181,7 +175,7 @@ export default function DashboardPage() {
               <Link
                 key={payment.id}
                 href={`/payments/${payment.id}`}
-                className="flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between px-4 lg:px-6 py-4 hover:bg-gray-50 transition-colors min-h-[64px]"
               >
                 <div>
                   <p className="font-medium text-gray-900">

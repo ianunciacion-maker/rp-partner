@@ -108,7 +108,6 @@ export default function UserDetailPage() {
 
   const fetchUserData = async (id: string) => {
     try {
-      // Fetch user
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
@@ -118,7 +117,6 @@ export default function UserDetailPage() {
       if (userError) throw userError;
       setUser(userData);
 
-      // Fetch subscription
       const { data: subData } = await supabase
         .from('subscriptions')
         .select('id, status, current_period_start, current_period_end, plan_id, plan:subscription_plans(name, display_name, price_monthly)')
@@ -134,7 +132,6 @@ export default function UserDetailPage() {
         } as Subscription);
       }
 
-      // Fetch payment history
       const { data: paymentData } = await supabase
         .from('payment_submissions')
         .select('*, payment_method:payment_methods(display_name)')
@@ -144,7 +141,6 @@ export default function UserDetailPage() {
 
       setPayments(paymentData || []);
 
-      // Fetch properties
       const { data: propData } = await supabase
         .from('properties')
         .select('id, name, city, is_active')
@@ -159,7 +155,6 @@ export default function UserDetailPage() {
     }
   };
 
-  // Account settings change handlers
   const handleAccountChange = (field: 'role' | 'property_limit', value: string | number) => {
     if (!user) return;
     setSaveSuccess(null);
@@ -214,7 +209,6 @@ export default function UserDetailPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error('Not authenticated');
 
-      // Get premium plan
       const { data: premiumPlan, error: planError } = await supabase
         .from('subscription_plans')
         .select('id')
@@ -228,7 +222,6 @@ export default function UserDetailPage() {
       periodEnd.setMonth(periodEnd.getMonth() + months);
 
       if (subscription) {
-        // Extend existing
         const currentEnd = new Date(subscription.current_period_end);
         const newEnd = new Date(Math.max(currentEnd.getTime(), now.getTime()));
         newEnd.setMonth(newEnd.getMonth() + months);
@@ -242,7 +235,6 @@ export default function UserDetailPage() {
           })
           .eq('id', subscription.id);
       } else {
-        // Create new
         await supabase.from('subscriptions').insert({
           user_id: user.id,
           plan_id: premiumPlan.id,
@@ -252,7 +244,6 @@ export default function UserDetailPage() {
         });
       }
 
-      // Update user
       await supabase
         .from('users')
         .update({
@@ -269,7 +260,6 @@ export default function UserDetailPage() {
     }
   };
 
-  // Subscription changes handlers
   const handleSubscriptionChange = (field: 'plan_id' | 'status', value: string) => {
     if (!subscription) return;
     setSaveSuccess(null);
@@ -293,7 +283,6 @@ export default function UserDetailPage() {
       const isFree = selectedPlan.name === 'free';
       const planChanged = subscriptionChanges.plan_id !== subscription.plan_id;
 
-      // Update subscription
       const { error: subError } = await supabase
         .from('subscriptions')
         .update({
@@ -310,7 +299,6 @@ export default function UserDetailPage() {
 
       if (subError) throw subError;
 
-      // Update user's subscription status
       const userUpdate: Record<string, any> = {
         subscription_status: subscriptionChanges.status === 'cancelled' ? 'cancelled' : (isFree ? 'free' : subscriptionChanges.status),
       };
@@ -372,7 +360,6 @@ export default function UserDetailPage() {
       setFeatureAccessChanges(null);
       setSaveSuccess({ section: 'feature', message: 'Feature access settings saved successfully!' });
 
-      // Clear success message after 3 seconds
       setTimeout(() => setSaveSuccess(null), 3000);
     } catch (err: any) {
       alert('Failed to save settings: ' + err.message);
@@ -386,7 +373,6 @@ export default function UserDetailPage() {
     setSaveSuccess(null);
   };
 
-  // Get the current display values (pending changes or saved values)
   const getCalendarOverrideValue = () => {
     if (featureAccessChanges !== null) {
       return featureAccessChanges.calendar_months_override;
@@ -403,7 +389,7 @@ export default function UserDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
+      <div className="p-4 lg:p-8">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-48"></div>
           <div className="h-64 bg-gray-200 rounded-xl"></div>
@@ -414,23 +400,20 @@ export default function UserDetailPage() {
 
   if (!user) {
     return (
-      <div className="p-8 text-center">
+      <div className="p-4 lg:p-8 text-center">
         <p className="text-gray-500">User not found</p>
       </div>
     );
   }
 
-  // Helper values for subscription changes
   const getCurrentPlanId = () => subscriptionChanges?.plan_id ?? subscription?.plan_id ?? '';
   const getCurrentStatus = () => subscriptionChanges?.status ?? subscription?.status ?? '';
   const hasSubscriptionChanges = subscriptionChanges !== null;
 
-  // Helper values for account changes
   const getCurrentRole = () => accountChanges?.role ?? user.role;
   const getCurrentPropertyLimit = () => accountChanges?.property_limit ?? user.property_limit;
   const hasAccountChanges = accountChanges !== null;
 
-  // Calculate subscription duration
   const getSubscriptionDuration = () => {
     if (!subscription) return null;
     const plan = plans.find(p => p.id === subscription.plan_id);
@@ -452,31 +435,30 @@ export default function UserDetailPage() {
   };
 
   const statusColors: Record<string, string> = {
-    active: 'bg-green-100 text-green-800',
-    trial: 'bg-blue-100 text-blue-800',
-    expired: 'bg-red-100 text-red-800',
-    grace_period: 'bg-yellow-100 text-yellow-800',
-    free: 'bg-gray-100 text-gray-800',
+    active: 'bg-success/20 text-success',
+    trial: 'bg-info/20 text-info',
+    expired: 'bg-error/20 text-error',
+    grace_period: 'bg-warning/20 text-warning',
+    free: 'bg-gray-100 text-gray-600',
   };
 
   const paymentStatusColors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
+    pending: 'bg-warning/20 text-warning',
+    approved: 'bg-success/20 text-success',
+    rejected: 'bg-error/20 text-error',
   };
 
   return (
-    <div className="p-8 max-w-4xl">
-      <Link href="/users" className="text-teal-600 hover:text-teal-700 mb-4 inline-block">
+    <div className="p-4 lg:p-8 max-w-4xl">
+      <Link href="/users" className="text-teal hover:opacity-80 mb-4 inline-block font-medium">
         ← Back to Users
       </Link>
 
-      {/* User Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-        <div className="flex items-start justify-between">
+      <div className="bg-white rounded-xl shadow-card p-4 lg:p-6 mb-6">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center">
-              <span className="text-2xl font-bold text-teal-700">
+            <div className="w-16 h-16 rounded-full bg-teal/10 flex items-center justify-center">
+              <span className="text-2xl font-bold text-teal">
                 {user.full_name.charAt(0)}
               </span>
             </div>
@@ -486,11 +468,11 @@ export default function UserDetailPage() {
               {user.phone && <p className="text-sm text-gray-400">{user.phone}</p>}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <span
               className={cn(
                 'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
-                statusColors[user.subscription_status] || 'bg-gray-100 text-gray-800'
+                statusColors[user.subscription_status] || 'bg-gray-100 text-gray-600'
               )}
             >
               {user.subscription_status}
@@ -504,11 +486,10 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Subscription Info */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         <div className={cn(
-          "bg-white rounded-xl shadow-sm border p-6",
-          hasSubscriptionChanges ? "border-amber-300 ring-1 ring-amber-200" : "border-gray-100"
+          "bg-white rounded-xl shadow-card border p-4 lg:p-6",
+          hasSubscriptionChanges ? "border-amber-300 ring-1 ring-amber-200" : "border-transparent"
         )}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Subscription</h2>
@@ -519,13 +500,12 @@ export default function UserDetailPage() {
             )}
           </div>
 
-          {/* Success Message */}
           {saveSuccess?.section === 'subscription' && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-lg flex items-center gap-2">
+              <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-sm text-green-800">{saveSuccess.message}</span>
+              <span className="text-sm text-success">{saveSuccess.message}</span>
             </div>
           )}
 
@@ -539,10 +519,10 @@ export default function UserDetailPage() {
                     onChange={(e) => handleSubscriptionChange('plan_id', e.target.value)}
                     disabled={isUpdating}
                     className={cn(
-                      "px-3 py-1 border rounded-lg text-sm font-medium",
+                      "px-3 py-2 border rounded-lg text-sm font-medium min-h-[44px] bg-white",
                       subscriptionChanges?.plan_id && subscriptionChanges.plan_id !== subscription.plan_id
                         ? "border-amber-400 bg-amber-50"
-                        : "border-gray-300"
+                        : "border-gray-200"
                     )}
                   >
                     {plans.map((plan) => (
@@ -561,15 +541,10 @@ export default function UserDetailPage() {
                     onChange={(e) => handleSubscriptionChange('status', e.target.value)}
                     disabled={isUpdating}
                     className={cn(
-                      'px-3 py-1 border rounded-lg text-sm font-medium',
+                      'px-3 py-2 border rounded-lg text-sm font-medium min-h-[44px] bg-white',
                       subscriptionChanges?.status && subscriptionChanges.status !== subscription.status
                         ? "border-amber-400 bg-amber-50"
-                        : (
-                          getCurrentStatus() === 'active' && 'border-green-300 bg-green-50 text-green-800',
-                          getCurrentStatus() === 'expired' && 'border-red-300 bg-red-50 text-red-800',
-                          getCurrentStatus() === 'grace_period' && 'border-yellow-300 bg-yellow-50 text-yellow-800',
-                          getCurrentStatus() === 'cancelled' && 'border-gray-300 bg-gray-50 text-gray-800'
-                        )
+                        : "border-gray-200"
                     )}
                   >
                     <option value="active">Active</option>
@@ -593,7 +568,7 @@ export default function UserDetailPage() {
                 <dt className="text-gray-500">Time Remaining</dt>
                 <dd className={cn(
                   "font-medium",
-                  isMounted && getSubscriptionDuration()?.includes('Expired') ? 'text-red-600' : 'text-teal-600'
+                  isMounted && getSubscriptionDuration()?.includes('Expired') ? 'text-error' : 'text-teal'
                 )}>
                   {isMounted ? getSubscriptionDuration() : '—'}
                 </dd>
@@ -603,13 +578,12 @@ export default function UserDetailPage() {
             <p className="text-gray-500">No active subscription</p>
           )}
 
-          {/* Save/Discard Buttons for Subscription */}
           {hasSubscriptionChanges && (
             <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
               <button
                 onClick={handleSaveSubscription}
                 disabled={isUpdating}
-                className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-teal text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2 min-h-[44px]"
               >
                 {isUpdating ? (
                   <>
@@ -626,7 +600,7 @@ export default function UserDetailPage() {
               <button
                 onClick={handleDiscardSubscription}
                 disabled={isUpdating}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium text-sm"
+                className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium text-sm min-h-[44px]"
               >
                 Discard
               </button>
@@ -641,7 +615,7 @@ export default function UserDetailPage() {
                   key={months}
                   onClick={() => handleManualSubscription(months)}
                   disabled={isUpdating}
-                  className="px-3 py-1 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50"
+                  className="px-4 py-2 text-sm bg-teal text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-medium min-h-[44px]"
                 >
                   +{months} month{months > 1 ? 's' : ''}
                 </button>
@@ -653,10 +627,9 @@ export default function UserDetailPage() {
           </div>
         </div>
 
-        {/* Account Settings */}
         <div className={cn(
-          "bg-white rounded-xl shadow-sm border p-6",
-          hasAccountChanges ? "border-amber-300 ring-1 ring-amber-200" : "border-gray-100"
+          "bg-white rounded-xl shadow-card border p-4 lg:p-6",
+          hasAccountChanges ? "border-amber-300 ring-1 ring-amber-200" : "border-transparent"
         )}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Account Settings</h2>
@@ -667,13 +640,12 @@ export default function UserDetailPage() {
             )}
           </div>
 
-          {/* Success Message */}
           {saveSuccess?.section === 'account' && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-lg flex items-center gap-2">
+              <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-sm text-green-800">{saveSuccess.message}</span>
+              <span className="text-sm text-success">{saveSuccess.message}</span>
             </div>
           )}
 
@@ -686,13 +658,10 @@ export default function UserDetailPage() {
                   onChange={(e) => handleAccountChange('role', e.target.value)}
                   disabled={isUpdating}
                   className={cn(
-                    'px-3 py-1 border rounded-lg text-sm font-medium',
+                    'px-3 py-2 border rounded-lg text-sm font-medium min-h-[44px] bg-white',
                     accountChanges?.role && accountChanges.role !== user.role
                       ? "border-amber-400 bg-amber-50"
-                      : (
-                        getCurrentRole() === 'admin' && 'border-purple-300 bg-purple-50 text-purple-800',
-                        getCurrentRole() === 'user' && 'border-gray-300 bg-gray-50 text-gray-800'
-                      )
+                      : "border-gray-200"
                   )}
                 >
                   <option value="user">User</option>
@@ -708,10 +677,10 @@ export default function UserDetailPage() {
                   onChange={(e) => handleAccountChange('property_limit', parseInt(e.target.value))}
                   disabled={isUpdating}
                   className={cn(
-                    "px-3 py-1 border rounded-lg text-sm",
+                    "px-3 py-2 border rounded-lg text-sm min-h-[44px] bg-white",
                     accountChanges?.property_limit && accountChanges.property_limit !== user.property_limit
                       ? "border-amber-400 bg-amber-50"
-                      : "border-gray-300"
+                      : "border-gray-200"
                   )}
                 >
                   {[1, 2, 3, 5, 10, 20, 50, 100].map((n) => (
@@ -728,13 +697,12 @@ export default function UserDetailPage() {
             </div>
           </dl>
 
-          {/* Save/Discard Buttons for Account */}
           {hasAccountChanges && (
             <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
               <button
                 onClick={handleSaveAccount}
                 disabled={isUpdating}
-                className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-teal text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2 min-h-[44px]"
               >
                 {isUpdating ? (
                   <>
@@ -751,7 +719,7 @@ export default function UserDetailPage() {
               <button
                 onClick={handleDiscardAccount}
                 disabled={isUpdating}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium text-sm"
+                className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium text-sm min-h-[44px]"
               >
                 Discard
               </button>
@@ -765,10 +733,9 @@ export default function UserDetailPage() {
           </div>
         </div>
 
-        {/* Feature Access Overrides */}
         <div className={cn(
-          "bg-white rounded-xl shadow-sm border p-6",
-          hasFeatureAccessChanges ? "border-amber-300 ring-1 ring-amber-200" : "border-gray-100"
+          "bg-white rounded-xl shadow-card border p-4 lg:p-6",
+          hasFeatureAccessChanges ? "border-amber-300 ring-1 ring-amber-200" : "border-transparent"
         )}>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Feature Access</h2>
@@ -782,13 +749,12 @@ export default function UserDetailPage() {
             Override default plan limits. Paid subscribers automatically get unlimited access.
           </p>
 
-          {/* Success Message */}
           {saveSuccess?.section === 'feature' && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mb-4 p-3 bg-success/10 border border-success/20 rounded-lg flex items-center gap-2">
+              <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              <span className="text-sm text-green-800">{saveSuccess.message}</span>
+              <span className="text-sm text-success">{saveSuccess.message}</span>
             </div>
           )}
 
@@ -804,11 +770,11 @@ export default function UserDetailPage() {
                   }}
                   disabled={isUpdating}
                   className={cn(
-                    "px-3 py-1 border rounded-lg text-sm",
+                    "px-3 py-2 border rounded-lg text-sm min-h-[44px] bg-white",
                     featureAccessChanges?.calendar_months_override !== undefined &&
                     featureAccessChanges.calendar_months_override !== user.calendar_months_override
                       ? "border-amber-400 bg-amber-50"
-                      : "border-gray-300"
+                      : "border-gray-200"
                   )}
                 >
                   <option value="default">Use plan default</option>
@@ -831,11 +797,11 @@ export default function UserDetailPage() {
                   }}
                   disabled={isUpdating}
                   className={cn(
-                    "px-3 py-1 border rounded-lg text-sm",
+                    "px-3 py-2 border rounded-lg text-sm min-h-[44px] bg-white",
                     featureAccessChanges?.report_months_override !== undefined &&
                     featureAccessChanges.report_months_override !== user.report_months_override
                       ? "border-amber-400 bg-amber-50"
-                      : "border-gray-300"
+                      : "border-gray-200"
                   )}
                 >
                   <option value="default">Use plan default</option>
@@ -849,13 +815,12 @@ export default function UserDetailPage() {
             </div>
           </dl>
 
-          {/* Save/Discard Buttons */}
           {hasFeatureAccessChanges && (
             <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
               <button
                 onClick={handleSaveFeatureAccess}
                 disabled={isUpdating}
-                className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 font-medium text-sm flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-3 bg-teal text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-semibold text-sm flex items-center justify-center gap-2 min-h-[44px]"
               >
                 {isUpdating ? (
                   <>
@@ -872,7 +837,7 @@ export default function UserDetailPage() {
               <button
                 onClick={handleDiscardFeatureAccess}
                 disabled={isUpdating}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium text-sm"
+                className="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 font-medium text-sm min-h-[44px]"
               >
                 Discard
               </button>
@@ -886,8 +851,7 @@ export default function UserDetailPage() {
           </div>
         </div>
 
-        {/* Properties */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-card p-4 lg:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Properties ({properties.length}/{user.property_limit})
           </h2>
@@ -906,8 +870,8 @@ export default function UserDetailPage() {
                   </div>
                   <span
                     className={cn(
-                      'px-2 py-0.5 text-xs rounded-full',
-                      prop.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                      'px-2 py-0.5 text-xs rounded-full font-medium',
+                      prop.is_active ? 'bg-success/20 text-success' : 'bg-gray-100 text-gray-600'
                     )}
                   >
                     {prop.is_active ? 'Active' : 'Inactive'}
@@ -918,8 +882,7 @@ export default function UserDetailPage() {
           )}
         </div>
 
-        {/* Payment History */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-xl shadow-card p-4 lg:p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment History</h2>
           {payments.length === 0 ? (
             <p className="text-gray-500">No payment history</p>
