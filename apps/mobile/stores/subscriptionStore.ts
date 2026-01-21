@@ -12,6 +12,7 @@ export type SubscriptionStateType = 'none' | 'active' | 'expiring_soon' | 'grace
 interface UserOverrides {
   calendar_months_override: number | null;
   report_months_override: number | null;
+  property_limit: number;
 }
 
 interface SubscriptionState {
@@ -132,17 +133,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   },
 
   canAddProperty: (currentCount: number) => {
-    const { plan, subscription } = get();
+    const { plan, subscription, userOverrides } = get();
 
-    // No subscription or expired = 1 property max
-    if (!subscription || subscription.status === 'expired') {
-      return currentCount < 1;
-    }
-
-    // No plan means free tier (1 property)
-    if (!plan) return currentCount < 1;
-
-    return currentCount < plan.property_limit;
+    // User's property_limit (set by admin) takes precedence
+    const limit = userOverrides?.property_limit ?? plan?.property_limit ?? 1;
+    return currentCount < limit;
   },
 
   isPremium: () => {
@@ -199,7 +194,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
           .single(),
         supabase
           .from('users')
-          .select('calendar_months_override, report_months_override')
+          .select('calendar_months_override, report_months_override, property_limit')
           .eq('id', userId)
           .single(),
       ]);
@@ -211,6 +206,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       const userOverrides: UserOverrides | null = userResult.data ? {
         calendar_months_override: userResult.data.calendar_months_override,
         report_months_override: userResult.data.report_months_override,
+        property_limit: userResult.data.property_limit,
       } : null;
 
       if (subResult.data) {

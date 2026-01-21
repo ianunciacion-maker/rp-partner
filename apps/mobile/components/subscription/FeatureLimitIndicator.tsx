@@ -52,7 +52,8 @@ export function FeatureLimitIndicator({ feature, currentUsage, compact = true }:
         return { text: `${limit} months`, showUpgrade: true };
       }
       case 'properties': {
-        const limit = premium ? (plan?.property_limit ?? 10) : (plan?.property_limit ?? 1);
+        // User's property_limit (set by admin) takes precedence over plan limit
+        const limit = userOverrides?.property_limit ?? plan?.property_limit ?? 1;
         const usage = currentUsage ?? 0;
         const atLimit = usage >= limit;
         return {

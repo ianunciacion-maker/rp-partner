@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -19,14 +19,6 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch subscription data on mount
-  useEffect(() => {
-    if (user?.id) {
-      fetchSubscription(user.id);
-      checkPendingSubmission(user.id);
-    }
-  }, [user?.id]);
-
   const fetchProperties = async () => {
     try {
       const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
@@ -40,11 +32,15 @@ export default function HomeScreen() {
     }
   };
 
-  // Refresh when screen comes into focus (also fires on initial mount)
+  // Refresh subscription and properties when screen comes into focus
   useFocusEffect(
     useCallback(() => {
+      if (user?.id) {
+        fetchSubscription(user.id);
+        checkPendingSubmission(user.id);
+      }
       fetchProperties();
-    }, [])
+    }, [user?.id])
   );
 
   if (isLoading) {
