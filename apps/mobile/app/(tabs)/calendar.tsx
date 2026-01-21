@@ -9,6 +9,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
+import { Avatar } from '@/components/ui/Avatar';
+import { TogglePill } from '@/components/ui/TogglePill';
+import { FloatingButton } from '@/components/ui/FloatingButton';
 import type { Property, Reservation, LockedDate } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 
@@ -58,6 +61,8 @@ export default function CalendarScreen() {
   const [customerViewProperty, setCustomerViewProperty] = useState<Property | null>(null);
   const [propertySelectorVisible, setPropertySelectorVisible] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [viewMode, setViewMode] = useState<'today' | 'upcoming'>('today');
+  const [showTodayButton, setShowTodayButton] = useState(false);
   const calendarRef = useRef<View>(null);
 
   // Fetch subscription data on mount
@@ -370,26 +375,17 @@ export default function CalendarScreen() {
             ))}
           </ScrollView>
 
-          <View style={styles.legend}>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.availableDot]} />
-              <Text style={styles.legendText}>Available</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.bookedDot]} />
-              <Text style={styles.legendText}>Booked</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.lockedDot]} />
-              <Text style={styles.legendText}>Locked</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.legendDot, styles.completedDot]} />
-              <Text style={styles.legendText}>Done</Text>
-            </View>
+          <View style={styles.calendarHeaderRow}>
+            <Text style={styles.monthTitle}>{MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}</Text>
+            <TogglePill
+              options={[
+                { label: 'Today', value: 'today' },
+                { label: 'Upcoming', value: 'upcoming' },
+              ]}
+              value={viewMode}
+              onChange={(v) => setViewMode(v as 'today' | 'upcoming')}
+            />
           </View>
-
-          <Text style={styles.lockHint}>Long-press a date to lock/unlock</Text>
 
           <View style={styles.limitIndicatorContainer}>
             <FeatureLimitIndicator feature="calendar" />
@@ -426,12 +422,8 @@ export default function CalendarScreen() {
                   key={day}
                   style={[
                     styles.dayCell,
-                    status === 'booked' && styles.bookedCell,
-                    status === 'completed' && styles.completedCell,
-                    status === 'past' && styles.pastCell,
-                    status === 'available' && styles.availableCell,
-                    status === 'locked' && styles.lockedCell,
                     isToday && styles.todayCell,
+                    status === 'past' && styles.pastCell,
                   ]}
                   onPress={() => {
                     if (status === 'locked') {
@@ -452,10 +444,7 @@ export default function CalendarScreen() {
                 >
                   <Text style={[
                     styles.dayNumber,
-                    status === 'booked' && styles.bookedText,
-                    status === 'completed' && styles.completedText,
                     status === 'past' && styles.pastText,
-                    status === 'locked' && styles.lockedText,
                     isToday && styles.todayNumber,
                   ]}>
                     {day}
@@ -464,14 +453,13 @@ export default function CalendarScreen() {
                     <Text style={styles.lockIcon}>🔒</Text>
                   )}
                   {reservation && (status === 'booked' || status === 'completed') && (
-                    <>
-                      <Text style={[styles.guestInitial, status === 'completed' && styles.completedInitial]} numberOfLines={1}>
-                        {reservation.guest_name.split(' ')[0].charAt(0)}
-                      </Text>
-                      <Text style={[styles.paxCount, status === 'completed' && styles.completedPaxCount]}>
-                        {reservation.guest_count} pax
-                      </Text>
-                    </>
+                    <View style={styles.avatarContainer}>
+                      <Avatar
+                        size="sm"
+                        name={reservation.guest_name}
+                        backgroundColor={status === 'completed' ? Colors.neutral.gray400 : Colors.primary.teal}
+                      />
+                    </View>
                   )}
                 </Pressable>
               );
@@ -497,7 +485,7 @@ export default function CalendarScreen() {
                   style={styles.reservationCard}
                   onPress={() => router.push(`/reservation/${reservation.id}`)}
                 >
-                  <View style={[styles.statusBar, { backgroundColor: getStatusColor(reservation.status) }]} />
+                  <Avatar size="md" name={reservation.guest_name} />
                   <View style={styles.reservationContent}>
                     <Text style={styles.guestName}>{reservation.guest_name}</Text>
                     <Text style={styles.propertyName}>{reservation.property?.name || 'Unknown Property'}</Text>
@@ -507,7 +495,7 @@ export default function CalendarScreen() {
                     </View>
                   </View>
                   <View style={styles.amountContainer}>
-                    <Text style={styles.amountText}>PHP {reservation.total_amount?.toLocaleString()}</Text>
+                    <Text style={styles.amountText}>₱{reservation.total_amount?.toLocaleString()}</Text>
                     <View style={[styles.statusBadge, { backgroundColor: getStatusColor(reservation.status) + '20' }]}>
                       <Text style={[styles.statusText, { color: getStatusColor(reservation.status) }]}>
                         {reservation.status}
@@ -536,7 +524,7 @@ export default function CalendarScreen() {
                   style={styles.reservationCard}
                   onPress={() => router.push(`/reservation/${reservation.id}`)}
                 >
-                  <View style={[styles.statusBar, { backgroundColor: Colors.neutral.gray400 }]} />
+                  <Avatar size="md" name={reservation.guest_name} backgroundColor={Colors.neutral.gray400} />
                   <View style={styles.reservationContent}>
                     <Text style={styles.guestName}>{reservation.guest_name}</Text>
                     <Text style={styles.propertyName}>{reservation.property?.name || 'Unknown Property'}</Text>
@@ -546,7 +534,7 @@ export default function CalendarScreen() {
                     </View>
                   </View>
                   <View style={styles.amountContainer}>
-                    <Text style={styles.amountText}>PHP {reservation.total_amount?.toLocaleString()}</Text>
+                    <Text style={styles.amountText}>₱{reservation.total_amount?.toLocaleString()}</Text>
                     <View style={[styles.statusBadge, { backgroundColor: Colors.neutral.gray400 + '20' }]}>
                       <Text style={[styles.statusText, { color: Colors.neutral.gray500 }]}>
                         Completed
@@ -827,16 +815,8 @@ const styles = StyleSheet.create({
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, backgroundColor: Colors.neutral.gray100, marginRight: Spacing.sm },
   filterChipActive: { backgroundColor: Colors.primary.teal },
   filterChipText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray600 },
-  filterChipTextActive: { color: Colors.neutral.white, fontWeight: '600' },
-  legend: { flexDirection: 'row', justifyContent: 'space-around', backgroundColor: Colors.neutral.white, paddingVertical: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.neutral.gray100 },
-  legendItem: { flexDirection: 'row', alignItems: 'center' },
-  legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: Spacing.xs },
-  availableDot: { backgroundColor: Colors.semantic.success },
-  bookedDot: { backgroundColor: Colors.semantic.error },
-  completedDot: { backgroundColor: Colors.neutral.gray400 },
-  lockedDot: { backgroundColor: Colors.neutral.gray500 },
-  legendText: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600 },
-  lockHint: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray400, textAlign: 'center', paddingVertical: Spacing.xs, backgroundColor: Colors.neutral.white },
+  filterChipTextActive: { color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold },
+  calendarHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   limitIndicatorContainer: { backgroundColor: Colors.neutral.white, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, alignItems: 'center' },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
@@ -846,24 +826,13 @@ const styles = StyleSheet.create({
   dayLabel: { flex: 1, textAlign: 'center', fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, fontWeight: '500' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.md },
   dayCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', padding: 2 },
-  availableCell: { backgroundColor: Colors.semantic.success + '20' },
-  bookedCell: { backgroundColor: Colors.semantic.error + '25' },
-  completedCell: { backgroundColor: Colors.neutral.gray300 + '40' },
-  pastCell: { backgroundColor: Colors.neutral.gray100 },
-  lockedCell: { backgroundColor: Colors.neutral.gray400 + '50' },
-  todayCell: { borderWidth: 2, borderColor: Colors.primary.teal, borderRadius: BorderRadius.md },
-  dayNumber: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
-  bookedText: { color: Colors.semantic.error, fontWeight: '600' },
-  completedText: { color: Colors.neutral.gray500, fontWeight: '500' },
+  pastCell: { opacity: 0.5 },
+  todayCell: { borderWidth: 2, borderColor: Colors.primary.teal, borderRadius: BorderRadius.lg },
+  dayNumber: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray900, marginBottom: 2 },
   pastText: { color: Colors.neutral.gray400 },
-  lockedText: { color: Colors.neutral.gray500, fontWeight: '500' },
-  todayNumber: { fontWeight: 'bold', color: Colors.primary.teal },
-  availableText: { color: Colors.semantic.success, fontWeight: '600' },
-  lockIcon: { fontSize: 10, marginTop: 1 },
-  guestInitial: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray600, marginTop: 1 },
-  completedInitial: { color: Colors.neutral.gray400 },
-  paxCount: { fontSize: 8, color: Colors.neutral.gray400, marginTop: 0.5 },
-  completedPaxCount: { color: Colors.neutral.gray300 },
+  todayNumber: { fontWeight: Typography.fontWeight.bold, color: Colors.primary.teal },
+  lockIcon: { fontSize: 10 },
+  avatarContainer: { marginTop: 2 },
   agendaSection: { padding: Spacing.lg },
   agendaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
   agendaTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },
@@ -871,18 +840,17 @@ const styles = StyleSheet.create({
   addButton: { fontSize: Typography.fontSize.md, color: Colors.primary.teal, fontWeight: '600' },
   emptyAgenda: { padding: Spacing.xl, alignItems: 'center' },
   emptyAgendaText: { color: Colors.neutral.gray500 },
-  reservationCard: { flexDirection: 'row', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, marginBottom: Spacing.md, overflow: 'hidden', ...Shadows.sm },
-  statusBar: { width: 4 },
-  reservationContent: { flex: 1, padding: Spacing.md },
-  guestName: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.gray900 },
+  reservationCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, marginBottom: Spacing.md, padding: Spacing.md, ...Shadows.sm },
+  reservationContent: { flex: 1, marginLeft: Spacing.md },
+  guestName: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
   propertyName: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, marginTop: 2 },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs },
   dateText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray600 },
   nightsText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray400, marginLeft: Spacing.sm },
-  amountContainer: { padding: Spacing.md, justifyContent: 'center', alignItems: 'flex-end' },
-  amountText: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.gray900 },
+  amountContainer: { justifyContent: 'center', alignItems: 'flex-end' },
+  amountText: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
   statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: BorderRadius.sm, marginTop: Spacing.xs },
-  statusText: { fontSize: Typography.fontSize.xs, fontWeight: '600', textTransform: 'capitalize' },
+  statusText: { fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.semibold, textTransform: 'capitalize' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },
   modalContent: { backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.xl, padding: Spacing.xl, width: '100%', maxWidth: 340 },
   modalTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900, textAlign: 'center' },

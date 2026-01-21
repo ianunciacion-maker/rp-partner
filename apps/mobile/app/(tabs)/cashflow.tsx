@@ -340,24 +340,28 @@ export default function CashflowScreen() {
           <FeatureLimitIndicator feature="reports" />
         </View>
 
-        {/* Summary Cards */}
+        {/* Summary Cards - Stacked Vertically */}
         <View style={styles.summaryContainer}>
           <View style={[styles.summaryCard, styles.incomeCard]}>
-            <Text style={styles.summaryLabel}>Income</Text>
-            <Text style={styles.incomeValue}>PHP {totalIncome.toLocaleString()}</Text>
+            <View style={styles.summaryHeader}>
+              <Text style={styles.incomeArrow}>↑</Text>
+              <Text style={styles.summaryLabel}>Income</Text>
+            </View>
+            <Text style={styles.incomeValue}>₱{totalIncome.toLocaleString()}</Text>
           </View>
           <View style={[styles.summaryCard, styles.expenseCard]}>
-            <Text style={styles.summaryLabel}>Expenses</Text>
-            <Text style={styles.expenseValue}>PHP {totalExpense.toLocaleString()}</Text>
+            <View style={styles.summaryHeader}>
+              <Text style={styles.expenseArrow}>↓</Text>
+              <Text style={styles.summaryLabel}>Expenses</Text>
+            </View>
+            <Text style={styles.expenseValue}>₱{totalExpense.toLocaleString()}</Text>
           </View>
-        </View>
-
-        {/* Net Cashflow */}
-        <View style={styles.netContainer}>
-          <Text style={styles.netLabel}>Net Cashflow</Text>
-          <Text style={[styles.netValue, netCashflow >= 0 ? styles.netPositive : styles.netNegative]}>
-            {netCashflow >= 0 ? '+' : ''}PHP {netCashflow.toLocaleString()}
-          </Text>
+          <View style={[styles.summaryCard, styles.netCard]}>
+            <Text style={styles.netLabel}>Net Cashflow</Text>
+            <Text style={[styles.netValue, netCashflow >= 0 ? styles.netPositive : styles.netNegative]}>
+              {netCashflow >= 0 ? '+' : ''}₱{netCashflow.toLocaleString()}
+            </Text>
+          </View>
         </View>
 
         {/* Transactions */}
@@ -375,15 +379,18 @@ export default function CashflowScreen() {
                 style={styles.transactionCard}
                 onPress={() => router.push(`/cashflow/${entry.id}`)}
               >
-                <View style={[styles.typeIndicator, entry.type === 'income' ? styles.incomeIndicator : styles.expenseIndicator]} />
+                <View style={[styles.categoryIcon, entry.type === 'income' ? styles.incomeIconBg : styles.expenseIconBg]}>
+                  <Text style={styles.categoryIconText}>{getCategoryIcon(entry.category)}</Text>
+                </View>
                 <View style={styles.transactionContent}>
                   <Text style={styles.transactionDescription}>{entry.description}</Text>
                   <Text style={styles.transactionMeta}>
-                    {entry.category} • {entry.property?.name || 'Unknown'} • {formatDate(entry.transaction_date)}
+                    {entry.category} • {entry.property?.name || 'Unknown'}
                   </Text>
+                  <Text style={styles.transactionDate}>{formatDate(entry.transaction_date)}</Text>
                 </View>
                 <Text style={[styles.transactionAmount, entry.type === 'income' ? styles.incomeText : styles.expenseText]}>
-                  {entry.type === 'income' ? '+' : '-'}PHP {entry.amount?.toLocaleString()}
+                  {entry.type === 'income' ? '+' : '-'}₱{entry.amount?.toLocaleString()}
                 </Text>
               </Pressable>
             ))
@@ -391,13 +398,15 @@ export default function CashflowScreen() {
         </View>
       </ScrollView>
 
-      {/* FAB for adding transactions */}
+      {/* FABs for adding transactions - Stacked Vertically */}
       <View style={styles.fabContainer}>
-        <Pressable style={[styles.fab, styles.expenseFab]} onPress={() => router.push('/cashflow/add?type=expense')}>
-          <Text style={styles.fabText}>-</Text>
+        <Pressable style={[styles.fabWithLabel, styles.expenseFab]} onPress={() => router.push('/cashflow/add?type=expense')}>
+          <Text style={styles.fabText}>−</Text>
+          <Text style={styles.fabLabel}>Expense</Text>
         </Pressable>
-        <Pressable style={[styles.fab, styles.incomeFab]} onPress={() => router.push('/cashflow/add?type=income')}>
+        <Pressable style={[styles.fabWithLabel, styles.incomeFab]} onPress={() => router.push('/cashflow/add?type=income')}>
           <Text style={styles.fabText}>+</Text>
+          <Text style={styles.fabLabel}>Income</Text>
         </Pressable>
       </View>
 
@@ -507,6 +516,27 @@ const formatDate = (dateStr: string) => {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 };
 
+const getCategoryIcon = (category: string): string => {
+  const icons: Record<string, string> = {
+    // Income categories
+    rental: '🏠',
+    booking: '📅',
+    deposit: '💰',
+    refund: '↩️',
+    // Expense categories
+    utilities: '💡',
+    maintenance: '🔧',
+    cleaning: '🧹',
+    supplies: '📦',
+    taxes: '📋',
+    insurance: '🛡️',
+    marketing: '📢',
+    commission: '💳',
+    other: '📝',
+  };
+  return icons[category.toLowerCase()] || '📝';
+};
+
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   container: { flex: 1 },
@@ -522,16 +552,19 @@ const styles = StyleSheet.create({
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },
   monthTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900 },
-  summaryContainer: { flexDirection: 'row', padding: Spacing.md, gap: Spacing.md },
-  summaryCard: { flex: 1, padding: Spacing.lg, borderRadius: BorderRadius.lg, ...Shadows.sm },
-  incomeCard: { backgroundColor: Colors.semantic.success + '10' },
-  expenseCard: { backgroundColor: Colors.semantic.error + '10' },
-  summaryLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, marginBottom: Spacing.xs },
-  incomeValue: { fontSize: Typography.fontSize.xl, fontWeight: 'bold', color: Colors.semantic.success },
-  expenseValue: { fontSize: Typography.fontSize.xl, fontWeight: 'bold', color: Colors.semantic.error },
-  netContainer: { backgroundColor: Colors.neutral.white, padding: Spacing.lg, marginHorizontal: Spacing.md, borderRadius: BorderRadius.lg, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', ...Shadows.sm },
-  netLabel: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },
-  netValue: { fontSize: Typography.fontSize.xl, fontWeight: 'bold' },
+  summaryContainer: { padding: Spacing.md, gap: Spacing.md },
+  summaryCard: { padding: Spacing.lg, borderRadius: BorderRadius.lg, ...Shadows.sm },
+  summaryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.xs },
+  incomeCard: { backgroundColor: Colors.neutral.white },
+  expenseCard: { backgroundColor: Colors.neutral.white },
+  netCard: { backgroundColor: Colors.neutral.white, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  summaryLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
+  incomeArrow: { fontSize: Typography.fontSize.lg, color: Colors.semantic.success, marginRight: Spacing.xs, fontWeight: Typography.fontWeight.bold },
+  expenseArrow: { fontSize: Typography.fontSize.lg, color: Colors.semantic.error, marginRight: Spacing.xs, fontWeight: Typography.fontWeight.bold },
+  incomeValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.extrabold, color: Colors.semantic.success },
+  expenseValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.extrabold, color: Colors.semantic.error },
+  netLabel: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
+  netValue: { fontSize: Typography.fontSize['2xl'], fontWeight: Typography.fontWeight.extrabold },
   netPositive: { color: Colors.semantic.success },
   netNegative: { color: Colors.semantic.error },
   transactionsSection: { padding: Spacing.lg },
@@ -539,21 +572,24 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xl },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.sm },
   emptyText: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
-  transactionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, marginBottom: Spacing.sm, overflow: 'hidden', ...Shadows.sm },
-  typeIndicator: { width: 4, alignSelf: 'stretch' },
-  incomeIndicator: { backgroundColor: Colors.semantic.success },
-  expenseIndicator: { backgroundColor: Colors.semantic.error },
-  transactionContent: { flex: 1, padding: Spacing.md },
-  transactionDescription: { fontSize: Typography.fontSize.md, fontWeight: '500', color: Colors.neutral.gray900 },
+  transactionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, marginBottom: Spacing.sm, padding: Spacing.md, ...Shadows.sm },
+  categoryIcon: { width: 44, height: 44, borderRadius: BorderRadius.lg, justifyContent: 'center', alignItems: 'center' },
+  incomeIconBg: { backgroundColor: Colors.semantic.success + '15' },
+  expenseIconBg: { backgroundColor: Colors.semantic.error + '15' },
+  categoryIconText: { fontSize: 20 },
+  transactionContent: { flex: 1, marginLeft: Spacing.md },
+  transactionDescription: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.medium, color: Colors.neutral.gray900 },
   transactionMeta: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, marginTop: 2 },
-  transactionAmount: { paddingHorizontal: Spacing.md, fontSize: Typography.fontSize.md, fontWeight: '600' },
+  transactionDate: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray400, marginTop: 2 },
+  transactionAmount: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold },
   incomeText: { color: Colors.semantic.success },
   expenseText: { color: Colors.semantic.error },
-  fabContainer: { position: 'absolute', bottom: Spacing.xl, right: Spacing.lg, flexDirection: 'row', gap: Spacing.md },
-  fab: { width: 56, height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', ...Shadows.lg },
+  fabContainer: { position: 'absolute', bottom: Spacing.xl, right: Spacing.lg, gap: Spacing.sm },
+  fabWithLabel: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.full, ...Shadows.lg },
   incomeFab: { backgroundColor: Colors.semantic.success },
   expenseFab: { backgroundColor: Colors.semantic.error },
-  fabText: { fontSize: 28, color: Colors.neutral.white, lineHeight: 30 },
+  fabText: { fontSize: 20, color: Colors.neutral.white, fontWeight: Typography.fontWeight.bold },
+  fabLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold, marginLeft: Spacing.xs },
   exportButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md },
   exportButtonText: { color: Colors.neutral.white, fontSize: Typography.fontSize.sm, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, A
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
+import { Avatar } from '@/components/ui/Avatar';
 import { supabase } from '@/services/supabase';
 import type { Property, Reservation, CashflowEntry } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
@@ -136,9 +137,7 @@ export default function MoreScreen() {
     >
       {/* Profile Section */}
       <View style={styles.profileSection}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.full_name?.charAt(0) || '?'}</Text>
-        </View>
+        <Avatar size="xl" name={user?.full_name || 'User'} />
         <Text style={styles.userName}>{user?.full_name || 'User'}</Text>
         <Text style={styles.userEmail}>{user?.email || ''}</Text>
       </View>
@@ -202,17 +201,23 @@ export default function MoreScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
         <Pressable style={styles.menuItem} onPress={() => router.push('/settings/profile')}>
-          <Text style={styles.menuIcon}>👤</Text>
+          <View style={styles.menuIconContainer}>
+            <Text style={styles.menuIcon}>👤</Text>
+          </View>
           <Text style={styles.menuText}>Edit Profile</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
         <Pressable style={styles.menuItem} onPress={() => router.push('/settings/notifications')}>
-          <Text style={styles.menuIcon}>🔔</Text>
+          <View style={styles.menuIconContainer}>
+            <Text style={styles.menuIcon}>🔔</Text>
+          </View>
           <Text style={styles.menuText}>Notifications</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
         <Pressable style={styles.menuItem} onPress={() => router.push('/subscription')}>
-          <Text style={styles.menuIcon}>💳</Text>
+          <View style={styles.menuIconContainer}>
+            <Text style={styles.menuIcon}>💳</Text>
+          </View>
           <Text style={styles.menuText}>Subscription</Text>
           <View style={styles.subscriptionBadge}>
             <Text style={styles.subscriptionBadgeText}>{user?.subscription_status || 'free'}</Text>
@@ -220,13 +225,15 @@ export default function MoreScreen() {
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
         <Pressable style={styles.menuItem} onPress={() => router.push('/settings/help')}>
-          <Text style={styles.menuIcon}>❓</Text>
+          <View style={styles.menuIconContainer}>
+            <Text style={styles.menuIcon}>❓</Text>
+          </View>
           <Text style={styles.menuText}>Help & Support</Text>
           <Text style={styles.menuArrow}>›</Text>
         </Pressable>
       </View>
 
-      {/* Sign Out */}
+      {/* Sign Out - Outline Style at Bottom */}
       <View style={styles.signOutSection}>
         <Pressable style={styles.signOutButton} onPress={handleSignOut}>
           <Text style={styles.signOutText}>Sign Out</Text>
@@ -241,37 +248,36 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   profileSection: { alignItems: 'center', paddingVertical: Spacing.xl, backgroundColor: Colors.neutral.white },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.md },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: Colors.neutral.white },
-  userName: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900 },
+  userName: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900, marginTop: Spacing.md },
   userEmail: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
   section: { backgroundColor: Colors.neutral.white, padding: Spacing.lg, marginTop: Spacing.md },
-  sectionTitle: { fontSize: Typography.fontSize.sm, fontWeight: '600', color: Colors.neutral.gray500, textTransform: 'uppercase', marginBottom: Spacing.md },
+  sectionTitle: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray500, textTransform: 'uppercase', marginBottom: Spacing.md },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
-  statCard: { width: '47%', backgroundColor: Colors.neutral.gray50, padding: Spacing.md, borderRadius: BorderRadius.lg, alignItems: 'center' },
-  statValue: { fontSize: Typography.fontSize['2xl'], fontWeight: 'bold', color: Colors.neutral.gray900 },
+  statCard: { width: '47%', backgroundColor: Colors.neutral.white, padding: Spacing.lg, borderRadius: BorderRadius.lg, alignItems: 'center', ...Shadows.sm },
+  statValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.bold, color: Colors.neutral.gray900 },
   statLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, marginTop: Spacing.xs },
   tealText: { color: Colors.primary.teal },
   financialRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.md },
   financialItem: { flex: 1 },
   financialLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
-  financialValue: { fontSize: Typography.fontSize.lg, fontWeight: '600', marginTop: Spacing.xs },
+  financialValue: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold, marginTop: Spacing.xs },
   incomeText: { color: Colors.semantic.success },
   expenseText: { color: Colors.semantic.error },
   netIncomeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.neutral.gray100 },
-  netIncomeLabel: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.gray900 },
-  netIncomeValue: { fontSize: Typography.fontSize.xl, fontWeight: 'bold' },
+  netIncomeLabel: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
+  netIncomeValue: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold },
   adrRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.neutral.gray100 },
   adrLabel: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray600 },
-  adrValue: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.primary.teal },
-  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray100 },
-  menuIcon: { fontSize: 20, marginRight: Spacing.md },
+  adrValue: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.primary.teal },
+  menuItem: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray100 },
+  menuIconContainer: { width: 40, height: 40, borderRadius: BorderRadius.lg, backgroundColor: Colors.neutral.gray100, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md },
+  menuIcon: { fontSize: 20 },
   menuText: { flex: 1, fontSize: Typography.fontSize.md, color: Colors.neutral.gray900 },
-  menuArrow: { fontSize: 20, color: Colors.neutral.gray400 },
+  menuArrow: { fontSize: 24, color: Colors.neutral.gray400 },
   subscriptionBadge: { backgroundColor: Colors.primary.teal + '20', paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: BorderRadius.sm, marginRight: Spacing.sm },
-  subscriptionBadgeText: { fontSize: Typography.fontSize.xs, color: Colors.primary.teal, fontWeight: '600', textTransform: 'capitalize' },
+  subscriptionBadgeText: { fontSize: Typography.fontSize.xs, color: Colors.primary.teal, fontWeight: Typography.fontWeight.semibold, textTransform: 'capitalize' },
   signOutSection: { padding: Spacing.lg, alignItems: 'center', marginBottom: Spacing.xxl },
-  signOutButton: { backgroundColor: Colors.semantic.error, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xxl, borderRadius: BorderRadius.lg },
-  signOutText: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.white },
+  signOutButton: { backgroundColor: Colors.neutral.white, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xxl, borderRadius: BorderRadius.lg, borderWidth: 1, borderColor: Colors.semantic.error },
+  signOutText: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.semantic.error },
   versionText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray400, marginTop: Spacing.lg },
 });

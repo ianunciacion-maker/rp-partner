@@ -1,44 +1,15 @@
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
+import { PropertyCard } from '@/components/ui/PropertyCard';
 import { supabase } from '@/services/supabase';
 import type { Property } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 import { SubscriptionBanner } from '@/components/subscription/SubscriptionBanner';
-
-// Optimized image component with loading placeholder
-function PropertyImage({ property }: { property: Property }) {
-  const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState(false);
-
-  if (!property.cover_image_url || error) {
-    return (
-      <View style={styles.propertyImage}>
-        <Text style={styles.propertyInitial}>{property.name.charAt(0)}</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.propertyImage}>
-      {!loaded && (
-        <View style={styles.imagePlaceholder}>
-          <Text style={styles.propertyInitial}>{property.name.charAt(0)}</Text>
-        </View>
-      )}
-      <Image
-        source={{ uri: property.cover_image_url }}
-        style={[styles.propertyImageActual, !loaded && styles.imageHidden]}
-        onLoad={() => setLoaded(true)}
-        onError={() => setError(true)}
-      />
-    </View>
-  );
-}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -105,14 +76,11 @@ export default function HomeScreen() {
           </View>
         ) : (
           properties.map((property) => (
-            <Pressable key={property.id} style={styles.propertyCard} onPress={() => router.push(`/property/${property.id}`)}>
-              <PropertyImage property={property} />
-              <View style={styles.propertyInfo}>
-                <Text style={styles.propertyName}>{property.name}</Text>
-                <Text style={styles.propertyLocation}>{property.city || 'Location not set'}</Text>
-                <Text style={styles.propertyRate}>PHP {property.base_rate?.toLocaleString()}/night</Text>
-              </View>
-            </Pressable>
+            <PropertyCard
+              key={property.id}
+              property={property}
+              onPress={() => router.push(`/property/${property.id}`)}
+            />
           ))
         )}
       </ScrollView>
@@ -130,27 +98,17 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   container: { flex: 1, padding: Spacing.lg },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { marginBottom: Spacing.lg },
-  greeting: { fontSize: Typography.fontSize['2xl'], fontWeight: 'bold', color: Colors.neutral.gray900 },
+  header: { marginBottom: Spacing.md },
+  greeting: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.medium, color: Colors.neutral.gray500 },
   subtitle: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
   subtitleRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs },
   subtitleSuffix: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray500 },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.md },
-  emptyTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900 },
+  emptyTitle: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
   emptyText: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500, marginBottom: Spacing.lg },
   emptyButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg },
-  emptyButtonText: { color: Colors.neutral.white, fontWeight: '600', fontSize: Typography.fontSize.md },
-  propertyCard: { flexDirection: 'row', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.md, ...Shadows.sm },
-  propertyImage: { width: 60, height: 60, borderRadius: BorderRadius.md, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginRight: Spacing.md, overflow: 'hidden', position: 'relative' },
-  propertyImageActual: { width: 60, height: 60, resizeMode: 'cover', position: 'absolute', top: 0, left: 0 },
-  imageHidden: { opacity: 0 },
-  imagePlaceholder: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
-  propertyInitial: { fontSize: 24, fontWeight: 'bold', color: Colors.neutral.white },
-  propertyInfo: { flex: 1, justifyContent: 'center' },
-  propertyName: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },
-  propertyLocation: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
-  propertyRate: { fontSize: Typography.fontSize.sm, color: Colors.primary.teal, fontWeight: '500', marginTop: Spacing.xs },
+  emptyButtonText: { color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold, fontSize: Typography.fontSize.md },
   fab: { position: 'absolute', bottom: Spacing.xl, right: Spacing.xl, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', ...Shadows.lg },
   fabText: { fontSize: 28, color: Colors.neutral.white, lineHeight: 30 },
 });
