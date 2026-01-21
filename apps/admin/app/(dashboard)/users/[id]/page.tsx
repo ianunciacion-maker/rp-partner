@@ -121,13 +121,18 @@ export default function UserDetailPage() {
       // Fetch subscription
       const { data: subData } = await supabase
         .from('subscriptions')
-        .select('id, status, current_period_start, current_period_end, plan_id, plan:subscription_plans(*)')
+        .select('id, status, current_period_start, current_period_end, plan_id, plan:subscription_plans(name, display_name, price_monthly)')
         .eq('user_id', id)
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
 
-      setSubscription(subData);
+      if (subData) {
+        setSubscription({
+          ...subData,
+          plan: Array.isArray(subData.plan) ? subData.plan[0] : subData.plan,
+        } as Subscription);
+      }
 
       // Fetch payment history
       const { data: paymentData } = await supabase
