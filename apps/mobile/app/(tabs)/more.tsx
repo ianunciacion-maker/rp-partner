@@ -30,64 +30,89 @@ export default function MoreScreen() {
 
   const fetchStats = async () => {
     try {
-      // Fetch all data
-      const [propertiesRes, reservationsRes, cashflowRes] = await Promise.all([
-        supabase.from('properties').select('*'),
-        supabase.from('reservations').select('*'),
-        supabase.from('cashflow_entries').select('*'),
-      ]);
-
-      const properties = propertiesRes.data || [];
-      const reservations = reservationsRes.data || [];
-      const cashflow = cashflowRes.data || [];
-
-      // Calculate stats
       const today = new Date().toISOString().split('T')[0];
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const monthStart = `${new Date().toISOString().slice(0, 7)}-01`;
 
-      // Occupancy rate (last 30 days)
-      const recentReservations = reservations.filter((r) =>
-        r.check_in >= thirtyDaysAgo &&
-        r.check_in <= today &&
-        !['cancelled', 'no_show'].includes(r.status)
-      );
+      // Parallel queries with server-side filtering
+      const [
+        propertiesCountRes,
+        recentReservationsRes,
+        monthlyIncomeRes,
+        monthlyExpensesRes,
+        upcomingRes,
+        allReservationsForAdrRes,
+      ] = await Promise.all([
+        // Property count
+        supabase.from('properties').select('id', { count: 'exact', head: true }),
+        // Recent reservations for occupancy (last 30 days)
+        supabase
+          .from('reservations')
+          .select('nights')
+          .gte('check_in', thirtyDaysAgo)
+          .lte('check_in', today)
+          .not('status', 'in', '("cancelled","no_show")'),
+        // Monthly income
+        supabase
+          .from('cashflow_entries')
+          .select('amount')
+          .eq('type', 'income')
+          .gte('transaction_date', monthStart),
+        // Monthly expenses
+        supabase
+          .from('cashflow_entries')
+          .select('amount')
+          .eq('type', 'expense')
+          .gte('transaction_date', monthStart),
+        // Upcoming check-ins
+        supabase
+          .from('reservations')
+          .select('id', { count: 'exact', head: true })
+          .gte('check_in', today)
+          .not('status', 'in', '("cancelled","no_show")'),
+        // For ADR calculation - completed/active reservations
+        supabase
+          .from('reservations')
+          .select('total_amount, nights')
+          .in('status', ['completed', 'checked_in', 'confirmed']),
+      ]);
 
+      const propertyCount = propertiesCountRes.count || 0;
+      const recentReservations = (recentReservationsRes.data || []) as { nights: number | null }[];
+      const monthlyIncomeData = (monthlyIncomeRes.data || []) as { amount: number | null }[];
+      const monthlyExpensesData = (monthlyExpensesRes.data || []) as { amount: number | null }[];
+      const upcomingCount = upcomingRes.count || 0;
+      const adrReservations = (allReservationsForAdrRes.data || []) as { total_amount: number | null; nights: number | null }[];
+
+      // Calculate occupancy rate
       const totalNights = recentReservations.reduce((sum, r) => sum + (r.nights || 0), 0);
-      const possibleNights = properties.length * 30;
+      const possibleNights = propertyCount * 30;
       const occupancyRate = possibleNights > 0 ? Math.round((totalNights / possibleNights) * 100) : 0;
 
-      // Revenue & Expenses (current month)
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-      const monthlyIncome = cashflow
-        .filter((e) => e.type === 'income' && e.transaction_date.startsWith(currentMonth))
-        .reduce((sum, e) => sum + (e.amount || 0), 0);
-      const monthlyExpenses = cashflow
-        .filter((e) => e.type === 'expense' && e.transaction_date.startsWith(currentMonth))
-        .reduce((sum, e) => sum + (e.amount || 0), 0);
+      // Calculate revenue & expenses
+      const monthlyIncome = monthlyIncomeData.reduce((sum, e) => sum + (e.amount || 0), 0);
+      const monthlyExpenses = monthlyExpensesData.reduce((sum, e) => sum + (e.amount || 0), 0);
 
-      // ADR (Average Daily Rate)
-      const completedReservations = reservations.filter((r) =>
-        ['completed', 'checked_in', 'confirmed'].includes(r.status)
-      );
-      const totalReservationRevenue = completedReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0);
-      const totalReservationNights = completedReservations.reduce((sum, r) => sum + (r.nights || 0), 0);
+      // Calculate ADR
+      const totalReservationRevenue = adrReservations.reduce((sum, r) => sum + (r.total_amount || 0), 0);
+      const totalReservationNights = adrReservations.reduce((sum, r) => sum + (r.nights || 0), 0);
       const adr = totalReservationNights > 0 ? Math.round(totalReservationRevenue / totalReservationNights) : 0;
 
-      // Upcoming check-ins
-      const upcomingCheckIns = reservations.filter((r) =>
-        r.check_in >= today &&
-        !['cancelled', 'no_show'].includes(r.status)
-      ).length;
+      // Total reservations count (need separate query for this)
+      const totalReservationsRes = await supabase
+        .from('reservations')
+        .select('id', { count: 'exact', head: true })
+        .not('status', 'in', '("cancelled","no_show")');
 
       setStats({
-        totalProperties: properties.length,
-        totalReservations: reservations.filter((r) => !['cancelled', 'no_show'].includes(r.status)).length,
+        totalProperties: propertyCount,
+        totalReservations: totalReservationsRes.count || 0,
         occupancyRate,
         totalRevenue: monthlyIncome,
         totalExpenses: monthlyExpenses,
         netIncome: monthlyIncome - monthlyExpenses,
         averageDailyRate: adr,
-        upcomingCheckIns,
+        upcomingCheckIns: upcomingCount,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 import { Badge } from './Badge';
@@ -15,7 +15,7 @@ interface PropertyCardProps {
 const IMAGE_HEIGHT = 200;
 const ASPECT_RATIO = 4 / 3;
 
-export function PropertyCard({
+export const PropertyCard = memo(function PropertyCard({
   property,
   onPress,
   onFavorite,
@@ -92,7 +92,7 @@ export function PropertyCard({
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

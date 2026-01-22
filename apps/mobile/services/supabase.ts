@@ -68,13 +68,10 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 
 export const signInWithEmail = async (email: string, password: string) => {
-  console.log('Attempting sign in for:', email);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    console.error('Sign in error:', error.message, error.status);
     throw error;
   }
-  console.log('Sign in successful');
   return data;
 };
 

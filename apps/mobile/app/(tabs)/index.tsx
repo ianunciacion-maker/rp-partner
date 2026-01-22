@@ -36,10 +36,14 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       if (user?.id) {
-        fetchSubscription(user.id);
-        checkPendingSubmission(user.id);
+        Promise.all([
+          fetchSubscription(user.id),
+          checkPendingSubmission(user.id),
+          fetchProperties(),
+        ]);
+      } else {
+        fetchProperties();
       }
-      fetchProperties();
     }, [user?.id])
   );
 

@@ -193,30 +193,35 @@ export default function CashflowScreen() {
 
     setIsExporting(true);
     try {
-      // Fetch all entries for selected months
-      const allEntries: CashflowWithProperty[] = [];
+      // Calculate date range from selected months (single query instead of loop)
+      const sortedMonths = [...selectedMonths].sort();
+      const firstMonth = sortedMonths[0];
+      const lastMonth = sortedMonths[sortedMonths.length - 1];
 
-      for (const monthValue of selectedMonths) {
-        const [year, month] = monthValue.split('-').map(Number);
-        const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0];
-        const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+      const [firstYear, firstMon] = firstMonth.split('-').map(Number);
+      const [lastYear, lastMon] = lastMonth.split('-').map(Number);
 
-        let query = supabase
-          .from('cashflow_entries')
-          .select('*, property:properties(*)')
-          .gte('transaction_date', startDate)
-          .lte('transaction_date', endDate)
-          .order('transaction_date', { ascending: true });
+      const startDate = new Date(firstYear, firstMon - 1, 1).toISOString().split('T')[0];
+      const endDate = new Date(lastYear, lastMon, 0).toISOString().split('T')[0];
 
-        if (selectedProperty) {
-          query = query.eq('property_id', selectedProperty);
-        }
+      let query = supabase
+        .from('cashflow_entries')
+        .select('*, property:properties(*)')
+        .gte('transaction_date', startDate)
+        .lte('transaction_date', endDate)
+        .order('transaction_date', { ascending: true });
 
-        const { data } = await query;
-        if (data) {
-          allEntries.push(...data);
-        }
+      if (selectedProperty) {
+        query = query.eq('property_id', selectedProperty);
       }
+
+      const { data } = await query;
+      const queryData = (data || []) as CashflowWithProperty[];
+
+      // Filter to only include entries from selected months
+      const allEntries = queryData.filter((entry) =>
+        selectedMonths.includes(entry.transaction_date.slice(0, 7))
+      );
 
       // Filter by export type
       let filteredEntries = allEntries;

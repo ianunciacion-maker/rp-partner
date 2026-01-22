@@ -31,13 +31,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
-        const { data: userData } = await supabase
+        // Set initialized immediately - allows app to render without waiting for user data
+        set({
+          session,
+          authUser: session.user,
+          isLoading: false,
+          isInitialized: true,
+        });
+
+        // Fetch user data non-blocking
+        supabase
           .from('users')
           .select('*')
           .eq('id', session.user.id)
-          .single();
-
-        set({ session, authUser: session.user, user: userData || null, isLoading: false, isInitialized: true });
+          .single()
+          .then(({ data: userData }) => {
+            set({ user: userData || null });
+          });
       } else {
         set({ session: null, authUser: null, user: null, isLoading: false, isInitialized: true });
       }
