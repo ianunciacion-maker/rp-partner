@@ -7,7 +7,6 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { supabase } from '@/services/supabase';
 import { Colors } from '@/constants/theme';
-import { WebContainer } from '@/components/WebContainer';
 
 export default function RootLayout() {
   const router = useRouter();
@@ -56,9 +55,7 @@ export default function RootLayout() {
       }) => {
         registerForPushNotifications(user.id);
 
-        notificationListener.current = addNotificationReceivedListener((notification: any) => {
-          console.log('Notification received:', notification);
-        });
+        notificationListener.current = addNotificationReceivedListener(() => {});
 
         responseListener.current = addNotificationResponseListener((response: any) => {
           const data = response.notification.request.content.data;
@@ -95,141 +92,145 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <WebContainer>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: Colors.neutral.white },
-            animation: 'slide_from_right',
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Colors.neutral.white },
+          animation: 'slide_from_right',
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="property/[id]"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
           }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="property/[id]"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="property/add"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="property/edit"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="property/[id]/calendar"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="reservation/add"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="reservation/[id]"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="cashflow/add"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="cashflow/[id]"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="reset-password"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="subscription/index"
-            options={{
-              headerShown: true,
-              title: 'Subscription',
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="subscription/upgrade"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="subscription/pay"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="subscription/pending"
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="settings/profile"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="settings/notifications"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-          <Stack.Screen
-            name="settings/help"
-            options={{
-              headerShown: true,
-              headerTintColor: Colors.primary.teal,
-              headerStyle: { backgroundColor: Colors.neutral.white },
-            }}
-          />
-        </Stack>
-        <StatusBar style="auto" />
-      </WebContainer>
+        />
+        <Stack.Screen
+          name="property/add"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="property/edit"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="property/[id]/calendar"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="reservation/add"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="reservation/[id]"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="cashflow/add"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="cashflow/[id]"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="reset-password"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="subscription/index"
+          options={{
+            headerShown: true,
+            title: 'Subscription',
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="subscription/upgrade"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="subscription/pay"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="subscription/pending"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="settings/profile"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="settings/notifications"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="settings/help"
+          options={{
+            headerShown: true,
+            headerTintColor: Colors.primary.teal,
+            headerStyle: { backgroundColor: Colors.neutral.white },
+          }}
+        />
+        <Stack.Screen
+          name="share/[token]"
+          options={{
+            headerShown: false,
+          }}
+        />
+      </Stack>
+      <StatusBar style="auto" />
     </GestureHandlerRootView>
   );
 }

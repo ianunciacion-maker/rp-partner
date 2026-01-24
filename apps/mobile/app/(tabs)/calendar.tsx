@@ -4,14 +4,16 @@ import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
+import * as Clipboard from 'expo-clipboard';
 import { supabase } from '@/services/supabase';
+import { createShareToken, getShareUrl } from '@/services/shareCalendar';
 import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import { Avatar } from '@/components/ui/Avatar';
 import { TogglePill } from '@/components/ui/TogglePill';
-import { FloatingButton } from '@/components/ui/FloatingButton';
+import { useResponsive } from '@/hooks/useResponsive';
 import type { Property, Reservation, LockedDate } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 
@@ -36,8 +38,10 @@ interface CustomerViewCalendarProps {
   prevMonth: () => void;
   nextMonth: () => void;
   onShare: () => void;
+  onCopyLink: () => void;
   onToggle: () => void;
   isCapturing: boolean;
+  isCopyingLink: boolean;
   calendarRef: React.RefObject<View>;
   reservations: ReservationWithProperty[];
   lockedDates: LockedDate[];
@@ -47,6 +51,7 @@ export default function CalendarScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { canAccessCalendarMonth, fetchSubscription, fetchPlans } = useSubscriptionStore();
+  const { isDesktop, isTablet } = useResponsive();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState<ReservationWithProperty[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -58,6 +63,7 @@ export default function CalendarScreen() {
   const [isLocking, setIsLocking] = useState(false);
   const [isCustomerView, setIsCustomerView] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isCopyingLink, setIsCopyingLink] = useState(false);
   const [customerViewProperty, setCustomerViewProperty] = useState<Property | null>(null);
   const [propertySelectorVisible, setPropertySelectorVisible] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
@@ -296,6 +302,27 @@ export default function CalendarScreen() {
     }
   };
 
+  const handleCopyLink = async () => {
+    if (!customerViewProperty) return;
+
+    setIsCopyingLink(true);
+    try {
+      const token = await createShareToken(customerViewProperty.id);
+      const url = getShareUrl(token);
+      await Clipboard.setStringAsync(url);
+      if (isWeb) {
+        window.alert('Share link copied to clipboard!');
+      }
+    } catch (error: any) {
+      console.error('Copy link error:', error);
+      if (isWeb) {
+        window.alert(error?.message || 'Failed to create share link. Please try again.');
+      }
+    } finally {
+      setIsCopyingLink(false);
+    }
+  };
+
   const prevMonth = () => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     const monthsFromNow = getMonthsFromNow(newDate);
@@ -318,15 +345,20 @@ export default function CalendarScreen() {
 
   const { firstDay, daysInMonth } = getDaysInMonth(currentDate);
   const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
   const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
 
   const upcomingReservations = reservations
-    .filter((r) => new Date(r.check_in) >= new Date(today.toISOString().split('T')[0]))
-    .slice(0, 5);
+    .filter((r) => {
+      if (viewMode === 'today') {
+        return r.check_in === todayStr;
+      }
+      return new Date(r.check_in) >= new Date(todayStr);
+    })
+    .slice(0, viewMode === 'today' ? 10 : 5);
 
   const monthStart = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
   const monthEnd = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate()}`;
-  const todayStr = today.toISOString().split('T')[0];
 
   const monthHistory = reservations
     .filter((r) => {
@@ -349,8 +381,10 @@ export default function CalendarScreen() {
           prevMonth={prevMonth}
           nextMonth={nextMonth}
           onShare={captureAndShareCalendar}
+          onCopyLink={handleCopyLink}
           onToggle={handleToggleView}
           isCapturing={isCapturing}
+          isCopyingLink={isCopyingLink}
           calendarRef={calendarRef}
           reservations={reservations}
           lockedDates={lockedDates}
@@ -401,13 +435,14 @@ export default function CalendarScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.daysHeader}>
-            {DAYS.map((day) => (
-              <Text key={day} style={styles.dayLabel}>{day}</Text>
-            ))}
-          </View>
+          <View style={[styles.calendarWrapper, (isDesktop || isTablet) && styles.calendarWrapperDesktop]}>
+            <View style={styles.daysHeader}>
+              {DAYS.map((day) => (
+                <Text key={day} style={styles.dayLabel}>{day}</Text>
+              ))}
+            </View>
 
-          <View style={styles.calendarGrid}>
+            <View style={styles.calendarGrid}>
             {Array.from({ length: firstDay }).map((_, i) => (
               <View key={`empty-${i}`} style={styles.dayCell} />
             ))}
@@ -470,11 +505,14 @@ export default function CalendarScreen() {
                 </Pressable>
               );
             })}
+            </View>
           </View>
 
           <View style={styles.agendaSection}>
             <View style={styles.agendaHeader}>
-              <Text style={styles.agendaTitle}>Upcoming Reservations</Text>
+              <Text style={styles.agendaTitle}>
+                {viewMode === 'today' ? "Today's Check-ins" : 'Upcoming Reservations'}
+              </Text>
               <Pressable onPress={() => router.push('/reservation/add')}>
                 <Text style={styles.addButton}>+ Add</Text>
               </Pressable>
@@ -482,7 +520,9 @@ export default function CalendarScreen() {
 
             {upcomingReservations.length === 0 ? (
               <View style={styles.emptyAgenda}>
-                <Text style={styles.emptyAgendaText}>No upcoming reservations</Text>
+                <Text style={styles.emptyAgendaText}>
+                  {viewMode === 'today' ? 'No check-ins today' : 'No upcoming reservations'}
+                </Text>
               </View>
             ) : (
               upcomingReservations.map((reservation) => (
@@ -677,7 +717,7 @@ export default function CalendarScreen() {
   );
 }
 
-function CustomerViewCalendar({ property, currentDate, prevMonth, nextMonth, onShare, onToggle, isCapturing, calendarRef, reservations, lockedDates }: CustomerViewCalendarProps) {
+function CustomerViewCalendar({ property, currentDate, prevMonth, nextMonth, onShare, onCopyLink, onToggle, isCapturing, isCopyingLink, calendarRef, reservations, lockedDates }: CustomerViewCalendarProps) {
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -709,7 +749,7 @@ function CustomerViewCalendar({ property, currentDate, prevMonth, nextMonth, onS
   const { firstDay, daysInMonth } = getDaysInMonth(currentDate);
 
   return (
-    <View style={styles.customerContainer}>
+    <ScrollView style={styles.customerContainer}>
       <View style={styles.customerHeader}>
         <Text style={styles.customerPropertyName}>{property.name}</Text>
         <Text style={styles.customerMonthYear}>
@@ -779,22 +819,31 @@ function CustomerViewCalendar({ property, currentDate, prevMonth, nextMonth, onS
       </View>
 
       <View style={styles.customerButtons}>
-        <Pressable
-          style={[styles.shareButton, isCapturing && styles.disabledButton]}
-          onPress={onShare}
-          disabled={isCapturing}
-        >
-          <Text style={styles.shareButtonText}>{isCapturing ? '...' : '📤 Share Calendar'}</Text>
-        </Pressable>
+        <View style={styles.shareButtonsRow}>
+          <Pressable
+            style={[styles.shareButton, isCapturing && styles.disabledButton]}
+            onPress={onShare}
+            disabled={isCapturing || isCopyingLink}
+          >
+            <Text style={styles.shareButtonText}>{isCapturing ? '...' : '📤 Share Image'}</Text>
+          </Pressable>
+          <Pressable
+            style={[styles.copyLinkButton, isCopyingLink && styles.disabledButton]}
+            onPress={onCopyLink}
+            disabled={isCapturing || isCopyingLink}
+          >
+            <Text style={styles.copyLinkButtonText}>{isCopyingLink ? '...' : '🔗 Copy Link'}</Text>
+          </Pressable>
+        </View>
         <Pressable
           style={styles.toggleButton}
           onPress={onToggle}
-          disabled={isCapturing}
+          disabled={isCapturing || isCopyingLink}
         >
           <Text style={styles.toggleButtonText}>👁️ Owner View</Text>
         </Pressable>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -828,12 +877,14 @@ const styles = StyleSheet.create({
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },
   monthTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900 },
-  daysHeader: { flexDirection: 'row', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.sm },
+  calendarWrapper: { backgroundColor: Colors.neutral.white },
+  calendarWrapperDesktop: { maxWidth: 600, alignSelf: 'center', width: '100%' },
+  daysHeader: { flexDirection: 'row', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray100 },
   dayLabel: { flex: 1, textAlign: 'center', fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, fontWeight: '500' },
   calendarGrid: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.md },
-  dayCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', padding: 2 },
+  dayCell: { width: '14.28%', aspectRatio: 1, justifyContent: 'center', alignItems: 'center', padding: 2, borderWidth: 0.5, borderColor: Colors.neutral.gray100 },
   pastCell: { opacity: 0.5 },
-  todayCell: { borderWidth: 2, borderColor: Colors.primary.teal, borderRadius: BorderRadius.lg },
+  todayCell: { borderWidth: 1.5, borderColor: Colors.primary.teal, borderRadius: BorderRadius.md },
   dayNumber: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray900, marginBottom: 2 },
   pastText: { color: Colors.neutral.gray400 },
   todayNumber: { fontWeight: Typography.fontWeight.bold, color: Colors.primary.teal },
@@ -880,23 +931,32 @@ const styles = StyleSheet.create({
   disabledButton: { opacity: 0.6 },
   confirmModalText: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.white },
   customerContainer: { flex: 1, backgroundColor: Colors.neutral.white },
-  customerHeader: { padding: Spacing.lg, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray200 },
+  customerHeader: { padding: Spacing.lg, alignItems: 'center', borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray100 },
   customerPropertyName: { fontSize: Typography.fontSize['2xl'], fontWeight: 'bold', color: Colors.neutral.gray900 },
   customerMonthYear: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500, marginTop: Spacing.xs },
-  calendarCaptureArea: { backgroundColor: Colors.neutral.white },
-  customerLegend: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray200 },
+  calendarCaptureArea: { backgroundColor: Colors.neutral.white, maxWidth: 600, alignSelf: 'center', width: '100%' },
+  customerLegend: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray100 },
   customerLegendText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray700 },
   notAvailableCell: { backgroundColor: Colors.semantic.error + '20' },
   notAvailableText: { color: Colors.semantic.error, fontWeight: '600' },
-  shareButton: { backgroundColor: Colors.primary.teal, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, alignSelf: 'flex-end', marginTop: Spacing.lg, marginBottom: Spacing.xl, ...Shadows.md },
+  shareButtonsRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  shareButton: { backgroundColor: Colors.primary.teal, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, ...Shadows.md },
   shareButtonText: { color: Colors.neutral.white, fontWeight: '600', fontSize: Typography.fontSize.md },
-  toggleButton: { backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderWidth: 1, borderColor: Colors.neutral.gray200, alignSelf: 'flex-end', ...Shadows.md },
+  copyLinkButton: { backgroundColor: Colors.primary.navy, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, ...Shadows.md },
+  copyLinkButtonText: { color: Colors.neutral.white, fontWeight: '600', fontSize: Typography.fontSize.md },
+  toggleButton: { backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderWidth: 1, borderColor: Colors.neutral.gray200, ...Shadows.md },
   toggleButtonText: { color: Colors.neutral.gray700, fontWeight: '600', fontSize: Typography.fontSize.sm },
-  customerButtons: { padding: Spacing.lg, alignItems: 'flex-end' },
+  customerButtons: { padding: Spacing.lg, alignItems: 'flex-end', gap: Spacing.sm },
   ownerButtons: { padding: Spacing.lg, paddingBottom: Spacing.xl },
   propertyList: { maxHeight: 300, marginBottom: Spacing.md },
   propertySelectorModalContent: { backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.xl, padding: Spacing.xl, width: '100%', maxWidth: 340 },
   propertySelectorItem: { padding: Spacing.md, backgroundColor: Colors.neutral.gray50, borderRadius: BorderRadius.lg, marginBottom: Spacing.sm },
   propertySelectorName: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.gray900 },
   propertySelectorLocation: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  legendDot: { width: 12, height: 12, borderRadius: 6 },
+  availableDot: { backgroundColor: Colors.semantic.success },
+  bookedDot: { backgroundColor: Colors.semantic.error },
+  availableCell: { backgroundColor: Colors.semantic.success + '20' },
+  availableText: { color: Colors.semantic.success, fontWeight: '600' },
 });
