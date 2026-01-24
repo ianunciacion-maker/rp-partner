@@ -55,7 +55,7 @@ export default function PaymentDetailPage() {
         .from('payment_submissions')
         .select(`
           *,
-          user:users(id, full_name, email, subscription_status),
+          user:users!payment_submissions_user_id_fkey(id, full_name, email, subscription_status),
           payment_method:payment_methods(display_name, name),
           reviewed_by_user:users!payment_submissions_reviewed_by_fkey(full_name)
         `)

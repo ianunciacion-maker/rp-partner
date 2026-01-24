@@ -50,7 +50,7 @@ export default function DashboardPage() {
 
       const { count: pendingPayments, data: pendingData } = await supabase
         .from('payment_submissions')
-        .select('*, user:users(full_name, email)', { count: 'exact' })
+        .select('*, user:users!payment_submissions_user_id_fkey(full_name, email)', { count: 'exact' })
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(5);

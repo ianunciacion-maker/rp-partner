@@ -30,7 +30,6 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 
   // Push notifications only work on physical devices
   if (!Device.default.isDevice) {
-    console.log('Push notifications require a physical device');
     return null;
   }
 
@@ -44,7 +43,6 @@ export async function registerForPushNotifications(userId: string): Promise<stri
   }
 
   if (finalStatus !== 'granted') {
-    console.log('Push notification permission denied');
     return null;
   }
 

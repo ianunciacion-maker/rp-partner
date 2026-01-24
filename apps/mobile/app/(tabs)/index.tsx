@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '@/stores/authStore';
@@ -10,6 +10,7 @@ import { supabase } from '@/services/supabase';
 import type { Property } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 import { SubscriptionBanner } from '@/components/subscription/SubscriptionBanner';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function HomeScreen() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { isDesktop, isTablet } = useResponsive();
 
   const fetchProperties = async () => {
     try {
@@ -54,7 +56,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.wrapper}>
       <SubscriptionBanner />
-      <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchProperties(); }} />}>
+      <ScrollView style={[styles.container, isDesktop && styles.containerDesktop]} refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchProperties(); }} />}>
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Hello, {user?.full_name?.split(' ')[0] || 'there'}!</Text>
@@ -75,13 +77,16 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         ) : (
-          properties.map((property) => (
-            <PropertyCard
-              key={property.id}
-              property={property}
-              onPress={() => router.push(`/property/${property.id}`)}
-            />
-          ))
+          <View style={[styles.propertyGrid, isDesktop && styles.propertyGridDesktop, isTablet && styles.propertyGridTablet]}>
+            {properties.map((property) => (
+              <View key={property.id} style={[styles.propertyGridItem, isDesktop && styles.propertyGridItemDesktop, isTablet && styles.propertyGridItemTablet]}>
+                <PropertyCard
+                  property={property}
+                  onPress={() => router.push(`/property/${property.id}`)}
+                />
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
 
@@ -97,12 +102,35 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   container: { flex: 1, padding: Spacing.lg },
+  containerDesktop: { padding: Spacing.xl },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { marginBottom: Spacing.md },
   greeting: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.medium, color: Colors.neutral.gray500 },
   subtitle: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
   subtitleRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs },
   subtitleSuffix: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray500 },
+  propertyGrid: { flexDirection: 'column' },
+  propertyGridTablet: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -Spacing.sm,
+  },
+  propertyGridDesktop: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginHorizontal: -Spacing.sm,
+  },
+  propertyGridItem: { width: '100%' },
+  propertyGridItemTablet: {
+    width: '50%',
+    paddingHorizontal: Spacing.sm,
+    ...(Platform.OS === 'web' ? { boxSizing: 'border-box' } as any : {}),
+  },
+  propertyGridItemDesktop: {
+    width: '33.333%',
+    paddingHorizontal: Spacing.sm,
+    ...(Platform.OS === 'web' ? { boxSizing: 'border-box' } as any : {}),
+  },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.md },
   emptyTitle: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },

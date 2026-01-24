@@ -1,10 +1,14 @@
 import { View, StyleSheet, Platform } from 'react-native';
 import type { PropsWithChildren } from 'react';
 import { Colors } from '@/constants/theme';
+import { ResponsiveShell } from './ResponsiveShell';
 
 const isWeb = Platform.OS === 'web';
 
 /**
+ * @deprecated Use ResponsiveShell instead for responsive web layouts.
+ * This component is kept for backward compatibility but will be removed in a future version.
+ *
  * WebContainer provides a centered, max-width container for web viewing.
  * On mobile, it renders children without any wrapper.
  */

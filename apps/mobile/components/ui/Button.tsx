@@ -67,6 +67,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: BorderRadius.lg,
+    minHeight: 44,
   },
   fullWidth: {
     width: '100%',
@@ -94,20 +95,22 @@ const styles = StyleSheet.create({
   },
   ghost: {
     backgroundColor: 'transparent',
-    minHeight: 44,
   },
-  // Sizes
+  // Sizes - minimum 44px touch target height
   size_sm: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
+    minHeight: 44,
   },
   size_md: {
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
+    minHeight: 48,
   },
   size_lg: {
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xl,
+    minHeight: 52,
   },
   // Text styles
   text: {
@@ -129,7 +132,7 @@ const styles = StyleSheet.create({
     color: Colors.primary.teal,
   },
   text_sm: {
-    fontSize: Typography.fontSize.sm,
+    fontSize: Typography.fontSize.md,
   },
   text_md: {
     fontSize: Typography.fontSize.md,

@@ -41,7 +41,7 @@ export default function PaymentsPage() {
         .from('payment_submissions')
         .select(`
           *,
-          user:users(id, full_name, email),
+          user:users!payment_submissions_user_id_fkey(id, full_name, email),
           payment_method:payment_methods(display_name)
         `)
         .order('created_at', { ascending: false });

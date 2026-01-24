@@ -79,6 +79,31 @@ export default function Root({ children }: PropsWithChildren) {
             overscroll-behavior-y: contain;
           }
 
+          /* Safe area insets for notched devices */
+          :root {
+            --safe-area-inset-top: env(safe-area-inset-top, 0px);
+            --safe-area-inset-right: env(safe-area-inset-right, 0px);
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-area-inset-left: env(safe-area-inset-left, 0px);
+          }
+
+          /* Apply safe area to body */
+          body {
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-right: env(safe-area-inset-right, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            padding-left: env(safe-area-inset-left, 0px);
+          }
+
+          /* Ensure fixed elements respect safe areas */
+          .safe-area-top {
+            padding-top: env(safe-area-inset-top, 0px);
+          }
+
+          .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+          }
+
           /* Hide scrollbar but allow scrolling */
           ::-webkit-scrollbar {
             width: 8px;
@@ -113,6 +138,17 @@ export default function Root({ children }: PropsWithChildren) {
           /* Smooth transitions */
           * {
             -webkit-tap-highlight-color: transparent;
+          }
+
+          /* Responsive breakpoint helpers */
+          @media (min-width: 640px) {
+            .tablet-only { display: block; }
+            .mobile-only { display: none; }
+          }
+
+          @media (min-width: 1024px) {
+            .desktop-only { display: block; }
+            .tablet-only { display: none; }
           }
 
           /* Print styles */

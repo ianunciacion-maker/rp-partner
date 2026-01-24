@@ -335,9 +335,17 @@ export default function CashflowScreen() {
               <Text style={styles.navButtonText}>›</Text>
             </Pressable>
           </View>
-          <Pressable onPress={() => setShowExportModal(true)} style={styles.exportButton}>
-            <Text style={styles.exportButtonText}>Export</Text>
-          </Pressable>
+          <View style={styles.actionButtons}>
+            <Pressable
+              onPress={() => router.push(selectedProperty ? `/cashflow/dashboard?propertyId=${selectedProperty}` : '/cashflow/dashboard')}
+              style={styles.dashboardButton}
+            >
+              <Text style={styles.dashboardButtonText}>Dashboard</Text>
+            </Pressable>
+            <Pressable onPress={() => setShowExportModal(true)} style={styles.exportButton}>
+              <Text style={styles.exportButtonText}>Export</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Feature Limit Indicator */}
@@ -595,6 +603,9 @@ const styles = StyleSheet.create({
   expenseFab: { backgroundColor: Colors.semantic.error },
   fabText: { fontSize: 20, color: Colors.neutral.white, fontWeight: Typography.fontWeight.bold },
   fabLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold, marginLeft: Spacing.xs },
+  actionButtons: { flexDirection: 'row', gap: Spacing.sm },
+  dashboardButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.primary.teal },
+  dashboardButtonText: { color: Colors.primary.teal, fontSize: Typography.fontSize.sm, fontWeight: '600' },
   exportButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md },
   exportButtonText: { color: Colors.neutral.white, fontSize: Typography.fontSize.sm, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },

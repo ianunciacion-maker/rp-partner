@@ -99,7 +99,6 @@ const recordReservationIncome = async (reservation: Reservation, formData: {
       .single();
 
     if (existing) {
-      console.log('Income already recorded for reservation:', reservation.id);
       return { alreadyExists: true };
     }
 

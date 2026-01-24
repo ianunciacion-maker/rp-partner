@@ -419,10 +419,7 @@ export default function AddCashflowScreen() {
           {isWeb ? (
             <Pressable
               style={[styles.cancelButton, { cursor: 'pointer' } as any]}
-              onPress={() => {
-                console.log('Cancel button pressed');
-                router.replace('/(tabs)/cashflow');
-              }}
+              onPress={() => router.replace('/(tabs)/cashflow')}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
