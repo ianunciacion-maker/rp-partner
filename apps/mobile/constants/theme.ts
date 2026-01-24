@@ -39,6 +39,43 @@ export const Spacing = {
   xxl: 48,
 };
 
+export const Breakpoints = {
+  mobile: 640,
+  tablet: 1024,
+  desktop: 1280,
+} as const;
+
+export const ResponsiveSpacing = {
+  pagePadding: {
+    mobile: Spacing.md,
+    tablet: Spacing.lg,
+    desktop: Spacing.xl,
+  },
+  sectionGap: {
+    mobile: Spacing.lg,
+    tablet: Spacing.xl,
+    desktop: Spacing.xxl,
+  },
+  cardPadding: {
+    mobile: Spacing.md,
+    tablet: Spacing.lg,
+    desktop: Spacing.lg,
+  },
+} as const;
+
+export const getResponsiveValue = <T,>(
+  values: { mobile: T; tablet?: T; desktop?: T },
+  width: number
+): T => {
+  if (width >= Breakpoints.tablet && values.desktop !== undefined) {
+    return values.desktop;
+  }
+  if (width >= Breakpoints.mobile && values.tablet !== undefined) {
+    return values.tablet;
+  }
+  return values.mobile;
+};
+
 export const Typography = {
   fontSize: {
     xs: 12,

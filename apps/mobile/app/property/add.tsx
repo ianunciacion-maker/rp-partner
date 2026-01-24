@@ -161,8 +161,6 @@ export default function AddPropertyScreen() {
     try {
       // Get the current session to ensure we're authenticated
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Current session:', session?.user?.id);
-      console.log('authUser from store:', authUser?.id);
 
       if (!session?.user) {
         throw new Error('You must be logged in to create a property');

@@ -193,6 +193,21 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['payment_submissions']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['payment_submissions']['Insert']>;
       };
+      calendar_share_tokens: {
+        Row: {
+          id: string;
+          property_id: string;
+          user_id: string;
+          token: string;
+          is_active: boolean;
+          created_at: string;
+          expires_at: string | null;
+          view_count: number;
+          last_viewed_at: string | null;
+        };
+        Insert: Omit<Database['public']['Tables']['calendar_share_tokens']['Row'], 'id' | 'created_at' | 'view_count' | 'last_viewed_at'>;
+        Update: Partial<Database['public']['Tables']['calendar_share_tokens']['Insert']>;
+      };
     };
     Views: {};
     Functions: {};
@@ -214,6 +229,19 @@ export type SubscriptionReminder = Database['public']['Tables']['subscription_re
 
 export type InsertTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
 export type UpdateTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];
+
+// Calendar share token for public shareable calendar URLs
+export interface CalendarShareToken {
+  id: string;
+  property_id: string;
+  user_id: string;
+  token: string;
+  is_active: boolean;
+  created_at: string;
+  expires_at: string | null;
+  view_count: number;
+  last_viewed_at: string | null;
+}
 
 // Subscription with plan details
 export interface SubscriptionWithPlan extends Subscription {

@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.neutral.gray200,
     borderRadius: BorderRadius.lg,
+    minHeight: 48,
   },
   focused: {
     borderColor: Colors.primary.teal,

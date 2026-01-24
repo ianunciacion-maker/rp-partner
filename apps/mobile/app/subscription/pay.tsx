@@ -6,6 +6,7 @@ import { decode } from 'base64-arraybuffer';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { useResponsive } from '@/hooks/useResponsive';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
@@ -19,6 +20,7 @@ export default function PayScreen() {
   const params = useLocalSearchParams<{ planId: string; months: string; amount: string }>();
   const { user } = useAuthStore();
   const { paymentMethods, fetchPaymentMethods, submitPayment, isLoading } = useSubscriptionStore();
+  const { isDesktop, isTablet } = useResponsive();
 
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
@@ -152,7 +154,10 @@ export default function PayScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable
+          onPress={() => router.replace('/subscription/upgrade')}
+          style={styles.backButton}
+        >
           <Text style={styles.backButtonText}>‹ Back</Text>
         </Pressable>
         <Text style={styles.title}>Payment</Text>
@@ -213,7 +218,11 @@ export default function PayScreen() {
               <View style={styles.qrContainer}>
                 <Image
                   source={{ uri: selectedMethod.qr_code_url }}
-                  style={styles.qrImage}
+                  style={[
+                    styles.qrImage,
+                    isDesktop && styles.qrImageDesktop,
+                    isTablet && styles.qrImageTablet,
+                  ]}
                   resizeMode="contain"
                 />
               </View>
@@ -329,10 +338,15 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingRight: Spacing.md,
+    alignSelf: 'flex-start',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   backButtonText: {
     fontSize: Typography.fontSize.md,
     color: Colors.primary.teal,
+    fontWeight: '500',
   },
   title: {
     fontSize: Typography.fontSize['2xl'],
@@ -444,6 +458,14 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: BorderRadius.lg,
+  },
+  qrImageTablet: {
+    width: 280,
+    height: 280,
+  },
+  qrImageDesktop: {
+    width: 320,
+    height: 320,
   },
   accountInfo: {
     gap: Spacing.md,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Image, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Image, ScrollView, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -107,7 +107,10 @@ export default function PendingScreen() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Pressable
+          onPress={() => router.replace('/subscription')}
+          style={styles.backButton}
+        >
           <Text style={styles.backButtonText}>‹ Back</Text>
         </Pressable>
         <Text style={styles.title}>Payment Status</Text>
@@ -265,10 +268,15 @@ const styles = StyleSheet.create({
   },
   backButton: {
     marginBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingRight: Spacing.md,
+    alignSelf: 'flex-start',
+    ...(Platform.OS === 'web' ? { cursor: 'pointer' } as any : {}),
   },
   backButtonText: {
     fontSize: Typography.fontSize.md,
     color: Colors.primary.teal,
+    fontWeight: '500',
   },
   title: {
     fontSize: Typography.fontSize['2xl'],
