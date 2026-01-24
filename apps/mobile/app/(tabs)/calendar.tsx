@@ -276,17 +276,36 @@ export default function CalendarScreen() {
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      const uri = await captureRef(calendarRef.current, {
-        format: 'png',
-        quality: 0.9,
-      });
-
       if (isWeb) {
-        const link = document.createElement('a');
-        link.href = uri;
-        link.download = 'calendar.png';
-        link.click();
+        const html2canvas = (await import('html2canvas')).default;
+        const canvas = await html2canvas(calendarRef.current as unknown as HTMLElement, {
+          backgroundColor: '#ffffff',
+          scale: 2,
+        });
+
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': blob })
+              ]);
+              window.alert('Calendar image copied to clipboard!');
+            } catch {
+              const link = document.createElement('a');
+              link.href = canvas.toDataURL('image/png');
+              link.download = `calendar-${customerViewProperty?.name || 'share'}.png`;
+              link.click();
+              window.alert('Image downloaded (clipboard not supported in this browser)');
+            }
+          }
+          setIsCapturing(false);
+        }, 'image/png');
+        return;
       } else {
+        const uri = await captureRef(calendarRef.current, {
+          format: 'png',
+          quality: 0.9,
+        });
         await Sharing.shareAsync(uri, {
           mimeType: 'image/png',
           dialogTitle: `Share ${customerViewProperty?.name} Calendar`,
