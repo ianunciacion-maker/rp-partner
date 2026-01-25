@@ -16,6 +16,16 @@ export default function RootLayout() {
 
   useEffect(() => {
     initialize();
+
+    if (Platform.OS === 'web') {
+      const timeout = setTimeout(() => {
+        if (!useAuthStore.getState().isInitialized) {
+          useAuthStore.setState({ isInitialized: true, isLoading: false });
+          console.warn('Auth initialization timed out, proceeding as unauthenticated');
+        }
+      }, 15000);
+      return () => clearTimeout(timeout);
+    }
   }, []);
 
   // Subscribe to realtime subscription updates

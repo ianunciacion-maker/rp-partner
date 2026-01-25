@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, RefreshControl, Platform, Image } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
 import { supabase } from '@/services/supabase';
@@ -34,8 +34,6 @@ export default function PropertyDetailScreen() {
       setIsRefreshing(false);
     }
   };
-
-  useEffect(() => { fetchData(); }, [id]);
 
   useFocusEffect(
     useCallback(() => {
@@ -81,6 +79,7 @@ export default function PropertyDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.loading}>
+        <Stack.Screen options={{ title: '', headerBackTitle: 'Back' }} />
         <ActivityIndicator size="large" color={Colors.primary.teal} />
       </View>
     );
@@ -89,6 +88,7 @@ export default function PropertyDetailScreen() {
   if (!property) {
     return (
       <View style={styles.loading}>
+        <Stack.Screen options={{ title: 'Not Found', headerBackTitle: 'Back' }} />
         <Text style={styles.errorText}>Property not found</Text>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
           <Text style={styles.backButtonText}>Go Back</Text>

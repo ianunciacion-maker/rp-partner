@@ -17,53 +17,74 @@ interface AuthState {
   clearError: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  session: null,
-  authUser: null,
-  user: null,
-  isLoading: false, // Start false - isInitialized gates the UI
-  isInitialized: false,
-  error: null,
+let authListenerSetup = false;
 
-  initialize: async () => {
-    try {
-      set({ isLoading: true, error: null });
-      const { data: { session } } = await supabase.auth.getSession();
+export const useAuthStore = create<AuthState>((set, get) => {
+  if (!authListenerSetup) {
+    authListenerSetup = true;
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!get().isInitialized) return;
 
       if (session?.user) {
-        // Set initialized immediately - allows app to render without waiting for user data
-        set({
-          session,
-          authUser: session.user,
-          isLoading: false,
-          isInitialized: true,
-        });
-
-        // Fetch user data non-blocking
-        supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data: userData }) => {
-            set({ user: userData || null });
-          });
+        const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).single();
+        set({ session, authUser: session.user, user: userData || null });
       } else {
-        set({ session: null, authUser: null, user: null, isLoading: false, isInitialized: true });
+        set({ session: null, authUser: null, user: null });
       }
+    });
+  }
 
-      supabase.auth.onAuthStateChange(async (event, session) => {
-        if (session?.user) {
-          const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).single();
-          set({ session, authUser: session.user, user: userData || null });
-        } else {
-          set({ session: null, authUser: null, user: null });
+  return {
+    session: null,
+    authUser: null,
+    user: null,
+    isLoading: false,
+    isInitialized: false,
+    error: null,
+
+    initialize: async () => {
+      if (get().isInitialized) return;
+
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000));
+
+      try {
+        set({ isLoading: true, error: null });
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]);
+
+        if (sessionResult === null) {
+          console.warn('Auth getSession timed out, proceeding as unauthenticated');
+          set({ session: null, authUser: null, user: null, isLoading: false, isInitialized: true });
+          return;
         }
-      });
-    } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to initialize', isLoading: false, isInitialized: true });
-    }
-  },
+
+        const { data: { session } } = sessionResult;
+
+        if (session?.user) {
+          set({
+            session,
+            authUser: session.user,
+            isLoading: false,
+            isInitialized: true,
+          });
+
+          supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+            .then(({ data: userData }) => {
+              set({ user: userData || null });
+            });
+        } else {
+          set({ session: null, authUser: null, user: null, isLoading: false, isInitialized: true });
+        }
+      } catch (error) {
+        set({ error: error instanceof Error ? error.message : 'Failed to initialize', isLoading: false, isInitialized: true });
+      }
+    },
 
   signIn: async (email, password) => {
     try {
@@ -104,6 +125,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
-}));
+  };
+});
 
 export const useAuth = useAuthStore;
