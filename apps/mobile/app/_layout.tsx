@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { supabase } from '@/services/supabase';
+import { ToastProvider } from '@/components/ui/Toast';
 import { Colors } from '@/constants/theme';
 
 export default function RootLayout() {
@@ -102,6 +103,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <ToastProvider>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -241,6 +243,7 @@ export default function RootLayout() {
         />
       </Stack>
       <StatusBar style="auto" />
+      </ToastProvider>
     </GestureHandlerRootView>
   );
 }

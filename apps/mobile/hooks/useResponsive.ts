@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useWindowDimensions, Platform } from 'react-native';
 
 const BREAKPOINTS = {
@@ -15,19 +16,21 @@ interface ResponsiveState {
 
 export function useResponsive(): ResponsiveState {
   const { width } = useWindowDimensions();
-  const isWeb = Platform.OS === 'web';
 
-  const isMobile = width < BREAKPOINTS.mobile;
-  const isTablet = width >= BREAKPOINTS.mobile && width < BREAKPOINTS.tablet;
-  const isDesktop = width >= BREAKPOINTS.tablet;
+  return useMemo(() => {
+    const isWeb = Platform.OS === 'web';
+    const isMobile = width < BREAKPOINTS.mobile;
+    const isTablet = width >= BREAKPOINTS.mobile && width < BREAKPOINTS.tablet;
+    const isDesktop = width >= BREAKPOINTS.tablet;
 
-  return {
-    isMobile,
-    isTablet,
-    isDesktop,
-    width,
-    isWeb,
-  };
+    return {
+      isMobile,
+      isTablet,
+      isDesktop,
+      width,
+      isWeb,
+    };
+  }, [width]);
 }
 
 export { BREAKPOINTS };

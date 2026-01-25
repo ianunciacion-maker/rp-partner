@@ -13,6 +13,7 @@ import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import { Avatar } from '@/components/ui/Avatar';
 import { TogglePill } from '@/components/ui/TogglePill';
+import { useToast } from '@/components/ui/Toast';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Property, Reservation, LockedDate } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
@@ -52,6 +53,7 @@ export default function CalendarScreen() {
   const { user } = useAuthStore();
   const { canAccessCalendarMonth, fetchSubscription, fetchPlans } = useSubscriptionStore();
   const { isDesktop, isTablet } = useResponsive();
+  const { showToast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [reservations, setReservations] = useState<ReservationWithProperty[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -87,23 +89,27 @@ export default function CalendarScreen() {
 
   const fetchData = async () => {
     try {
-      const { data: propsData } = await supabase.from('properties').select('*');
-      setProperties(propsData || []);
-
       let resQuery = supabase
         .from('reservations')
-        .select('*, property:properties(*)')
+        .select('id, property_id, guest_name, guest_count, check_in, check_out, status, total_amount, nights')
         .not('status', 'in', '("cancelled","no_show")')
         .order('check_in', { ascending: true });
 
-      let lockQuery = supabase.from('locked_dates').select('*');
+      let lockQuery = supabase.from('locked_dates').select('id, property_id, date, reason');
+      const propsQuery = supabase.from('properties').select('id, name, city, user_id');
 
       if (selectedProperty) {
         resQuery = resQuery.eq('property_id', selectedProperty);
         lockQuery = lockQuery.eq('property_id', selectedProperty);
       }
 
-      const [{ data: resData }, { data: lockData }] = await Promise.all([resQuery, lockQuery]);
+      const [{ data: propsData }, { data: resData }, { data: lockData }] = await Promise.all([
+        propsQuery,
+        resQuery,
+        lockQuery,
+      ]);
+
+      setProperties(propsData || []);
       setReservations(resData || []);
       setLockedDates(lockData || []);
     } catch (error) {
@@ -115,6 +121,15 @@ export default function CalendarScreen() {
 
   // Refresh when screen comes into focus (also fires on initial mount)
   useFocusEffect(useCallback(() => { fetchData(); }, [selectedProperty]));
+
+  // Memoized property map for O(1) lookups
+  const propertyMap = useMemo(() => {
+    const map = new Map<string, Property>();
+    for (const p of properties) {
+      map.set(p.id, p);
+    }
+    return map;
+  }, [properties]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -183,7 +198,7 @@ export default function CalendarScreen() {
   const handleDateLongPress = (day: number, status: string, lockedDate?: LockedDate) => {
     if (!selectedProperty && properties.length > 1) {
       if (isWeb) {
-        window.alert('Please select a property to lock/unlock dates');
+        showToast('Please select a property to lock/unlock dates', 'info');
       }
       return;
     }
@@ -217,7 +232,7 @@ export default function CalendarScreen() {
       fetchData();
     } catch (error: any) {
       if (isWeb) {
-        window.alert(error.message || 'Failed to lock date');
+        showToast(error.message || 'Failed to lock date', 'error');
       }
     } finally {
       setIsLocking(false);
@@ -237,7 +252,7 @@ export default function CalendarScreen() {
       fetchData();
     } catch (error: any) {
       if (isWeb) {
-        window.alert(error.message || 'Failed to unlock date');
+        showToast(error.message || 'Failed to unlock date', 'error');
       }
     } finally {
       setIsLocking(false);
@@ -267,7 +282,7 @@ export default function CalendarScreen() {
   const captureAndShareCalendar = async () => {
     if (!calendarRef.current) {
       if (isWeb) {
-        window.alert('Calendar view not ready. Please try again.');
+        showToast('Calendar view not ready. Please try again.', 'error');
       }
       return;
     }
@@ -289,13 +304,13 @@ export default function CalendarScreen() {
               await navigator.clipboard.write([
                 new ClipboardItem({ 'image/png': blob })
               ]);
-              window.alert('Calendar image copied to clipboard!');
+              showToast('Calendar image copied to clipboard!', 'success');
             } catch {
               const link = document.createElement('a');
               link.href = canvas.toDataURL('image/png');
               link.download = `calendar-${customerViewProperty?.name || 'share'}.png`;
               link.click();
-              window.alert('Image downloaded (clipboard not supported in this browser)');
+              showToast('Image downloaded (clipboard not supported in this browser)', 'info');
             }
           }
           setIsCapturing(false);
@@ -314,7 +329,7 @@ export default function CalendarScreen() {
     } catch (error: any) {
       console.error('Capture error:', error);
       if (isWeb) {
-        window.alert(error?.message || 'Failed to capture calendar. Please try again.');
+        showToast(error?.message || 'Failed to capture calendar. Please try again.', 'error');
       }
     } finally {
       setIsCapturing(false);
@@ -330,12 +345,12 @@ export default function CalendarScreen() {
       const url = getShareUrl(token);
       await Clipboard.setStringAsync(url);
       if (isWeb) {
-        window.alert('Share link copied to clipboard!');
+        showToast('Share link copied to clipboard!', 'success');
       }
     } catch (error: any) {
       console.error('Copy link error:', error);
       if (isWeb) {
-        window.alert(error?.message || 'Failed to create share link. Please try again.');
+        showToast(error?.message || 'Failed to create share link. Please try again.', 'error');
       }
     } finally {
       setIsCopyingLink(false);
@@ -553,7 +568,7 @@ export default function CalendarScreen() {
                   <Avatar size="md" name={reservation.guest_name} />
                   <View style={styles.reservationContent}>
                     <Text style={styles.guestName}>{reservation.guest_name}</Text>
-                    <Text style={styles.propertyName}>{reservation.property?.name || 'Unknown Property'}</Text>
+                    <Text style={styles.propertyName}>{propertyMap.get(reservation.property_id)?.name || 'Unknown Property'}</Text>
                     <View style={styles.dateRow}>
                       <Text style={styles.dateText}>{formatDate(reservation.check_in)} - {formatDate(reservation.check_out)}</Text>
                       <Text style={styles.nightsText}>{reservation.nights} nights</Text>
@@ -592,7 +607,7 @@ export default function CalendarScreen() {
                   <Avatar size="md" name={reservation.guest_name} backgroundColor={Colors.neutral.gray400} />
                   <View style={styles.reservationContent}>
                     <Text style={styles.guestName}>{reservation.guest_name}</Text>
-                    <Text style={styles.propertyName}>{reservation.property?.name || 'Unknown Property'}</Text>
+                    <Text style={styles.propertyName}>{propertyMap.get(reservation.property_id)?.name || 'Unknown Property'}</Text>
                     <View style={styles.dateRow}>
                       <Text style={styles.dateText}>{formatDate(reservation.check_in)} - {formatDate(reservation.check_out)}</Text>
                       <Text style={styles.nightsText}>{reservation.nights} nights</Text>

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl, Modal, Platform, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
+import { useToast } from '@/components/ui/Toast';
 import type { Property, CashflowEntry } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 
@@ -47,6 +48,7 @@ export default function CashflowScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { plan, canExportReportMonth, fetchSubscription, fetchPlans } = useSubscriptionStore();
+  const { showToast } = useToast();
   const [entries, setEntries] = useState<CashflowWithProperty[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(null);
@@ -73,27 +75,27 @@ export default function CashflowScreen() {
 
   const fetchData = async () => {
     try {
-      // Fetch properties
-      const { data: propsData } = await supabase.from('properties').select('*');
-      setProperties(propsData || []);
-
-      // Fetch cashflow entries for the selected month
       const startDate = new Date(selectedYear, selectedMonth, 1).toISOString().split('T')[0];
       const endDate = new Date(selectedYear, selectedMonth + 1, 0).toISOString().split('T')[0];
 
-      let query = supabase
+      let entriesQuery = supabase
         .from('cashflow_entries')
-        .select('*, property:properties(*)')
+        .select('id, property_id, type, category, description, amount, transaction_date, payment_method, reference_number, notes')
         .gte('transaction_date', startDate)
         .lte('transaction_date', endDate)
         .order('transaction_date', { ascending: false });
 
       if (selectedProperty) {
-        query = query.eq('property_id', selectedProperty);
+        entriesQuery = entriesQuery.eq('property_id', selectedProperty);
       }
 
-      const { data } = await query;
-      setEntries(data || []);
+      const [{ data: propsData }, { data: entriesData }] = await Promise.all([
+        supabase.from('properties').select('id, name'),
+        entriesQuery,
+      ]);
+
+      setProperties(propsData || []);
+      setEntries(entriesData || []);
     } catch (error) {
       console.error('Error fetching cashflow:', error);
     } finally {
@@ -109,9 +111,21 @@ export default function CashflowScreen() {
     }, [selectedProperty, selectedMonth, selectedYear])
   );
 
-  const totalIncome = entries.filter((e) => e.type === 'income').reduce((sum, e) => sum + (e.amount || 0), 0);
-  const totalExpense = entries.filter((e) => e.type === 'expense').reduce((sum, e) => sum + (e.amount || 0), 0);
-  const netCashflow = totalIncome - totalExpense;
+  // Memoized property map for O(1) lookups
+  const propertyMap = useMemo(() => {
+    const map = new Map<string, Property>();
+    for (const p of properties) {
+      map.set(p.id, p);
+    }
+    return map;
+  }, [properties]);
+
+  // Memoized totals calculation
+  const { totalIncome, totalExpense, netCashflow } = useMemo(() => {
+    const income = entries.filter((e) => e.type === 'income').reduce((sum, e) => sum + (e.amount || 0), 0);
+    const expense = entries.filter((e) => e.type === 'expense').reduce((sum, e) => sum + (e.amount || 0), 0);
+    return { totalIncome: income, totalExpense: expense, netCashflow: income - expense };
+  }, [entries]);
 
   // Calculate months back from current date
   const getMonthsBack = (year: number, month: number) => {
@@ -183,7 +197,7 @@ export default function CashflowScreen() {
   const handleExport = async () => {
     if (selectedMonths.length === 0) {
       if (isWeb) {
-        window.alert('Please select at least one month to export.');
+        showToast('Please select at least one month to export.', 'info');
       } else {
         const Alert = require('react-native').Alert;
         Alert.alert('No Months Selected', 'Please select at least one month to export.');
@@ -236,7 +250,7 @@ export default function CashflowScreen() {
 
       if (filteredEntries.length === 0) {
         if (isWeb) {
-          window.alert('No transactions found for the selected filters.');
+          showToast('No transactions found for the selected filters.', 'info');
         } else {
           const Alert = require('react-native').Alert;
           Alert.alert('No Data', 'No transactions found for the selected filters.');
@@ -260,7 +274,7 @@ export default function CashflowScreen() {
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        window.alert(`Exported ${filteredEntries.length} transactions successfully!`);
+        showToast(`Exported ${filteredEntries.length} transactions successfully!`, 'success');
       } else {
         // Native: Save to file and share
         const fileUri = documentDirectory + filename;
@@ -285,7 +299,7 @@ export default function CashflowScreen() {
     } catch (error: any) {
       console.error('Export error:', error);
       if (isWeb) {
-        window.alert('Failed to export data. Please try again.');
+        showToast('Failed to export data. Please try again.', 'error');
       } else {
         const Alert = require('react-native').Alert;
         Alert.alert('Export Error', error.message || 'Failed to export data');
@@ -398,7 +412,7 @@ export default function CashflowScreen() {
                 <View style={styles.transactionContent}>
                   <Text style={styles.transactionDescription}>{entry.description}</Text>
                   <Text style={styles.transactionMeta}>
-                    {entry.category} • {entry.property?.name || 'Unknown'}
+                    {entry.category} • {propertyMap.get(entry.property_id)?.name || 'Unknown'}
                   </Text>
                   <Text style={styles.transactionDate}>{formatDate(entry.transaction_date)}</Text>
                 </View>
