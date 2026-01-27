@@ -216,31 +216,8 @@ export default function ReservationDetailScreen() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.wrapper}>
-        <Stack.Screen options={{ title: 'Reservation', headerBackTitle: 'Back' }} />
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color={Colors.primary.teal} />
-        </View>
-      </View>
-    );
-  }
-
-  if (!reservation) {
-    return (
-      <View style={styles.wrapper}>
-        <Stack.Screen options={{ title: 'Reservation', headerBackTitle: 'Back' }} />
-        <View style={styles.loading}>
-          <Text style={styles.errorText}>Reservation not found</Text>
-          <Button title="Go Back" onPress={() => router.back()} />
-        </View>
-      </View>
-    );
-  }
-
-  const currentStatus = STATUS_OPTIONS.find((s) => s.value === reservation.status);
-  const balance = (reservation.total_amount || 0) - (reservation.deposit_amount || 0);
+  const currentStatus = reservation ? STATUS_OPTIONS.find((s) => s.value === reservation.status) : null;
+  const balance = reservation ? (reservation.total_amount || 0) - (reservation.deposit_amount || 0) : 0;
 
   return (
     <View style={styles.wrapper}>
@@ -248,13 +225,23 @@ export default function ReservationDetailScreen() {
         options={{
           title: 'Reservation',
           headerBackTitle: 'Back',
-          headerRight: () => (
+          headerRight: reservation ? () => (
             <Pressable onPress={() => router.push(`/reservation/edit?id=${id}`)} style={styles.headerButton}>
               <Text style={styles.headerButtonText}>Edit</Text>
             </Pressable>
-          ),
+          ) : undefined,
         }}
       />
+      {isLoading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Colors.primary.teal} />
+        </View>
+      ) : !reservation ? (
+        <View style={styles.loading}>
+          <Text style={styles.errorText}>Reservation not found</Text>
+          <Button title="Go Back" onPress={() => router.back()} />
+        </View>
+      ) : (
       <ScrollView style={styles.container}>
         {/* Status Header */}
         <View style={[styles.statusHeader, { backgroundColor: currentStatus?.color + '20' }]}>
@@ -371,7 +358,8 @@ export default function ReservationDetailScreen() {
           />
         </View>
       </ScrollView>
-      <BottomNav />
+      )}
+      {reservation && <BottomNav />}
     </View>
   );
 }

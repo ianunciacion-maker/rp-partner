@@ -76,44 +76,35 @@ export default function PropertyDetailScreen() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.loading}>
-        <Stack.Screen options={{ title: 'Property', headerBackTitle: 'Back' }} />
-        <ActivityIndicator size="large" color={Colors.primary.teal} />
-      </View>
-    );
-  }
-
-  if (!property) {
-    return (
-      <View style={styles.loading}>
-        <Stack.Screen options={{ title: 'Not Found', headerBackTitle: 'Back' }} />
-        <Text style={styles.errorText}>Property not found</Text>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </Pressable>
-      </View>
-    );
-  }
-
-  const upcomingReservations = reservations.filter(
+  const upcomingReservations = property ? reservations.filter(
     (r) => new Date(r.check_in) >= new Date() && !['cancelled', 'no_show'].includes(r.status)
-  );
+  ) : [];
 
   return (
     <View style={styles.wrapper}>
       <Stack.Screen
         options={{
-          title: property.name,
+          title: property?.name || 'Property',
           headerBackTitle: 'Back',
-          headerRight: () => (
+          headerRight: property ? () => (
             <Pressable onPress={() => router.push(`/property/edit?id=${id}`)} style={styles.headerButton}>
               <Text style={styles.headerButtonText}>Edit</Text>
             </Pressable>
-          ),
+          ) : undefined,
         }}
       />
+      {isLoading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Colors.primary.teal} />
+        </View>
+      ) : !property ? (
+        <View style={styles.loading}>
+          <Text style={styles.errorText}>Property not found</Text>
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </Pressable>
+        </View>
+      ) : (
       <ScrollView
         style={styles.container}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchData(); }} />}
@@ -209,7 +200,8 @@ export default function PropertyDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
-      <BottomNav />
+      )}
+      {property && <BottomNav />}
     </View>
   );
 }

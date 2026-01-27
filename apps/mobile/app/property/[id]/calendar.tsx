@@ -333,22 +333,17 @@ export default function PropertyCalendarScreen() {
     })
     .sort((a, b) => b.check_out.localeCompare(a.check_out));
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingWrapper}>
-        <Stack.Screen options={{ title: 'Calendar', headerBackTitle: 'Back' }} />
-        <View style={styles.loading}>
-          <ActivityIndicator size="large" color={Colors.primary.teal} />
-        </View>
-      </View>
-    );
-  }
-
   return (
     <>
       <Stack.Screen options={{ title: property?.name || 'Calendar', headerBackTitle: 'Back' }} />
 
-      {isCustomerView && property ? (
+      {isLoading ? (
+        <View style={styles.loadingWrapper}>
+          <View style={styles.loading}>
+            <ActivityIndicator size="large" color={Colors.primary.teal} />
+          </View>
+        </View>
+      ) : isCustomerView && property ? (
         <CustomerViewCalendar
           property={property}
           currentDate={currentDate}

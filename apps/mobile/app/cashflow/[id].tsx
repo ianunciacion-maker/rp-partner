@@ -80,39 +80,26 @@ export default function CashflowDetailScreen() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <View style={styles.loadingWrapper}>
-        <Stack.Screen options={{ title: 'Transaction', headerBackTitle: 'Back' }} />
+  const isIncome = entry?.type === 'income';
+
+  return (
+    <View style={styles.loadingWrapper}>
+      <Stack.Screen
+        options={{
+          title: isLoading ? 'Transaction' : (isIncome ? 'Income' : 'Expense'),
+          headerBackTitle: 'Back',
+        }}
+      />
+      {isLoading ? (
         <View style={styles.loading}>
           <ActivityIndicator size="large" color={Colors.primary.teal} />
         </View>
-      </View>
-    );
-  }
-
-  if (!entry) {
-    return (
-      <View style={styles.loadingWrapper}>
-        <Stack.Screen options={{ title: 'Transaction', headerBackTitle: 'Back' }} />
+      ) : !entry ? (
         <View style={styles.loading}>
           <Text style={styles.errorText}>Transaction not found</Text>
           <Button title="Go Back" onPress={() => router.back()} />
         </View>
-      </View>
-    );
-  }
-
-  const isIncome = entry.type === 'income';
-
-  return (
-    <>
-      <Stack.Screen
-        options={{
-          title: isIncome ? 'Income' : 'Expense',
-          headerBackTitle: 'Back',
-        }}
-      />
+      ) : (
       <ScrollView style={styles.container}>
         {/* Header */}
         <View style={[styles.header, isIncome ? styles.incomeHeader : styles.expenseHeader]}>
@@ -196,7 +183,8 @@ export default function CashflowDetailScreen() {
           />
         </View>
       </ScrollView>
-    </>
+      )}
+    </View>
   );
 }
 
