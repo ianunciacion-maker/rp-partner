@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Image, Platform } from 'react-native';
+import { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { decode } from 'base64-arraybuffer';
@@ -11,18 +11,23 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
-import type { PaymentMethod } from '@/types/database';
 
 const isWeb = Platform.OS === 'web';
+
+// Static QR code image
+const paymentQrCode = require('@/assets/images/payment-qr.jpg');
+
+// Default payment method ID for database foreign key constraint
+// This should match an active payment method in the database
+const DEFAULT_PAYMENT_METHOD_ID = 'qr_payment';
 
 export default function PayScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ planId: string; months: string; amount: string }>();
   const { user } = useAuthStore();
-  const { paymentMethods, fetchPaymentMethods, submitPayment, isLoading } = useSubscriptionStore();
+  const { submitPayment, paymentMethods, fetchPaymentMethods } = useSubscriptionStore();
   const { isDesktop, isTablet } = useResponsive();
 
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [referenceNumber, setReferenceNumber] = useState('');
   const [isUploading, setIsUploading] = useState(false);
@@ -31,17 +36,6 @@ export default function PayScreen() {
 
   const amount = parseInt(params.amount || '499', 10);
   const months = parseInt(params.months || '1', 10);
-
-  useEffect(() => {
-    fetchPaymentMethods();
-  }, []);
-
-  useEffect(() => {
-    // Auto-select first payment method
-    if (paymentMethods.length > 0 && !selectedMethod) {
-      setSelectedMethod(paymentMethods[0]);
-    }
-  }, [paymentMethods]);
 
   const pickImage = async () => {
     try {
@@ -66,9 +60,24 @@ export default function PayScreen() {
     }
   };
 
+  const getPaymentMethodId = async (): Promise<string> => {
+    // Fetch payment methods if not already loaded
+    if (paymentMethods.length === 0) {
+      await fetchPaymentMethods();
+    }
+
+    // Use the first active payment method, or fall back to default
+    const methods = useSubscriptionStore.getState().paymentMethods;
+    if (methods.length > 0) {
+      return methods[0].id;
+    }
+
+    return DEFAULT_PAYMENT_METHOD_ID;
+  };
+
   const handleSubmit = async () => {
-    if (!user?.id || !selectedMethod || !screenshot) {
-      setError('Please select a payment method and upload a screenshot');
+    if (!user?.id || !screenshot) {
+      setError('Please upload a payment screenshot');
       return;
     }
 
@@ -119,10 +128,13 @@ export default function PayScreen() {
         }
       }
 
+      // Get payment method ID
+      const paymentMethodId = await getPaymentMethodId();
+
       // Submit payment
       await submitPayment({
         userId: user.id,
-        paymentMethodId: selectedMethod.id,
+        paymentMethodId,
         amount,
         screenshotUrl: uploadData?.path || fileName,
         referenceNumber: referenceNumber || undefined,
@@ -142,14 +154,6 @@ export default function PayScreen() {
     setShowSuccessModal(false);
     router.replace('/subscription/pending');
   };
-
-  if (isLoading && paymentMethods.length === 0) {
-    return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.primary.teal} />
-      </View>
-    );
-  }
 
   return (
     <ScrollView style={styles.container}>
@@ -172,85 +176,34 @@ export default function PayScreen() {
         </Text>
       </View>
 
-      {/* Payment Methods */}
+      {/* QR Code */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Select Payment Method</Text>
-        <View style={styles.methodList}>
-          {paymentMethods.map((method) => (
-            <Pressable
-              key={method.id}
+        <Text style={styles.sectionTitle}>Scan QR Code to Pay</Text>
+        <View style={styles.qrCard}>
+          <View style={styles.qrContainer}>
+            <Image
+              source={paymentQrCode}
               style={[
-                styles.methodItem,
-                selectedMethod?.id === method.id && styles.methodItemSelected,
+                styles.qrImage,
+                isDesktop && styles.qrImageDesktop,
+                isTablet && styles.qrImageTablet,
               ]}
-              onPress={() => setSelectedMethod(method)}
-            >
-              <View style={styles.methodIcon}>
-                <Text style={styles.methodIconText}>
-                  {method.name === 'gcash' ? '💚' : method.name === 'maya' ? '💜' : '🏦'}
-                </Text>
-              </View>
-              <View style={styles.methodContent}>
-                <Text style={styles.methodName}>{method.display_name}</Text>
-                <Text style={styles.methodAccount}>{method.account_name}</Text>
-              </View>
-              <View
-                style={[
-                  styles.methodRadio,
-                  selectedMethod?.id === method.id && styles.methodRadioSelected,
-                ]}
-              >
-                {selectedMethod?.id === method.id && (
-                  <View style={styles.methodRadioDot} />
-                )}
-              </View>
-            </Pressable>
-          ))}
+              resizeMode="contain"
+            />
+          </View>
+          <View style={styles.accountInfo}>
+            <View style={styles.accountRow}>
+              <Text style={styles.accountLabel}>Amount</Text>
+              <Text style={[styles.accountValue, styles.amountHighlight]}>
+                PHP {amount.toLocaleString()}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.instructionsText}>
+            Open your GCash or Maya app and scan this QR code to pay the exact amount shown above.
+          </Text>
         </View>
       </View>
-
-      {/* Payment Instructions */}
-      {selectedMethod && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Payment Instructions</Text>
-          <View style={styles.instructionsCard}>
-            {selectedMethod.qr_code_url && (
-              <View style={styles.qrContainer}>
-                <Image
-                  source={{ uri: selectedMethod.qr_code_url }}
-                  style={[
-                    styles.qrImage,
-                    isDesktop && styles.qrImageDesktop,
-                    isTablet && styles.qrImageTablet,
-                  ]}
-                  resizeMode="contain"
-                />
-              </View>
-            )}
-            <View style={styles.accountInfo}>
-              <View style={styles.accountRow}>
-                <Text style={styles.accountLabel}>Account Name</Text>
-                <Text style={styles.accountValue}>{selectedMethod.account_name}</Text>
-              </View>
-              {selectedMethod.account_number && (
-                <View style={styles.accountRow}>
-                  <Text style={styles.accountLabel}>Account Number</Text>
-                  <Text style={styles.accountValue}>{selectedMethod.account_number}</Text>
-                </View>
-              )}
-              <View style={styles.accountRow}>
-                <Text style={styles.accountLabel}>Amount</Text>
-                <Text style={[styles.accountValue, styles.amountHighlight]}>
-                  PHP {amount.toLocaleString()}
-                </Text>
-              </View>
-            </View>
-            {selectedMethod.instructions && (
-              <Text style={styles.instructionsText}>{selectedMethod.instructions}</Text>
-            )}
-          </View>
-        </View>
-      )}
 
       {/* Screenshot Upload */}
       <View style={styles.section}>
@@ -297,7 +250,7 @@ export default function PayScreen() {
           onPress={handleSubmit}
           variant="primary"
           fullWidth
-          disabled={!selectedMethod || !screenshot || isUploading}
+          disabled={!screenshot || isUploading}
           loading={isUploading}
         />
         <Text style={styles.disclaimer}>
@@ -324,11 +277,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.neutral.gray50,
-  },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   header: {
     padding: Spacing.lg,
@@ -385,66 +333,7 @@ const styles = StyleSheet.create({
     color: Colors.neutral.gray900,
     marginBottom: Spacing.md,
   },
-  methodList: {
-    gap: Spacing.sm,
-  },
-  methodItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 2,
-    borderColor: Colors.neutral.gray200,
-    ...Shadows.sm,
-  },
-  methodItemSelected: {
-    borderColor: Colors.primary.teal,
-    backgroundColor: Colors.primary.teal + '10',
-  },
-  methodIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.neutral.gray100,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
-  },
-  methodIconText: {
-    fontSize: 20,
-  },
-  methodContent: {
-    flex: 1,
-  },
-  methodName: {
-    fontSize: Typography.fontSize.md,
-    fontWeight: '600',
-    color: Colors.neutral.gray900,
-  },
-  methodAccount: {
-    fontSize: Typography.fontSize.sm,
-    color: Colors.neutral.gray500,
-  },
-  methodRadio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Colors.neutral.gray300,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  methodRadioSelected: {
-    borderColor: Colors.primary.teal,
-  },
-  methodRadioDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.primary.teal,
-  },
-  instructionsCard: {
+  qrCard: {
     backgroundColor: Colors.neutral.white,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
@@ -455,17 +344,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   qrImage: {
-    width: 200,
-    height: 200,
+    width: 340,
+    height: 340,
     borderRadius: BorderRadius.lg,
   },
   qrImageTablet: {
-    width: 280,
-    height: 280,
+    width: 420,
+    height: 420,
   },
   qrImageDesktop: {
-    width: 320,
-    height: 320,
+    width: 480,
+    height: 480,
   },
   accountInfo: {
     gap: Spacing.md,
@@ -492,6 +381,7 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     color: Colors.neutral.gray600,
     lineHeight: 20,
+    textAlign: 'center',
   },
   uploadArea: {
     backgroundColor: Colors.neutral.white,
