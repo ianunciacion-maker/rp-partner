@@ -69,36 +69,35 @@ serve(async (req) => {
 
     const graceMessages: ExpoPushMessage[] = [];
 
-    for (const sub of expiredActive || []) {
-      // Update to grace period
-      await supabase
-        .from('subscriptions')
-        .update({
-          status: 'grace_period',
-          grace_period_end: gracePeriodDate.toISOString(),
-          last_reminder_type: 'grace_period_start',
-          updated_at: todayStr,
-        })
-        .eq('id', sub.id);
+    // Process all expired subscriptions in parallel
+    await Promise.all((expiredActive || []).map(async (sub) => {
+      // Update subscription, user, and record reminder in parallel
+      await Promise.all([
+        supabase
+          .from('subscriptions')
+          .update({
+            status: 'grace_period',
+            grace_period_end: gracePeriodDate.toISOString(),
+            last_reminder_type: 'grace_period_start',
+            updated_at: todayStr,
+          })
+          .eq('id', sub.id),
+        supabase
+          .from('users')
+          .update({
+            subscription_status: 'grace_period',
+            updated_at: todayStr,
+          })
+          .eq('id', sub.user_id),
+        supabase.from('subscription_reminders').insert({
+          subscription_id: sub.id,
+          user_id: sub.user_id,
+          reminder_type: 'grace_period_start',
+          channel: 'push',
+        }),
+      ]);
 
-      // Update user status
-      await supabase
-        .from('users')
-        .update({
-          subscription_status: 'grace_period',
-          updated_at: todayStr,
-        })
-        .eq('id', sub.user_id);
-
-      // Record reminder in tracking table
-      await supabase.from('subscription_reminders').insert({
-        subscription_id: sub.id,
-        user_id: sub.user_id,
-        reminder_type: 'grace_period_start',
-        channel: 'push',
-      });
-
-      // Send notification
+      // Collect notification
       const pushToken = (sub.user as any)?.push_token;
       if (pushToken && pushToken.startsWith('ExponentPushToken')) {
         graceMessages.push({
@@ -110,7 +109,7 @@ serve(async (req) => {
           channelId: 'subscription',
         });
       }
-    }
+    }));
 
     if (graceMessages.length > 0) {
       await sendPushNotifications(graceMessages);
@@ -196,36 +195,35 @@ serve(async (req) => {
 
     const expiredMessages: ExpoPushMessage[] = [];
 
-    for (const sub of expiredGrace || []) {
-      // Update to expired
-      await supabase
-        .from('subscriptions')
-        .update({
-          status: 'expired',
-          last_reminder_type: 'expired',
-          updated_at: todayStr,
-        })
-        .eq('id', sub.id);
+    // Process all expired grace period subscriptions in parallel
+    await Promise.all((expiredGrace || []).map(async (sub) => {
+      // Update subscription, user, and record reminder in parallel
+      await Promise.all([
+        supabase
+          .from('subscriptions')
+          .update({
+            status: 'expired',
+            last_reminder_type: 'expired',
+            updated_at: todayStr,
+          })
+          .eq('id', sub.id),
+        supabase
+          .from('users')
+          .update({
+            subscription_status: 'expired',
+            property_limit: 1,
+            updated_at: todayStr,
+          })
+          .eq('id', sub.user_id),
+        supabase.from('subscription_reminders').insert({
+          subscription_id: sub.id,
+          user_id: sub.user_id,
+          reminder_type: 'expired',
+          channel: 'push',
+        }),
+      ]);
 
-      // Update user status and downgrade to free plan limits
-      await supabase
-        .from('users')
-        .update({
-          subscription_status: 'expired',
-          property_limit: 1,
-          updated_at: todayStr,
-        })
-        .eq('id', sub.user_id);
-
-      // Record expired reminder
-      await supabase.from('subscription_reminders').insert({
-        subscription_id: sub.id,
-        user_id: sub.user_id,
-        reminder_type: 'expired',
-        channel: 'push',
-      });
-
-      // Send notification
+      // Collect notification
       const pushToken = (sub.user as any)?.push_token;
       if (pushToken && pushToken.startsWith('ExponentPushToken')) {
         expiredMessages.push({
@@ -237,7 +235,7 @@ serve(async (req) => {
           channelId: 'subscription',
         });
       }
-    }
+    }));
 
     if (expiredMessages.length > 0) {
       await sendPushNotifications(expiredMessages);

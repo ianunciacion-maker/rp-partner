@@ -200,4 +200,7 @@ router.replace('/path'); // Replace (use for web redirects)
 - **RLS enabled**: All tables have Row Level Security - users only see their own data
 - **Date-only reservations**: check_in/check_out are DATE type, not timestamps - avoid timezone math
 - **Typed routes**: expo-router typed routes enabled - use type-safe navigation
-- **No comments**: Do not add comments unless explicitly requested - code should be self-documenting
+
+## Troubleshooting
+
+- **Tests fail with "jest not found"**: Jest is configured in scripts but may need to be installed: `cd apps/mobile && npm install --save-dev jest @types/jest`

@@ -306,17 +306,23 @@ export default function EditCashflowScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.primary.teal} />
+      <View style={styles.wrapper}>
+        <Stack.Screen options={{ title: 'Edit Transaction', headerBackTitle: 'Back' }} />
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Colors.primary.teal} />
+        </View>
       </View>
     );
   }
 
   if (!entry) {
     return (
-      <View style={styles.loading}>
-        <Text style={styles.errorText}>Transaction not found</Text>
-        <Button title="Go Back" onPress={() => router.back()} />
+      <View style={styles.wrapper}>
+        <Stack.Screen options={{ title: 'Edit Transaction', headerBackTitle: 'Back' }} />
+        <View style={styles.loading}>
+          <Text style={styles.errorText}>Transaction not found</Text>
+          <Button title="Go Back" onPress={() => router.back()} />
+        </View>
       </View>
     );
   }

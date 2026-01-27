@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Alert, RefreshControl, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -42,6 +42,7 @@ export default function MoreScreen() {
         monthlyExpensesRes,
         upcomingRes,
         allReservationsForAdrRes,
+        totalReservationsRes,
       ] = await Promise.all([
         // Property count
         supabase.from('properties').select('id', { count: 'exact', head: true }),
@@ -75,6 +76,11 @@ export default function MoreScreen() {
           .from('reservations')
           .select('total_amount, nights')
           .in('status', ['completed', 'checked_in', 'confirmed']),
+        // Total reservations count
+        supabase
+          .from('reservations')
+          .select('id', { count: 'exact', head: true })
+          .not('status', 'in', '("cancelled","no_show")'),
       ]);
 
       const propertyCount = propertiesCountRes.count || 0;
@@ -98,12 +104,6 @@ export default function MoreScreen() {
       const totalReservationNights = adrReservations.reduce((sum, r) => sum + (r.nights || 0), 0);
       const adr = totalReservationNights > 0 ? Math.round(totalReservationRevenue / totalReservationNights) : 0;
 
-      // Total reservations count (need separate query for this)
-      const totalReservationsRes = await supabase
-        .from('reservations')
-        .select('id', { count: 'exact', head: true })
-        .not('status', 'in', '("cancelled","no_show")');
-
       setStats({
         totalProperties: propertyCount,
         totalReservations: totalReservationsRes.count || 0,
@@ -121,8 +121,6 @@ export default function MoreScreen() {
       setIsRefreshing(false);
     }
   };
-
-  useEffect(() => { fetchStats(); }, []);
 
   useFocusEffect(
     useCallback(() => {

@@ -191,9 +191,12 @@ export default function EditPropertyScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.loading}>
-        <ActivityIndicator size="large" color={Colors.primary.teal} />
-      </View>
+      <>
+        <Stack.Screen options={{ title: 'Edit Property', headerBackTitle: 'Cancel' }} />
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Colors.primary.teal} />
+        </View>
+      </>
     );
   }
 

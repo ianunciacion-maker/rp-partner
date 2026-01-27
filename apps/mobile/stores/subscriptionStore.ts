@@ -228,6 +228,9 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   },
 
   fetchPlans: async () => {
+    const { plans } = get();
+    if (plans.length > 0) return;
+
     try {
       const { data, error } = await supabase
         .from('subscription_plans')

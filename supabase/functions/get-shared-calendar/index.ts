@@ -65,12 +65,22 @@ serve(async (req) => {
       );
     }
 
-    // Get property details
-    const { data: property, error: propertyError } = await supabase
-      .from('properties')
-      .select('id, name, city, province')
-      .eq('id', shareToken.property_id)
-      .single();
+    // Fetch property and user in parallel
+    const [propertyResult, userResult] = await Promise.all([
+      supabase
+        .from('properties')
+        .select('id, name, city, province')
+        .eq('id', shareToken.property_id)
+        .single(),
+      supabase
+        .from('users')
+        .select('id, subscription_status, calendar_months_override, current_subscription_id')
+        .eq('id', shareToken.user_id)
+        .single(),
+    ]);
+
+    const { data: property, error: propertyError } = propertyResult;
+    const { data: user } = userResult;
 
     if (propertyError || !property) {
       return new Response(
@@ -79,37 +89,14 @@ serve(async (req) => {
       );
     }
 
-    // Get owner's subscription to determine calendar month limits
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select(`
-        id,
-        subscription_status,
-        calendar_months_override,
-        current_subscription_id
-      `)
-      .eq('id', shareToken.user_id)
-      .single();
-
     let calendarMonthsLimit: number | null = 2; // Default free tier: 2 months
 
     if (user) {
       // Check for admin override first
       if (user.calendar_months_override !== null) {
         calendarMonthsLimit = user.calendar_months_override;
-      } else if (user.current_subscription_id && user.subscription_status === 'active') {
-        // Fetch plan limits
-        const { data: subscription } = await supabase
-          .from('subscriptions')
-          .select('plan:subscription_plans(calendar_months_limit)')
-          .eq('id', user.current_subscription_id)
-          .single();
-
-        if (subscription?.plan) {
-          calendarMonthsLimit = (subscription.plan as any).calendar_months_limit;
-        }
-      } else if (user.subscription_status === 'grace_period' && user.current_subscription_id) {
-        // Grace period: still has premium access
+      } else if (user.current_subscription_id && (user.subscription_status === 'active' || user.subscription_status === 'grace_period')) {
+        // Fetch plan limits (active or grace period users retain premium access)
         const { data: subscription } = await supabase
           .from('subscriptions')
           .select('plan:subscription_plans(calendar_months_limit)')
@@ -146,31 +133,32 @@ serve(async (req) => {
     const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
     const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${new Date(year, month + 1, 0).getDate()}`;
 
-    // Fetch reservations that overlap with the month
-    const { data: reservations } = await supabase
-      .from('reservations')
-      .select('id, check_in, check_out, status')
-      .eq('property_id', shareToken.property_id)
-      .not('status', 'in', '("cancelled","no_show")')
-      .lte('check_in', endDate)
-      .gt('check_out', startDate);
+    // Fetch reservations and locked dates in parallel
+    const [{ data: reservations }, { data: lockedDates }] = await Promise.all([
+      supabase
+        .from('reservations')
+        .select('id, check_in, check_out, status')
+        .eq('property_id', shareToken.property_id)
+        .not('status', 'in', '("cancelled","no_show")')
+        .lte('check_in', endDate)
+        .gt('check_out', startDate),
+      supabase
+        .from('locked_dates')
+        .select('id, date')
+        .eq('property_id', shareToken.property_id)
+        .gte('date', startDate)
+        .lte('date', endDate),
+    ]);
 
-    // Fetch locked dates for the month
-    const { data: lockedDates } = await supabase
-      .from('locked_dates')
-      .select('id, date')
-      .eq('property_id', shareToken.property_id)
-      .gte('date', startDate)
-      .lte('date', endDate);
-
-    // Update view count and last viewed timestamp
-    await supabase
+    // Update view count (fire-and-forget, don't block response)
+    supabase
       .from('calendar_share_tokens')
       .update({
         view_count: (shareToken as any).view_count ? (shareToken as any).view_count + 1 : 1,
         last_viewed_at: new Date().toISOString(),
       })
-      .eq('id', shareToken.id);
+      .eq('id', shareToken.id)
+      .then(() => {});
 
     return new Response(
       JSON.stringify({

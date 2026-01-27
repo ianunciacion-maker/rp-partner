@@ -81,14 +81,24 @@ export default function CashflowDetailScreen() {
   };
 
   if (isLoading) {
-    return <View style={styles.loading}><ActivityIndicator size="large" color={Colors.primary.teal} /></View>;
+    return (
+      <View style={styles.loadingWrapper}>
+        <Stack.Screen options={{ title: 'Transaction', headerBackTitle: 'Back' }} />
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Colors.primary.teal} />
+        </View>
+      </View>
+    );
   }
 
   if (!entry) {
     return (
-      <View style={styles.loading}>
-        <Text style={styles.errorText}>Transaction not found</Text>
-        <Button title="Go Back" onPress={() => router.back()} />
+      <View style={styles.loadingWrapper}>
+        <Stack.Screen options={{ title: 'Transaction', headerBackTitle: 'Back' }} />
+        <View style={styles.loading}>
+          <Text style={styles.errorText}>Transaction not found</Text>
+          <Button title="Go Back" onPress={() => router.back()} />
+        </View>
       </View>
     );
   }
@@ -220,6 +230,7 @@ const formatPaymentMethod = (method: string | null) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
+  loadingWrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   errorText: { fontSize: Typography.fontSize.lg, color: Colors.neutral.gray500, marginBottom: Spacing.md },
   header: { padding: Spacing.xl, alignItems: 'center' },

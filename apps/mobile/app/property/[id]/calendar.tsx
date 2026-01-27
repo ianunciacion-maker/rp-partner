@@ -100,7 +100,6 @@ export default function PropertyCalendarScreen() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [id]);
   useFocusEffect(useCallback(() => { fetchData(); }, [id]));
 
   const getDaysInMonth = (date: Date) => {
@@ -335,7 +334,14 @@ export default function PropertyCalendarScreen() {
     .sort((a, b) => b.check_out.localeCompare(a.check_out));
 
   if (isLoading) {
-    return <View style={styles.loading}><ActivityIndicator size="large" color={Colors.primary.teal} /></View>;
+    return (
+      <View style={styles.loadingWrapper}>
+        <Stack.Screen options={{ title: 'Calendar', headerBackTitle: 'Back' }} />
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Colors.primary.teal} />
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -764,6 +770,7 @@ const formatDate = (dateStr: string) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
+  loadingWrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   calendarHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   limitIndicatorContainer: { backgroundColor: Colors.neutral.white, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, alignItems: 'center' },

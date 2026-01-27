@@ -79,7 +79,7 @@ export default function PropertyDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.loading}>
-        <Stack.Screen options={{ title: '', headerBackTitle: 'Back' }} />
+        <Stack.Screen options={{ title: 'Property', headerBackTitle: 'Back' }} />
         <ActivityIndicator size="large" color={Colors.primary.teal} />
       </View>
     );
