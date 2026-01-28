@@ -1,0 +1,12 @@
+export { Header } from './Header';
+export { Hero } from './Hero';
+export { SocialProofBar } from './SocialProofBar';
+export { FeaturesShowcase } from './FeaturesShowcase';
+export { PricingSection } from './PricingSection';
+export { FAQ } from './FAQ';
+export { FinalCTA } from './FinalCTA';
+export { Footer } from './Footer';
+export { VideoBackground } from './VideoBackground';
+export { GlassCard } from './GlassCard';
+export { ScrollReveal } from './ScrollReveal';
+export { PhoneMockup } from './PhoneMockup';
