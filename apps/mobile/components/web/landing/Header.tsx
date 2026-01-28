@@ -50,7 +50,7 @@ export function Header() {
 
   return (
     <View style={[styles.header, headerStyle as any]}>
-      <View style={styles.headerContent}>
+      <View style={[styles.headerContent, { paddingTop: isDesktop ? 16 : 28 }]}>
         {/* Logo */}
         <View style={styles.logo}>
           <View style={styles.logoIcon}>
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     maxWidth: 1200,
     marginHorizontal: 'auto',
     paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingBottom: 16,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
