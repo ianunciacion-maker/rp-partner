@@ -44,15 +44,21 @@ export function Hero() {
           }}>
             <ScrollReveal delay={0}>
               <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                paddingLeft: 16,
-                paddingRight: 16,
-                paddingTop: 8,
-                paddingBottom: 8,
-                borderRadius: 20,
-                marginBottom: 24,
+                display: 'flex',
+                justifyContent: isDesktop ? 'flex-start' : 'center',
+                width: '100%',
               }}>
-                <span style={{ color: '#ffffff', fontSize: 14 }}>Built for Filipino Property Owners</span>
+                <div style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  paddingLeft: 16,
+                  paddingRight: 16,
+                  paddingTop: 8,
+                  paddingBottom: 8,
+                  borderRadius: 20,
+                  marginBottom: 24,
+                }}>
+                  <span style={{ color: '#ffffff', fontSize: 14 }}>Built for Filipino Property Owners</span>
+                </div>
               </div>
             </ScrollReveal>
 
