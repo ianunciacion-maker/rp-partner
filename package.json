@@ -4,11 +4,14 @@
   "private": true,
   "workspaces": [
     "apps/admin",
+    "apps/website",
     "packages/*"
   ],
   "scripts": {
     "mobile": "cd apps/mobile && npm run start",
     "admin": "npm run dev --workspace=apps/admin",
-    "mobile:build": "cd apps/mobile && npm run build"
+    "website": "npm run dev --workspace=apps/website",
+    "mobile:build": "cd apps/mobile && npm run build",
+    "website:build": "npm run build --workspace=apps/website"
   }
 }

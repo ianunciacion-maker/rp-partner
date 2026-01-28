@@ -91,7 +91,7 @@ export const signOut = async () => {
 };
 
 // Production web URL for password reset redirects
-const PRODUCTION_URL = 'https://tuknang.com';
+const PRODUCTION_URL = 'https://app.tuknang.com';
 
 export const resetPassword = async (email: string) => {
   // Always use production URL for web to ensure email links work
