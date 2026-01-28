@@ -42,14 +42,14 @@ export default function Root({ children }: PropsWithChildren) {
 
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://rp-partner.app/" />
+        <meta property="og:url" content="https://tuknang.com/" />
         <meta property="og:title" content="RP-Partner - Rental Property Management" />
         <meta property="og:description" content="Manage your rental properties, reservations, and finances in one place. Built for Filipino property owners." />
         <meta property="og:image" content="/icon-512.png" />
 
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content="https://rp-partner.app/" />
+        <meta property="twitter:url" content="https://tuknang.com/" />
         <meta property="twitter:title" content="RP-Partner - Rental Property Management" />
         <meta property="twitter:description" content="Manage your rental properties, reservations, and finances in one place. Built for Filipino property owners." />
         <meta property="twitter:image" content="/icon-512.png" />
