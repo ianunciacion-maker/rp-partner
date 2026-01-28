@@ -13,7 +13,7 @@ import {
 const features = [
   {
     id: 'properties',
-    icon: '\u2302',
+    icon: '🏠',
     title: 'All Your Properties, One Dashboard',
     description:
       'See every property at a glance. Add unlimited details, photos, and notes. Know exactly what\'s happening across your entire portfolio.',
@@ -27,7 +27,7 @@ const features = [
   },
   {
     id: 'calendar',
-    icon: '\u25A1',
+    icon: '📅',
     title: 'Never Double-Book Again',
     description:
       'A visual calendar that shows all your reservations across properties. Block dates for maintenance, personal use, or anything else.',
@@ -41,7 +41,7 @@ const features = [
   },
   {
     id: 'cashflow',
-    icon: '$',
+    icon: '💰',
     title: 'Know Exactly Where Your Money Goes',
     description:
       'Track income and expenses for each property. Categorize transactions, upload receipts, and see your profitability in real-time.',
@@ -55,7 +55,7 @@ const features = [
   },
   {
     id: 'reservations',
-    icon: '\u263A',
+    icon: '👥',
     title: 'Guest Management Made Simple',
     description:
       'Store guest details, track payments, and manage deposits. Everything you need to provide a professional experience.',
@@ -93,12 +93,17 @@ export function FeaturesShowcase() {
         paddingRight: 16,
       }}>
         <ScrollReveal>
-          <div style={{ marginBottom: 64, textAlign: 'center' }}>
+          <div style={{
+            marginBottom: 64,
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}>
             <h2 style={{
               fontSize: 36,
               fontWeight: 'bold',
               color: Colors.neutral.gray900,
-              marginBottom: 16,
               margin: 0,
               marginBottom: 16,
             }}>
@@ -108,9 +113,8 @@ export function FeaturesShowcase() {
               fontSize: 18,
               color: Colors.neutral.gray600,
               maxWidth: 600,
-              marginLeft: 'auto',
-              marginRight: 'auto',
               margin: 0,
+              textAlign: 'center',
             }}>
               Powerful features designed specifically for Filipino property owners and managers.
             </p>
