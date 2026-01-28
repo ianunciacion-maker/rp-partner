@@ -1,19 +1,30 @@
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 
+// Web landing page component (only imported on web)
+const LandingPage = Platform.OS === 'web'
+  ? require('@/components/web/LandingPage').default
+  : null;
+
 export default function WelcomeScreen() {
   const router = useRouter();
 
+  // Show full landing page on web
+  if (Platform.OS === 'web' && LandingPage) {
+    return <LandingPage />;
+  }
+
+  // Show simple mobile welcome on native
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoContainer}>
           <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>RP</Text>
+            <Text style={styles.logoText}>TK</Text>
           </View>
-          <Text style={styles.appName}>RP-Partner</Text>
+          <Text style={styles.appName}>Tuknang</Text>
         </View>
 
         <View style={styles.taglineContainer}>

@@ -140,6 +140,6 @@ export function getShareUrl(token: string): string {
   // Use the deployed web URL
   const baseUrl = typeof window !== 'undefined' && window.location
     ? window.location.origin
-    : 'https://app.rp-partner.com';
+    : 'https://tuknang.com';
   return `${baseUrl}/share/${token}`;
 }
