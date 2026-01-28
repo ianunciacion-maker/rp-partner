@@ -7,6 +7,7 @@ import type { Property, Reservation } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { BottomNav } from '@/components/BottomNav';
+import { useEnterSubmit } from '@/hooks/useEnterSubmit';
 
 const isWeb = Platform.OS === 'web';
 
@@ -291,6 +292,8 @@ export default function EditReservationScreen() {
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  const enterSubmit = useEnterSubmit(handleSubmit, isSaving);
+
   if (isLoading) {
     return (
       <View style={styles.wrapper}>
@@ -479,6 +482,7 @@ export default function EditReservationScreen() {
             onChangeText={(v) => updateForm('notes', v)}
             multiline
             numberOfLines={3}
+            {...enterSubmit}
           />
         </View>
 

@@ -5,6 +5,7 @@ import { supabase } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { Button, Input } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+import { useEnterSubmit } from '@/hooks/useEnterSubmit';
 
 const isWeb = Platform.OS === 'web';
 
@@ -49,6 +50,8 @@ export default function EditProfileScreen() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const enterSubmit = useEnterSubmit(handleSave, isLoading);
 
   const handleSave = async () => {
     if (!validate()) return;
@@ -101,6 +104,7 @@ export default function EditProfileScreen() {
             value={form.phone}
             onChangeText={(v) => updateForm('phone', v)}
             keyboardType="phone-pad"
+            {...enterSubmit}
           />
         </View>
 

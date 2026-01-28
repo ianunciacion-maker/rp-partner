@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/authStore';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+import { useEnterSubmit } from '@/hooks/useEnterSubmit';
 
 const isWeb = Platform.OS === 'web';
 
@@ -52,6 +53,8 @@ export default function RegisterScreen() {
     }
   };
 
+  const enterSubmit = useEnterSubmit(handleRegister, isLoading);
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
@@ -73,7 +76,7 @@ export default function RegisterScreen() {
           <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="At least 8 characters" placeholderTextColor={Colors.neutral.gray500} secureTextEntry />
 
           <Text style={styles.label}>Confirm Password</Text>
-          <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter password" placeholderTextColor={Colors.neutral.gray500} secureTextEntry />
+          <TextInput style={styles.input} value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Re-enter password" placeholderTextColor={Colors.neutral.gray500} secureTextEntry {...enterSubmit} />
 
           <Pressable style={styles.registerButton} onPress={handleRegister} disabled={isLoading}>
             {isLoading ? <ActivityIndicator color={Colors.primary.navy} /> : <Text style={styles.registerButtonText}>Create Account</Text>}

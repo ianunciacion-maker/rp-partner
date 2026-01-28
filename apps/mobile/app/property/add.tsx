@@ -9,6 +9,7 @@ import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { BottomNav } from '@/components/BottomNav';
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
+import { useEnterSubmit } from '@/hooks/useEnterSubmit';
 
 const isWeb = Platform.OS === 'web';
 
@@ -210,6 +211,8 @@ export default function AddPropertyScreen() {
     }
   };
 
+  const enterSubmit = useEnterSubmit(handleSubmit, isLoading);
+
   return (
     <View style={styles.wrapper}>
       <Stack.Screen options={{ title: 'Add Property', headerBackTitle: 'Back' }} />
@@ -308,6 +311,7 @@ export default function AddPropertyScreen() {
             keyboardType="decimal-pad"
             error={errors.base_rate}
             hint="Nightly rate in Philippine Pesos"
+            {...enterSubmit}
           />
         </View>
 

@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/authStore';
 import { resetPassword } from '@/services/supabase';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+import { useEnterSubmit } from '@/hooks/useEnterSubmit';
 
 const isWeb = Platform.OS === 'web';
 
@@ -40,6 +41,8 @@ export default function LoginScreen() {
     }
   };
 
+  const loginEnterSubmit = useEnterSubmit(handleLogin, isLoading);
+
   const handleForgotPassword = async () => {
     if (!resetEmail.trim()) {
       if (isWeb) {
@@ -74,6 +77,8 @@ export default function LoginScreen() {
     }
   };
 
+  const forgotPasswordEnterSubmit = useEnterSubmit(handleForgotPassword, isResetting);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -104,6 +109,7 @@ export default function LoginScreen() {
             placeholder="Enter your password"
             placeholderTextColor={Colors.neutral.gray500}
             secureTextEntry
+            {...loginEnterSubmit}
           />
 
           <Pressable style={styles.loginButton} onPress={handleLogin} disabled={isLoading}>
@@ -133,6 +139,7 @@ export default function LoginScreen() {
               placeholderTextColor={Colors.neutral.gray400}
               keyboardType="email-address"
               autoCapitalize="none"
+              {...forgotPasswordEnterSubmit}
             />
 
             <View style={styles.modalButtons}>

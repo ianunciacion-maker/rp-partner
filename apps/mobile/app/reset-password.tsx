@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase, updatePassword } from '@/services/supabase';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+import { useEnterSubmit } from '@/hooks/useEnterSubmit';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -43,6 +44,8 @@ export default function ResetPasswordScreen() {
       subscription.unsubscribe();
     };
   }, []);
+
+  const enterSubmit = useEnterSubmit(handleResetPassword, isLoading);
 
   const handleResetPassword = async () => {
     setErrorMessage('');
@@ -146,6 +149,7 @@ export default function ResetPasswordScreen() {
             placeholder="Confirm new password"
             placeholderTextColor={Colors.neutral.gray500}
             secureTextEntry
+            {...enterSubmit}
           />
 
           {errorMessage ? (

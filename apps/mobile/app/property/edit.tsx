@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import type { Property } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+import { useEnterSubmit } from '@/hooks/useEnterSubmit';
 
 const isWeb = Platform.OS === 'web';
 
@@ -189,6 +190,8 @@ export default function EditPropertyScreen() {
     }
   };
 
+  const enterSubmit = useEnterSubmit(handleSubmit, isSaving);
+
   if (isLoading) {
     return (
       <>
@@ -286,6 +289,7 @@ export default function EditPropertyScreen() {
             keyboardType="decimal-pad"
             error={errors.base_rate}
             hint="Nightly rate in Philippine Pesos"
+            {...enterSubmit}
           />
         </View>
 
