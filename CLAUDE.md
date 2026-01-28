@@ -39,7 +39,10 @@ npm run lint               # Run Next.js ESLint
 # Database
 # Apply migrations via Supabase Dashboard SQL Editor
 # Migration files in supabase/migrations/
-# Edge functions in supabase/functions/
+
+# Edge Functions (from project root)
+npx supabase functions serve   # Local development
+npx supabase functions deploy <function-name>  # Deploy single function
 ```
 
 ## Environment Setup
@@ -66,8 +69,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Required for admin operations
 - `supabase/functions/` - Supabase Edge Functions (check-subscriptions, send-payment-reminders, get-shared-calendar)
 
 ### Tech Stack
-- **Mobile/Web**: Expo SDK 54, React Native 0.81, React 19, expo-router 6.x with typed routes
-- **Admin**: Next.js 16, React 19, Tailwind CSS, lucide-react icons
+- **Mobile/Web**: Expo SDK ~54.0, React Native 0.81.5, React 19, expo-router 6.x with typed routes
+- **Admin**: Next.js ^16.1, React 19, Tailwind CSS
 - **Backend**: Supabase (PostgreSQL with RLS, Auth, Storage, Edge Functions)
 - **State**: Zustand (no persist middleware - auth uses SecureStore on native, localStorage on web)
 - **Forms**: react-hook-form + zod validation
@@ -90,7 +93,9 @@ expo-router file-based routing with route groups:
 - `(tabs)/` - Main tab navigation (properties, calendar, cashflow, more)
 - `property/[id]`, `reservation/[id]`, `cashflow/[id]` - Detail screens
 - `property/[id]/calendar` - Property-specific calendar with share feature
+- `cashflow/dashboard` - Cashflow analytics dashboard
 - `share/[token]` - Public shareable calendar view (no auth required)
+- `reset-password` - Password reset flow (root level, handles deep links)
 - `settings/`, `subscription/` - User settings and subscription management
 
 ### Navigation Structure (Admin)
@@ -105,6 +110,12 @@ Next.js App Router with route groups:
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 // supabase - anon key for client-side operations
 // supabaseAdmin - service role key for server-side operations (bypasses RLS)
+```
+
+### Path Aliases (Admin)
+Admin app uses `@/` prefix pointing to `src/`:
+```typescript
+import { supabase } from '@/lib/supabase';  // apps/admin/src/lib/supabase.ts
 ```
 
 ### Database Types
@@ -139,6 +150,14 @@ Property owners can generate public share links for their calendar:
 - **Services**: `services/shareCalendar.ts` - createShareToken, fetchSharedCalendar, getShareUrl, revokeShareToken
 - **Components**: `SharedCalendarView.tsx` - Standalone calendar component for public view
 
+### Subscription System
+The subscription system uses a manual payment verification flow (GCash/bank transfer screenshots reviewed by admin):
+- **States**: `none`, `active`, `expiring_soon`, `grace_period`, `expired`, `payment_pending`
+- **Billing**: 30-day cycles with 3-day grace period after expiration
+- **Feature limits**: Calendar month access, report export months, and property count are controlled by subscription plan or user-level overrides
+- **User overrides**: Admins can grant users specific limits via `calendar_months_override`, `report_months_override`, `property_limit` (-1 = unlimited)
+- **Store**: `stores/subscriptionStore.ts` - Manages subscription state and feature access checks
+
 ## Code Patterns
 
 ### Form Validation
@@ -168,6 +187,14 @@ Use date-fns and work with Date objects. Store dates as ISO strings in database.
 
 ### UI Components (Mobile)
 Reusable components in `components/ui/` (Button, Input, Select, Modal) follow the design system in `constants/theme.ts`. Use design tokens (Colors, Spacing, Typography, BorderRadius, Shadows) instead of hardcoded values.
+
+### Responsive Design (Mobile)
+The theme includes responsive utilities for cross-platform layouts:
+```typescript
+import { Breakpoints, getResponsiveValue } from '@/constants/theme';
+// Breakpoints: mobile (640px), tablet (1024px), desktop (1280px)
+const padding = getResponsiveValue({ mobile: 16, tablet: 24, desktop: 32 }, screenWidth);
+```
 
 ### UI Patterns (Admin)
 Use `cn()` utility from `lib/utils.ts` for conditional Tailwind classes:
@@ -204,3 +231,5 @@ router.replace('/path'); // Replace (use for web redirects)
 ## Troubleshooting
 
 - **Tests fail with "jest not found"**: Jest is configured in scripts but may need to be installed: `cd apps/mobile && npm install --save-dev jest @types/jest`
+- **Metro bundler cache issues**: Run `npx expo start --clear` to clear bundler cache
+- **Supabase type mismatches**: Types in `types/database.ts` are manually maintained - update when database schema changes
