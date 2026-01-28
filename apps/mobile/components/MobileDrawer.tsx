@@ -32,7 +32,7 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   }
 
   return (
-    <View style={[styles.container, !isOpen && styles.hidden]}>
+    <View style={[styles.container, !isOpen && styles.hidden, isOpen && styles.visible]}>
       <Animated.View style={[styles.overlay, { opacity }]}>
         <Pressable style={styles.overlayPressable} onPress={onClose} />
       </Animated.View>
@@ -64,6 +64,9 @@ const styles = StyleSheet.create({
   hidden: {
     ...(Platform.OS === 'web' ? { pointerEvents: 'none' as any } : {}),
   },
+  visible: {
+    ...(Platform.OS === 'web' ? { pointerEvents: 'auto' as any } : {}),
+  },
   overlay: {
     position: 'absolute',
     top: 0,
@@ -84,6 +87,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.neutral.white,
     ...(Platform.OS === 'web' ? {
       boxShadow: '4px 0 12px rgba(0, 0, 0, 0.15)',
+      paddingTop: 'env(safe-area-inset-top, 0px)',
     } as any : {}),
   },
 });

@@ -87,9 +87,8 @@ export default function Root({ children }: PropsWithChildren) {
             --safe-area-inset-left: env(safe-area-inset-left, 0px);
           }
 
-          /* Apply safe area to body */
+          /* Apply safe area to body (top handled by fixed header) */
           body {
-            padding-top: env(safe-area-inset-top, 0px);
             padding-right: env(safe-area-inset-right, 0px);
             padding-bottom: env(safe-area-inset-bottom, 0px);
             padding-left: env(safe-area-inset-left, 0px);
@@ -138,6 +137,15 @@ export default function Root({ children }: PropsWithChildren) {
           /* Smooth transitions */
           * {
             -webkit-tap-highlight-color: transparent;
+          }
+
+          /* Eliminate 300ms tap delay on mobile browsers */
+          html {
+            touch-action: manipulation;
+          }
+
+          button, a, [role="button"] {
+            touch-action: manipulation;
           }
 
           /* Responsive breakpoint helpers */

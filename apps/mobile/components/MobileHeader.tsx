@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     ...(Platform.OS === 'web' ? {
       position: 'fixed' as any,
-      top: 0,
+      top: 'env(safe-area-inset-top, 0px)',
       left: 0,
       right: 0,
       zIndex: 40,

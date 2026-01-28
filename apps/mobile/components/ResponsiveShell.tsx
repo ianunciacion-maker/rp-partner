@@ -64,6 +64,10 @@ const styles = StyleSheet.create({
   },
   mobileContent: {
     flex: 1,
-    marginTop: 64,
+    ...(Platform.OS === 'web' ? {
+      marginTop: 'calc(64px + env(safe-area-inset-top, 0px))',
+    } as any : {
+      marginTop: 64,
+    }),
   },
 });
