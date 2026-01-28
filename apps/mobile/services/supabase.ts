@@ -90,10 +90,14 @@ export const signOut = async () => {
   if (error) throw error;
 };
 
+// Production web URL for password reset redirects
+const PRODUCTION_URL = 'https://tuknang.com';
+
 export const resetPassword = async (email: string) => {
-  // Use web URL for web, deep link for native
+  // Always use production URL for web to ensure email links work
+  // Native apps use deep link scheme
   const redirectUrl = Platform.OS === 'web'
-    ? `${window.location.origin}/reset-password`
+    ? `${PRODUCTION_URL}/reset-password`
     : 'rp-partner://reset-password';
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
