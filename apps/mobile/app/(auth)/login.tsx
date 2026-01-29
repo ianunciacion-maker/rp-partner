@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator, Modal, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Pressable, Alert, ActivityIndicator, Modal, Platform, useWindowDimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '@/stores/authStore';
@@ -252,20 +252,11 @@ export default function LoginScreen() {
           zIndex: 2,
         }}>
           <Pressable onPress={() => router.push('/')} style={{ marginBottom: 48 }}>
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <div style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                backgroundColor: Colors.primary.teal,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 18 }}>TK</span>
-              </div>
-              <span style={{ fontSize: 28, fontWeight: 'bold', color: '#ffffff' }}>Tuknang</span>
-            </div>
+            <Image
+              source={require('@/assets/images/tuknang-logo-whitetext.png')}
+              style={{ width: 200, height: 52 }}
+              resizeMode="contain"
+            />
           </Pressable>
 
           <h1 style={{
@@ -308,20 +299,11 @@ export default function LoginScreen() {
         {!isDesktop && (
           <div style={{ width: '100%', maxWidth: 400, marginBottom: 32 }}>
             <Pressable onPress={() => router.push('/')} style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  backgroundColor: Colors.primary.teal,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>TK</span>
-                </div>
-                <span style={{ fontSize: 22, fontWeight: 'bold', color: '#ffffff' }}>Tuknang</span>
-              </div>
+              <Image
+                source={require('@/assets/images/tuknang-logo-whitetext.png')}
+                style={{ width: 160, height: 42 }}
+                resizeMode="contain"
+              />
             </Pressable>
           </div>
         )}
