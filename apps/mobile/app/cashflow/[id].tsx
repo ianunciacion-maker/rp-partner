@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Alert, Pressable, Platform, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Alert, Pressable, Platform, Modal, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { documentDirectory, downloadAsync } from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -17,6 +17,7 @@ interface CashflowWithProperty extends CashflowEntry {
 export default function CashflowDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const [entry, setEntry] = useState<CashflowWithProperty | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -190,13 +191,11 @@ export default function CashflowDetailScreen() {
             <View style={styles.receiptHeader}>
               <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Receipt</Text>
               {!receiptError && (
-                <Button
-                  title={isWeb ? "Open in New Tab" : "Save/Share"}
-                  variant="secondary"
-                  size="small"
-                  onPress={handleSaveReceipt}
-                  loading={isSavingReceipt}
-                />
+                <Pressable onPress={handleSaveReceipt} disabled={isSavingReceipt}>
+                  <Text style={styles.receiptLinkText}>
+                    {isSavingReceipt ? 'Loading...' : (isWeb ? 'Open ↗' : 'Save/Share')}
+                  </Text>
+                </Pressable>
               )}
             </View>
             <Pressable
@@ -252,28 +251,30 @@ export default function CashflowDetailScreen() {
           animationType="fade"
           onRequestClose={() => setPreviewVisible(false)}
         >
-          <View style={styles.modalOverlay}>
-            <Pressable
-              style={styles.modalCloseButton}
-              onPress={() => setPreviewVisible(false)}
-            >
+          <Pressable style={styles.modalOverlay} onPress={() => setPreviewVisible(false)}>
+            <View style={styles.modalCloseButton}>
               <Text style={styles.modalCloseText}>✕ Close</Text>
+            </View>
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <ScrollView
+                style={{ maxHeight: screenHeight * 0.85 }}
+                contentContainerStyle={styles.modalContent}
+                maximumZoomScale={3}
+                minimumZoomScale={1}
+                bouncesZoom
+                centerContent
+              >
+                <Image
+                  source={{ uri: entry.receipt_url }}
+                  style={{
+                    width: screenWidth - 32,
+                    height: screenHeight * 0.8,
+                  }}
+                  resizeMode="contain"
+                />
+              </ScrollView>
             </Pressable>
-            <ScrollView
-              style={styles.modalScrollView}
-              contentContainerStyle={styles.modalContent}
-              maximumZoomScale={3}
-              minimumZoomScale={1}
-              bouncesZoom
-              centerContent
-            >
-              <Image
-                source={{ uri: entry.receipt_url }}
-                style={styles.fullScreenImage}
-                resizeMode="contain"
-              />
-            </ScrollView>
-          </View>
+          </Pressable>
         </Modal>
 
         {/* Notes */}
@@ -369,6 +370,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.md,
   },
+  receiptLinkText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.primary.teal,
+    fontWeight: '500',
+  },
   receiptContainer: { position: 'relative', minHeight: 200 },
   receiptImage: { width: '100%', height: 300, borderRadius: BorderRadius.lg, resizeMode: 'contain', backgroundColor: Colors.neutral.gray100 },
   receiptImageHidden: { opacity: 0 },
@@ -424,20 +430,10 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.md,
     fontWeight: '600',
   },
-  modalScrollView: {
-    flex: 1,
-    width: '100%',
-  },
   modalContent: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.md,
-  },
-  fullScreenImage: {
-    width: '100%',
-    height: '100%',
-    maxHeight: '90%',
   },
   notes: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray600, lineHeight: 22 },
   actionSection: { padding: Spacing.lg, paddingBottom: 0 },
