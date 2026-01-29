@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Breakpoints } from '@/constants/theme';
 
@@ -53,10 +53,11 @@ export function Header() {
       <View style={[styles.headerContent, { paddingTop: isDesktop ? 16 : 28 }]}>
         {/* Logo */}
         <View style={styles.logo}>
-          <View style={styles.logoIcon}>
-            <Text style={styles.logoText}>TK</Text>
-          </View>
-          <Text style={[styles.logoName, scrolled && styles.logoNameScrolled]}>Tuknang</Text>
+          <Image
+            source={require('@/assets/images/tuknang-logo-whitetext.png')}
+            style={[styles.logoImage, scrolled && styles.logoImageScrolled]}
+            resizeMode="contain"
+          />
         </View>
 
         {/* Desktop Navigation */}
@@ -150,28 +151,15 @@ const styles = StyleSheet.create({
   logo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
-  logoIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    backgroundColor: Colors.primary.teal,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logoImage: {
+    width: 220,
+    height: 56,
   },
-  logoText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  logoName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  logoNameScrolled: {
-    color: Colors.primary.navy,
+  logoImageScrolled: {
+    // When scrolled (white bg), make logo dark
+    // @ts-ignore - web filter
+    filter: 'brightness(0)',
   },
   desktopNav: {
     flexDirection: 'row',

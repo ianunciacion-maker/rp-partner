@@ -43,6 +43,12 @@ npm run lint               # Run Next.js ESLint
 # Edge Functions (from project root)
 npx supabase functions serve   # Local development
 npx supabase functions deploy <function-name>  # Deploy single function
+
+# Remotion (from apps/remotion)
+npm run dev                 # Open Remotion Studio
+npm run build               # Render desktop showcase video
+npm run build:mobile        # Render mobile showcase video
+npm run move                # Copy desktop video to mobile/public/videos/
 ```
 
 ## Environment Setup
@@ -65,6 +71,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Required for admin operations
 ### Monorepo Structure
 - `apps/mobile/` - Expo React Native app (main user-facing app)
 - `apps/admin/` - Next.js admin dashboard (port 3001, Tailwind CSS)
+- `apps/remotion/` - Remotion video generation (React 18, outputs to apps/mobile/public/videos/)
 - `supabase/migrations/` - PostgreSQL migrations
 - `supabase/functions/` - Supabase Edge Functions (check-subscriptions, send-payment-reminders, get-shared-calendar)
 

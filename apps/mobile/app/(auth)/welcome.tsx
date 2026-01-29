@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
@@ -21,10 +21,11 @@ export default function WelcomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <Text style={styles.logoText}>TK</Text>
-          </View>
-          <Text style={styles.appName}>Tuknang</Text>
+          <Image
+            source={require('@/assets/images/tuknang-logo-whitetext.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
         </View>
 
         <View style={styles.taglineContainer}>
@@ -51,9 +52,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.primary.navy },
   content: { flex: 1, paddingHorizontal: Spacing.lg, justifyContent: 'center' },
   logoContainer: { alignItems: 'center', marginBottom: Spacing.xl },
-  logoPlaceholder: { width: 100, height: 100, borderRadius: BorderRadius.xxl, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', marginBottom: Spacing.md },
-  logoText: { fontSize: 40, fontWeight: 'bold', color: Colors.primary.navy },
-  appName: { fontSize: Typography.fontSize['2xl'], fontWeight: '600', color: Colors.neutral.white },
+  logoImage: { width: 200, height: 60 },
   taglineContainer: { alignItems: 'center', marginBottom: Spacing.xxl },
   tagline: { fontSize: Typography.fontSize['3xl'], fontWeight: '300', color: Colors.neutral.white, textAlign: 'center' },
   taglineHighlight: { fontSize: Typography.fontSize['3xl'], fontWeight: 'bold', color: Colors.primary.teal, textAlign: 'center' },

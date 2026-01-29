@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Image } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { useAuthStore } from '@/stores/authStore';
@@ -39,7 +39,11 @@ export function DesktopSidebar({ onNavigate }: DesktopSidebarProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.logo}>RP-Partner</Text>
+        <Image
+          source={require('@/assets/images/tuknang-logo-whitetext.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
       </View>
 
       <View style={styles.nav}>
@@ -108,10 +112,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
   },
-  logo: {
-    fontSize: Typography.fontSize.xl,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.neutral.white,
+  logoImage: {
+    width: 120,
+    height: 32,
   },
   nav: {
     flex: 1,

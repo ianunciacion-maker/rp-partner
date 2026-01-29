@@ -1,4 +1,4 @@
-import { Pressable, useWindowDimensions, Platform } from 'react-native';
+import { Pressable, useWindowDimensions, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors, Breakpoints } from '@/constants/theme';
 
@@ -63,25 +63,17 @@ export function Footer() {
             flex: isDesktop ? 2 : 'none',
             marginBottom: isDesktop ? 0 : 24,
           }}>
-            <div style={{
-              display: 'flex',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 16,
-            }}>
-              <div style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                backgroundColor: Colors.primary.teal,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <span style={{ color: Colors.neutral.white, fontWeight: 'bold', fontSize: 12 }}>TK</span>
-              </div>
-              <span style={{ fontSize: 18, fontWeight: 'bold', color: Colors.primary.navy }}>Tuknang</span>
+            <div style={{ marginBottom: 16 }}>
+              <Image
+                source={require('@/assets/images/tuknang-logo-whitetext.png')}
+                style={{
+                  width: 160,
+                  height: 42,
+                  // @ts-ignore - web filter to make white logo dark
+                  filter: 'brightness(0)',
+                }}
+                resizeMode="contain"
+              />
             </div>
             <p style={{
               fontSize: 14,

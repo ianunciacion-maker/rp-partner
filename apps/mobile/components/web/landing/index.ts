@@ -10,3 +10,4 @@ export { VideoBackground } from './VideoBackground';
 export { GlassCard } from './GlassCard';
 export { ScrollReveal } from './ScrollReveal';
 export { PhoneMockup } from './PhoneMockup';
+export { ScrollToTop } from './ScrollToTop';

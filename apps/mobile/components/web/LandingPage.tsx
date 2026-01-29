@@ -9,6 +9,7 @@ import {
   FAQ,
   FinalCTA,
   Footer,
+  ScrollToTop,
 } from './landing';
 
 // Only render on web
@@ -29,6 +30,17 @@ export default function LandingPage() {
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
 
         * {
@@ -93,6 +105,7 @@ export default function LandingPage() {
         <FinalCTA />
         <Footer />
       </main>
+      <ScrollToTop />
     </div>
   );
 }
