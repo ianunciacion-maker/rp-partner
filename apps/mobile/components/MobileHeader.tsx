@@ -1,5 +1,5 @@
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
-import { Colors, Spacing, Typography } from '@/constants/theme';
+import { View, Text, Pressable, StyleSheet, Platform, Image } from 'react-native';
+import { Colors, Spacing } from '@/constants/theme';
 
 interface MobileHeaderProps {
   onMenuPress: () => void;
@@ -11,7 +11,11 @@ export function MobileHeader({ onMenuPress }: MobileHeaderProps) {
       <Pressable style={styles.menuButton} onPress={onMenuPress}>
         <Text style={styles.menuIcon}>☰</Text>
       </Pressable>
-      <Text style={styles.title}>RP-Partner</Text>
+      <Image
+        source={require('@/assets/images/tuknang-logo-whitetext.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <View style={styles.placeholder} />
     </View>
   );
@@ -44,10 +48,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: Colors.neutral.white,
   },
-  title: {
-    fontSize: Typography.fontSize.lg,
-    fontWeight: Typography.fontWeight.bold,
-    color: Colors.neutral.white,
+  logo: {
+    width: 140,
+    height: 38,
   },
   placeholder: {
     width: 44,

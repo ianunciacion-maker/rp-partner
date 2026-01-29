@@ -261,7 +261,7 @@ export default function MoreScreen() {
         <Pressable style={styles.signOutButton} onPress={handleSignOut}>
           <Text style={styles.signOutText}>Sign Out</Text>
         </Pressable>
-        <Text style={styles.versionText}>RP-Partner v1.0.0</Text>
+        <Text style={styles.versionText}>Tuknang v1.0.0</Text>
       </View>
     </ScrollView>
   );

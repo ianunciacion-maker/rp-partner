@@ -85,7 +85,7 @@ export default function HelpScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            RP-Partner helps Filipino property owners manage their rental properties with ease.
+            Tuknang helps Filipino property owners manage their rental properties with ease.
           </Text>
         </View>
       </ScrollView>

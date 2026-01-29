@@ -14,11 +14,11 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
 
         {/* Primary Meta Tags */}
-        <title>RP-Partner - Rental Property Management</title>
-        <meta name="title" content="RP-Partner - Rental Property Management" />
+        <title>Tuknang - Rental Property Management</title>
+        <meta name="title" content="Tuknang - Rental Property Management" />
         <meta name="description" content="Manage your rental properties, reservations, and finances in one place. Built for Filipino property owners." />
         <meta name="keywords" content="rental property, property management, reservations, Philippines, Airbnb management" />
-        <meta name="author" content="RP-Partner" />
+        <meta name="author" content="Tuknang" />
 
         {/* Theme Color */}
         <meta name="theme-color" content="#1a365d" />
@@ -28,8 +28,8 @@ export default function Root({ children }: PropsWithChildren) {
         {/* PWA Configuration */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-title" content="RP-Partner" />
-        <meta name="application-name" content="RP-Partner" />
+        <meta name="apple-mobile-web-app-title" content="Tuknang" />
+        <meta name="application-name" content="Tuknang" />
         <meta name="format-detection" content="telephone=no" />
 
         {/* Favicon and Icons */}
@@ -43,14 +43,14 @@ export default function Root({ children }: PropsWithChildren) {
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://tuknang.com/" />
-        <meta property="og:title" content="RP-Partner - Rental Property Management" />
+        <meta property="og:title" content="Tuknang - Rental Property Management" />
         <meta property="og:description" content="Manage your rental properties, reservations, and finances in one place. Built for Filipino property owners." />
         <meta property="og:image" content="/icon-512.png" />
 
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="https://tuknang.com/" />
-        <meta property="twitter:title" content="RP-Partner - Rental Property Management" />
+        <meta property="twitter:title" content="Tuknang - Rental Property Management" />
         <meta property="twitter:description" content="Manage your rental properties, reservations, and finances in one place. Built for Filipino property owners." />
         <meta property="twitter:image" content="/icon-512.png" />
 

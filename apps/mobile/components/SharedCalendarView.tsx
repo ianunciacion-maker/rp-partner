@@ -161,7 +161,7 @@ export function SharedCalendarView({
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>Powered by RP-Partner</Text>
+        <Text style={styles.footerText}>Powered by Tuknang</Text>
       </View>
     </View>
   );

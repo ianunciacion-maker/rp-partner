@@ -107,14 +107,14 @@ const styles = StyleSheet.create({
     } as any : {}),
   },
   header: {
-    height: 80,
+    height: 100,
     backgroundColor: Colors.primary.navy,
     justifyContent: 'center',
     paddingHorizontal: Spacing.lg,
   },
   logoImage: {
-    width: 160,
-    height: 44,
+    width: 200,
+    height: 56,
   },
   nav: {
     flex: 1,

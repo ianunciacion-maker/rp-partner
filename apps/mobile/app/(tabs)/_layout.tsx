@@ -28,7 +28,7 @@ export default function TabsLayout() {
           tabBarLabelStyle: { fontSize: Typography.fontSize.xs, fontWeight: '500' },
         }}
       >
-        <Tabs.Screen name="index" options={{ title: 'Properties', headerTitle: 'RP-Partner', tabBarLabel: 'Home', tabBarIcon: ({ focused }) => <TabBarIcon icon="🏠" focused={focused} /> }} />
+        <Tabs.Screen name="index" options={{ title: 'Properties', headerTitle: 'Tuknang', tabBarLabel: 'Home', tabBarIcon: ({ focused }) => <TabBarIcon icon="🏠" focused={focused} /> }} />
         <Tabs.Screen name="calendar" options={{ title: 'Calendar', tabBarIcon: ({ focused }) => <TabBarIcon icon="📅" focused={focused} /> }} />
         <Tabs.Screen name="cashflow" options={{ title: 'Cashflow', tabBarIcon: ({ focused }) => <TabBarIcon icon="💰" focused={focused} /> }} />
         <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: ({ focused }) => <TabBarIcon icon="⋮" focused={focused} /> }} />
