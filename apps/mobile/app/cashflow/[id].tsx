@@ -228,8 +228,7 @@ export default function CashflowDetailScreen() {
                     key={receiptError ? 'retry' : 'initial'}
                     source={{ uri: entry.receipt_url }}
                     style={[styles.receiptImage, receiptLoading && styles.receiptImageHidden]}
-                    onLoadStart={() => setReceiptLoading(true)}
-                    onLoadEnd={() => setReceiptLoading(false)}
+                    onLoad={() => setReceiptLoading(false)}
                     onError={() => {
                       setReceiptLoading(false);
                       setReceiptError(true);
