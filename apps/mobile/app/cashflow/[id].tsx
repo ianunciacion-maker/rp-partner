@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Alert, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image, Alert, Pressable, Platform, Modal } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { documentDirectory, downloadAsync } from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { supabase } from '@/services/supabase';
 import type { Property, CashflowEntry } from '@/types/database';
 import { Button } from '@/components/ui';
@@ -18,6 +20,10 @@ export default function CashflowDetailScreen() {
   const [entry, setEntry] = useState<CashflowWithProperty | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [receiptLoading, setReceiptLoading] = useState(true);
+  const [receiptError, setReceiptError] = useState(false);
+  const [isSavingReceipt, setIsSavingReceipt] = useState(false);
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   const fetchEntry = async () => {
     if (!id) return;
@@ -77,6 +83,47 @@ export default function CashflowDetailScreen() {
         Alert.alert('Error', error.message);
       }
       setIsDeleting(false);
+    }
+  };
+
+  const handleRetryReceipt = () => {
+    setReceiptError(false);
+    setReceiptLoading(true);
+  };
+
+  const handleSaveReceipt = async () => {
+    if (!entry?.receipt_url) return;
+
+    if (isWeb) {
+      // Open in new tab for web
+      window.open(entry.receipt_url, '_blank');
+    } else {
+      // Native: download and share
+      setIsSavingReceipt(true);
+      try {
+        const filename = `receipt-${entry.id}.jpg`;
+        const fileUri = documentDirectory + filename;
+
+        const downloadResult = await downloadAsync(
+          entry.receipt_url,
+          fileUri
+        );
+
+        if (downloadResult.status !== 200) {
+          throw new Error('Failed to download receipt');
+        }
+
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(downloadResult.uri);
+        } else {
+          Alert.alert('Error', 'Sharing is not available on this device');
+        }
+      } catch (error: any) {
+        Alert.alert('Error', error.message || 'Failed to save receipt');
+      } finally {
+        setIsSavingReceipt(false);
+      }
     }
   };
 
@@ -140,10 +187,94 @@ export default function CashflowDetailScreen() {
         {/* Receipt */}
         {entry.receipt_url && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Receipt</Text>
-            <Image source={{ uri: entry.receipt_url }} style={styles.receiptImage} />
+            <View style={styles.receiptHeader}>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Receipt</Text>
+              {!receiptError && (
+                <Button
+                  title={isWeb ? "Open in New Tab" : "Save/Share"}
+                  variant="secondary"
+                  size="small"
+                  onPress={handleSaveReceipt}
+                  loading={isSavingReceipt}
+                />
+              )}
+            </View>
+            <Pressable
+              onPress={() => !receiptError && !receiptLoading && setPreviewVisible(true)}
+              disabled={receiptError || receiptLoading}
+            >
+              <View style={styles.receiptContainer}>
+                {receiptLoading && !receiptError && (
+                  <View style={styles.receiptLoadingOverlay}>
+                    <ActivityIndicator size="large" color={Colors.primary.teal} />
+                    <Text style={styles.receiptLoadingText}>Loading receipt...</Text>
+                  </View>
+                )}
+                {receiptError ? (
+                  <View style={styles.receiptErrorContainer}>
+                    <Text style={styles.receiptErrorIcon}>⚠️</Text>
+                    <Text style={styles.receiptErrorText}>Failed to load receipt</Text>
+                    <Text style={styles.receiptErrorSubtext}>
+                      The image may have been removed or is temporarily unavailable
+                    </Text>
+                    <Button
+                      title="Retry"
+                      variant="secondary"
+                      onPress={handleRetryReceipt}
+                      style={styles.retryButton}
+                    />
+                  </View>
+                ) : (
+                  <Image
+                    key={receiptError ? 'retry' : 'initial'}
+                    source={{ uri: entry.receipt_url }}
+                    style={[styles.receiptImage, receiptLoading && styles.receiptImageHidden]}
+                    onLoadStart={() => setReceiptLoading(true)}
+                    onLoadEnd={() => setReceiptLoading(false)}
+                    onError={() => {
+                      setReceiptLoading(false);
+                      setReceiptError(true);
+                    }}
+                  />
+                )}
+              </View>
+              {!receiptError && !receiptLoading && (
+                <Text style={styles.tapToPreview}>Tap to preview full screen</Text>
+              )}
+            </Pressable>
           </View>
         )}
+
+        {/* Receipt Preview Modal */}
+        <Modal
+          visible={previewVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPreviewVisible(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <Pressable
+              style={styles.modalCloseButton}
+              onPress={() => setPreviewVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>✕ Close</Text>
+            </Pressable>
+            <ScrollView
+              style={styles.modalScrollView}
+              contentContainerStyle={styles.modalContent}
+              maximumZoomScale={3}
+              minimumZoomScale={1}
+              bouncesZoom
+              centerContent
+            >
+              <Image
+                source={{ uri: entry.receipt_url }}
+                style={styles.fullScreenImage}
+                resizeMode="contain"
+              />
+            </ScrollView>
+          </View>
+        </Modal>
 
         {/* Notes */}
         {entry.notes && (
@@ -232,7 +363,82 @@ const styles = StyleSheet.create({
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray100 },
   detailLabel: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
   detailValue: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray900, fontWeight: '500', textAlign: 'right', flex: 1, marginLeft: Spacing.md },
+  receiptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  receiptContainer: { position: 'relative', minHeight: 200 },
   receiptImage: { width: '100%', height: 300, borderRadius: BorderRadius.lg, resizeMode: 'contain', backgroundColor: Colors.neutral.gray100 },
+  receiptImageHidden: { opacity: 0 },
+  receiptLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.neutral.gray100,
+    borderRadius: BorderRadius.lg,
+    zIndex: 1,
+  },
+  receiptLoadingText: { marginTop: Spacing.sm, fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
+  receiptErrorContainer: {
+    padding: Spacing.xl,
+    alignItems: 'center',
+    backgroundColor: Colors.neutral.gray100,
+    borderRadius: BorderRadius.lg,
+    minHeight: 200,
+    justifyContent: 'center',
+  },
+  receiptErrorIcon: { fontSize: 32, marginBottom: Spacing.sm },
+  receiptErrorText: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.gray700, marginBottom: Spacing.xs },
+  receiptErrorSubtext: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, textAlign: 'center', marginBottom: Spacing.md },
+  retryButton: { marginTop: Spacing.sm },
+  tapToPreview: {
+    textAlign: 'center',
+    fontSize: Typography.fontSize.sm,
+    color: Colors.neutral.gray500,
+    marginTop: Spacing.sm,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    right: Spacing.lg,
+    zIndex: 10,
+    padding: Spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: BorderRadius.md,
+  },
+  modalCloseText: {
+    color: Colors.neutral.white,
+    fontSize: Typography.fontSize.md,
+    fontWeight: '600',
+  },
+  modalScrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  modalContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.md,
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+    maxHeight: '90%',
+  },
   notes: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray600, lineHeight: 22 },
   actionSection: { padding: Spacing.lg, paddingBottom: 0 },
   dangerSection: { padding: Spacing.lg, marginBottom: Spacing.xxl },
