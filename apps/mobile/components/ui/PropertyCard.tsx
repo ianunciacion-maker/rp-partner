@@ -1,5 +1,6 @@
 import React, { useState, memo } from 'react';
-import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 import { Badge } from './Badge';
 import type { Property } from '@/types/database';
@@ -13,7 +14,6 @@ interface PropertyCardProps {
 }
 
 const IMAGE_HEIGHT = 200;
-const ASPECT_RATIO = 4 / 3;
 
 export const PropertyCard = memo(function PropertyCard({
   property,
@@ -22,7 +22,6 @@ export const PropertyCard = memo(function PropertyCard({
   isFavorite = false,
   badge,
 }: PropertyCardProps) {
-  const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   return (
@@ -30,21 +29,15 @@ export const PropertyCard = memo(function PropertyCard({
       {/* Image Section */}
       <View style={styles.imageContainer}>
         {property.cover_image_url && !imageError ? (
-          <>
-            {!imageLoaded && (
-              <View style={styles.imagePlaceholder}>
-                <Text style={styles.placeholderInitial}>
-                  {property.name.charAt(0)}
-                </Text>
-              </View>
-            )}
-            <Image
-              source={{ uri: property.cover_image_url }}
-              style={[styles.image, !imageLoaded && styles.imageHidden]}
-              onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
-            />
-          </>
+          <Image
+            source={{ uri: property.cover_image_url }}
+            style={styles.image}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
+            placeholder={{ blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4' }}
+            onError={() => setImageError(true)}
+          />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Text style={styles.placeholderInitial}>
@@ -110,11 +103,6 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
-  },
-  imageHidden: {
-    opacity: 0,
-    position: 'absolute',
   },
   imagePlaceholder: {
     width: '100%',

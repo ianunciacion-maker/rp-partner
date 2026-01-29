@@ -5,8 +5,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { documentDirectory, writeAsStringAsync, EncodingType } from 'expo-file-system/legacy';
 import { isAvailableAsync, shareAsync } from 'expo-sharing';
 import { supabase } from '@/services/supabase';
-import { useAuthStore } from '@/stores/authStore';
-import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { useUser } from '@/stores/authStore';
+import { usePlan, useCanExportReportMonth, useSubscriptionActions } from '@/stores/subscriptionStore';
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import { useToast } from '@/components/ui/Toast';
@@ -46,8 +46,10 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 export default function CashflowScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { plan, canExportReportMonth, fetchSubscription, fetchPlans } = useSubscriptionStore();
+  const user = useUser();
+  const plan = usePlan();
+  const canExportReportMonth = useCanExportReportMonth();
+  const { fetchSubscription, fetchPlans } = useSubscriptionActions();
   const { showToast } = useToast();
   const [entries, setEntries] = useState<CashflowWithProperty[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);

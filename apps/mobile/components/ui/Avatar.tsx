@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Colors, Typography } from '@/constants/theme';
 
@@ -24,10 +25,13 @@ const FONT_SIZES: Record<AvatarSize, number> = {
   xl: 32,
 };
 
-export function Avatar({ size = 'md', imageUrl, name, backgroundColor }: AvatarProps) {
+export const Avatar = memo(function Avatar({ size = 'md', imageUrl, name, backgroundColor }: AvatarProps) {
   const dimension = SIZES[size];
   const fontSize = FONT_SIZES[size];
-  const initials = name ? name.split(' ').map(n => n.charAt(0)).slice(0, 2).join('').toUpperCase() : '?';
+  const initials = useMemo(
+    () => name ? name.split(' ').map(n => n.charAt(0)).slice(0, 2).join('').toUpperCase() : '?',
+    [name]
+  );
 
   return (
     <View
@@ -58,7 +62,7 @@ export function Avatar({ size = 'md', imageUrl, name, backgroundColor }: AvatarP
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

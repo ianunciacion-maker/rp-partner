@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
 import { Session, User as AuthUser } from '@supabase/supabase-js';
 import { supabase, signInWithEmail, signUpWithEmail, signOut as supabaseSignOut } from '@/services/supabase';
 import type { User } from '@/types/database';
@@ -128,4 +129,32 @@ export const useAuthStore = create<AuthState>((set, get) => {
   };
 });
 
+// Legacy alias - prefer using granular selectors below
 export const useAuth = useAuthStore;
+
+// =============================================================================
+// GRANULAR SELECTORS - Use these to prevent unnecessary re-renders
+// =============================================================================
+
+// Atomic selectors - subscribe to individual state slices
+export const useUser = () => useAuthStore(state => state.user);
+export const useAuthUser = () => useAuthStore(state => state.authUser);
+export const useSession = () => useAuthStore(state => state.session);
+export const useAuthInitialized = () => useAuthStore(state => state.isInitialized);
+export const useAuthLoading = () => useAuthStore(state => state.isLoading);
+export const useAuthError = () => useAuthStore(state => state.error);
+
+// Derived selectors
+export const useIsAuthenticated = () => useAuthStore(state => !!state.session);
+export const useUserId = () => useAuthStore(state => state.user?.id ?? state.authUser?.id ?? null);
+
+// Action selectors - stable references (actions never change)
+export const useAuthActions = () => useAuthStore(
+  useShallow(state => ({
+    initialize: state.initialize,
+    signIn: state.signIn,
+    signUp: state.signUp,
+    signOut: state.signOut,
+    clearError: state.clearError,
+  }))
+);

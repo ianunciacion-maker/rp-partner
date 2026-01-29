@@ -1,4 +1,5 @@
-import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, TextStyle, Platform } from 'react-native';
+import { memo } from 'react';
+import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, Platform } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 
 type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
@@ -16,7 +17,7 @@ interface ButtonProps {
   style?: ViewStyle;
 }
 
-export function Button({
+export const Button = memo(function Button({
   title,
   onPress,
   variant = 'primary',
@@ -59,7 +60,7 @@ export function Button({
       )}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   base: {

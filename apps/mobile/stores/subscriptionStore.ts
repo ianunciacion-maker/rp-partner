@@ -1,6 +1,8 @@
 import { create } from 'zustand';
+import { useShallow } from 'zustand/react/shallow';
+import { useCallback, useMemo } from 'react';
 import { supabase } from '@/services/supabase';
-import type { Subscription, SubscriptionPlan, PaymentMethod, PaymentSubmission, SubscriptionWithPlan } from '@/types/database';
+import type { SubscriptionPlan, PaymentMethod, PaymentSubmission, SubscriptionWithPlan } from '@/types/database';
 
 // Constants for billing cycle
 export const BILLING_CYCLE_DAYS = 30;
@@ -317,4 +319,171 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   clearError: () => set({ error: null }),
 }));
 
+// Legacy alias - prefer using granular selectors below
 export const useSubscription = useSubscriptionStore;
+
+// =============================================================================
+// GRANULAR SELECTORS - Use these to prevent unnecessary re-renders
+// =============================================================================
+
+// Atomic selectors - subscribe to individual state slices
+export const useSubscriptionData = () => useSubscriptionStore(state => state.subscription);
+export const usePlan = () => useSubscriptionStore(state => state.plan);
+export const usePlans = () => useSubscriptionStore(state => state.plans);
+export const useUserOverrides = () => useSubscriptionStore(state => state.userOverrides);
+export const usePendingSubmission = () => useSubscriptionStore(state => state.pendingSubmission);
+export const usePaymentMethods = () => useSubscriptionStore(state => state.paymentMethods);
+export const useSubscriptionLoading = () => useSubscriptionStore(state => state.isLoading);
+export const useSubscriptionError = () => useSubscriptionStore(state => state.error);
+
+// Derived state hooks - computed from state without calling get()
+export const useIsPremium = () => useSubscriptionStore(
+  state => state.subscription?.status === 'active' && state.plan?.name === 'premium'
+);
+
+export const useIsInGracePeriod = () => useSubscriptionStore(
+  state => state.subscription?.status === 'grace_period'
+);
+
+export const useDaysUntilExpiry = () => useSubscriptionStore(state => {
+  if (!state.subscription?.current_period_end) return null;
+  const endDate = new Date(state.subscription.current_period_end);
+  const now = new Date();
+  const diffTime = endDate.getTime() - now.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+});
+
+export const useSubscriptionState = (): SubscriptionStateType => {
+  const subscription = useSubscriptionData();
+  const pendingSubmission = usePendingSubmission();
+  const daysUntilExpiry = useDaysUntilExpiry();
+
+  return useMemo(() => {
+    // Check for pending payment first
+    if (pendingSubmission?.status === 'pending') return 'payment_pending';
+
+    // No subscription means free tier
+    if (!subscription) return 'none';
+
+    // Check subscription status
+    if (subscription.status === 'expired') return 'expired';
+    if (subscription.status === 'grace_period') return 'grace_period';
+
+    // Check if expiring soon (within 7 days)
+    if (daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0) return 'expiring_soon';
+
+    return 'active';
+  }, [subscription, pendingSubmission, daysUntilExpiry]);
+};
+
+// Feature check hooks - return stable callback references
+export const useCanAccessCalendarMonth = () => {
+  const { plan, subscription, userOverrides } = useSubscriptionStore(
+    useShallow(state => ({
+      plan: state.plan,
+      subscription: state.subscription,
+      userOverrides: state.userOverrides,
+    }))
+  );
+
+  return useCallback((monthsFromNow: number): boolean => {
+    // Active paid subscription = unlimited access
+    if (subscription?.status === 'active' && plan?.name === 'premium') {
+      return true;
+    }
+
+    // Check user-level override first (admin granted)
+    if (userOverrides?.calendar_months_override !== null && userOverrides?.calendar_months_override !== undefined) {
+      if (userOverrides.calendar_months_override === -1) return true;
+      return Math.abs(monthsFromNow) <= userOverrides.calendar_months_override;
+    }
+
+    // No subscription or expired = no access beyond current month
+    if (!subscription || subscription.status === 'expired') {
+      return monthsFromNow === 0;
+    }
+
+    // In grace period, allow limited access
+    if (subscription.status === 'grace_period') {
+      return monthsFromNow >= -2 && monthsFromNow <= 2;
+    }
+
+    // No plan means free tier
+    if (!plan) return monthsFromNow >= -2 && monthsFromNow <= 2;
+
+    // Unlimited if plan has no limit
+    if (plan.calendar_months_limit === null) return true;
+
+    // Check against limit (negative for past, positive for future)
+    return Math.abs(monthsFromNow) <= plan.calendar_months_limit;
+  }, [plan, subscription, userOverrides]);
+};
+
+export const useCanExportReportMonth = () => {
+  const { plan, subscription, userOverrides } = useSubscriptionStore(
+    useShallow(state => ({
+      plan: state.plan,
+      subscription: state.subscription,
+      userOverrides: state.userOverrides,
+    }))
+  );
+
+  return useCallback((monthsBack: number): boolean => {
+    // Active paid subscription = unlimited access
+    if (subscription?.status === 'active' && plan?.name === 'premium') {
+      return true;
+    }
+
+    // Check user-level override first (admin granted)
+    if (userOverrides?.report_months_override !== null && userOverrides?.report_months_override !== undefined) {
+      if (userOverrides.report_months_override === -1) return true;
+      return monthsBack <= userOverrides.report_months_override;
+    }
+
+    // No subscription or expired = no export access
+    if (!subscription || subscription.status === 'expired') {
+      return monthsBack <= 1;
+    }
+
+    // In grace period, allow limited access
+    if (subscription.status === 'grace_period') {
+      return monthsBack <= 2;
+    }
+
+    // No plan means free tier
+    if (!plan) return monthsBack <= 2;
+
+    // Unlimited if plan has no limit
+    if (plan.report_months_limit === null) return true;
+
+    // Check against limit
+    return monthsBack <= plan.report_months_limit;
+  }, [plan, subscription, userOverrides]);
+};
+
+export const useCanAddProperty = () => {
+  const { plan, userOverrides } = useSubscriptionStore(
+    useShallow(state => ({
+      plan: state.plan,
+      userOverrides: state.userOverrides,
+    }))
+  );
+
+  return useCallback((currentCount: number): boolean => {
+    // User's property_limit (set by admin) takes precedence
+    const limit = userOverrides?.property_limit ?? plan?.property_limit ?? 1;
+    return currentCount < limit;
+  }, [plan, userOverrides]);
+};
+
+// Action selectors - stable references (actions never change)
+export const useSubscriptionActions = () => useSubscriptionStore(
+  useShallow(state => ({
+    fetchSubscription: state.fetchSubscription,
+    fetchPlans: state.fetchPlans,
+    fetchPaymentMethods: state.fetchPaymentMethods,
+    checkPendingSubmission: state.checkPendingSubmission,
+    submitPayment: state.submitPayment,
+    clearError: state.clearError,
+  }))
+);

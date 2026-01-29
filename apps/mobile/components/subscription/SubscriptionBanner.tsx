@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
-import { useSubscriptionStore, SubscriptionStateType } from '@/stores/subscriptionStore';
+import { Spacing, Typography, BorderRadius } from '@/constants/theme';
+import { useSubscriptionState, useDaysUntilExpiry, SubscriptionStateType } from '@/stores/subscriptionStore';
 
 interface BannerConfig {
   icon: string;
@@ -43,13 +43,11 @@ const BANNER_CONFIG: Record<Exclude<SubscriptionStateType, 'none' | 'active'>, B
   },
 };
 
-export function SubscriptionBanner() {
+export const SubscriptionBanner = memo(function SubscriptionBanner() {
   const router = useRouter();
-  const { getSubscriptionState, getDaysUntilExpiry } = useSubscriptionStore();
+  const state = useSubscriptionState();
+  const daysLeft = useDaysUntilExpiry();
   const [dismissed, setDismissed] = useState(false);
-
-  const state = getSubscriptionState();
-  const daysLeft = getDaysUntilExpiry();
 
   // Don't show banner for active or no subscription
   if (state === 'none' || state === 'active') {
@@ -103,7 +101,7 @@ export function SubscriptionBanner() {
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

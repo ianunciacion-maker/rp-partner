@@ -1,6 +1,7 @@
+import { memo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { usePlan, useIsPremium, useUserOverrides } from '@/stores/subscriptionStore';
 import { Colors, Spacing, Typography } from '@/constants/theme';
 
 type FeatureType = 'calendar' | 'reports' | 'properties';
@@ -11,10 +12,11 @@ interface FeatureLimitIndicatorProps {
   compact?: boolean; // Inline vs expanded style
 }
 
-export function FeatureLimitIndicator({ feature, currentUsage, compact = true }: FeatureLimitIndicatorProps) {
+export const FeatureLimitIndicator = memo(function FeatureLimitIndicator({ feature, currentUsage, compact = true }: FeatureLimitIndicatorProps) {
   const router = useRouter();
-  const { plan, isPremium, userOverrides } = useSubscriptionStore();
-  const premium = isPremium();
+  const plan = usePlan();
+  const premium = useIsPremium();
+  const userOverrides = useUserOverrides();
 
   const handleUpgrade = () => {
     router.push('/subscription/upgrade');
@@ -108,7 +110,7 @@ export function FeatureLimitIndicator({ feature, currentUsage, compact = true }:
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   compactContainer: {

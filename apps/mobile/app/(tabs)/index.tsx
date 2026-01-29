@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, ActivityIndicator, Platform } from 'react-native';
+import { useState, useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, FlatList, Pressable, RefreshControl, ActivityIndicator, Platform, ListRenderItem } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
-import { useAuthStore } from '@/stores/authStore';
-import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { useUser } from '@/stores/authStore';
+import { useSubscriptionActions } from '@/stores/subscriptionStore';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import { PropertyCard } from '@/components/ui/PropertyCard';
 import { supabase } from '@/services/supabase';
@@ -14,12 +14,56 @@ import { useResponsive } from '@/hooks/useResponsive';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { fetchSubscription, checkPendingSubmission } = useSubscriptionStore();
+  const user = useUser();
+  const { fetchSubscription, checkPendingSubmission } = useSubscriptionActions();
   const [properties, setProperties] = useState<Property[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { isDesktop, isTablet } = useResponsive();
+
+  // Memoized number of columns based on screen size
+  const numColumns = useMemo(() => isDesktop ? 3 : isTablet ? 2 : 1, [isDesktop, isTablet]);
+
+  // Stable key for FlatList when numColumns changes
+  const listKey = useMemo(() => `grid-${numColumns}`, [numColumns]);
+
+  // Memoized render item function
+  const renderPropertyItem: ListRenderItem<Property> = useCallback(({ item }) => (
+    <View style={[styles.propertyGridItem, isDesktop && styles.propertyGridItemDesktop, isTablet && styles.propertyGridItemTablet]}>
+      <PropertyCard
+        property={item}
+        onPress={() => router.push(`/property/${item.id}`)}
+      />
+    </View>
+  ), [router, isDesktop, isTablet]);
+
+  // Key extractor for FlatList
+  const keyExtractor = useCallback((item: Property) => item.id, []);
+
+  // Memoized empty state component - must be before any early returns
+  const ListEmptyComponent = useMemo(() => (
+    <View style={styles.emptyState}>
+      <Text style={styles.emptyIcon}>🏠</Text>
+      <Text style={styles.emptyTitle}>No Properties Yet</Text>
+      <Text style={styles.emptyText}>Add your first property to get started</Text>
+      <Pressable style={styles.emptyButton} onPress={() => router.push('/property/add')}>
+        <Text style={styles.emptyButtonText}>+ Add Property</Text>
+      </Pressable>
+    </View>
+  ), [router]);
+
+  // Memoized header component - must be before any early returns
+  const ListHeaderComponent = useMemo(() => (
+    <View style={styles.header}>
+      <View>
+        <Text style={styles.greeting}>Hello, {user?.full_name?.split(' ')[0] || 'there'}!</Text>
+        <View style={styles.subtitleRow}>
+          <FeatureLimitIndicator feature="properties" currentUsage={properties.length} />
+          <Text style={styles.subtitleSuffix}> {properties.length === 1 ? 'property' : 'properties'}</Text>
+        </View>
+      </View>
+    </View>
+  ), [user?.full_name, properties.length]);
 
   const fetchProperties = async () => {
     try {
@@ -56,39 +100,24 @@ export default function HomeScreen() {
   return (
     <View style={styles.wrapper}>
       <SubscriptionBanner />
-      <ScrollView style={[styles.container, isDesktop && styles.containerDesktop]} refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); fetchProperties(); }} />}>
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hello, {user?.full_name?.split(' ')[0] || 'there'}!</Text>
-            <View style={styles.subtitleRow}>
-              <FeatureLimitIndicator feature="properties" currentUsage={properties.length} />
-              <Text style={styles.subtitleSuffix}> {properties.length === 1 ? 'property' : 'properties'}</Text>
-            </View>
-          </View>
-        </View>
-
-        {properties.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🏠</Text>
-            <Text style={styles.emptyTitle}>No Properties Yet</Text>
-            <Text style={styles.emptyText}>Add your first property to get started</Text>
-            <Pressable style={styles.emptyButton} onPress={() => router.push('/property/add')}>
-              <Text style={styles.emptyButtonText}>+ Add Property</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={[styles.propertyGrid, isDesktop && styles.propertyGridDesktop, isTablet && styles.propertyGridTablet]}>
-            {properties.map((property) => (
-              <View key={property.id} style={[styles.propertyGridItem, isDesktop && styles.propertyGridItemDesktop, isTablet && styles.propertyGridItemTablet]}>
-                <PropertyCard
-                  property={property}
-                  onPress={() => router.push(`/property/${property.id}`)}
-                />
-              </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
+      <FlatList
+        key={listKey}
+        data={properties}
+        renderItem={renderPropertyItem}
+        keyExtractor={keyExtractor}
+        numColumns={numColumns}
+        style={[styles.container, isDesktop && styles.containerDesktop]}
+        contentContainerStyle={properties.length === 0 ? styles.emptyContainer : undefined}
+        ListHeaderComponent={ListHeaderComponent}
+        ListEmptyComponent={ListEmptyComponent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => { setIsRefreshing(true); fetchProperties(); }}
+          />
+        }
+      />
 
       {properties.length > 0 && (
         <Pressable style={styles.fab} onPress={() => router.push('/property/add')}>
@@ -103,31 +132,19 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   container: { flex: 1, padding: Spacing.lg },
   containerDesktop: { padding: Spacing.xl },
+  emptyContainer: { flexGrow: 1 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { marginBottom: Spacing.md },
   greeting: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.medium, color: Colors.neutral.gray500 },
   subtitle: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
   subtitleRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs },
   subtitleSuffix: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray500 },
-  propertyGrid: { flexDirection: 'column' },
-  propertyGridTablet: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -Spacing.sm,
-  },
-  propertyGridDesktop: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -Spacing.sm,
-  },
-  propertyGridItem: { width: '100%' },
+  propertyGridItem: { flex: 1 },
   propertyGridItemTablet: {
-    width: '50%',
     paddingHorizontal: Spacing.sm,
     ...(Platform.OS === 'web' ? { boxSizing: 'border-box' } as any : {}),
   },
   propertyGridItemDesktop: {
-    width: '33.333%',
     paddingHorizontal: Spacing.sm,
     ...(Platform.OS === 'web' ? { boxSizing: 'border-box' } as any : {}),
   },

@@ -7,8 +7,8 @@ import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
 import { supabase } from '@/services/supabase';
 import { createShareToken, getShareUrl } from '@/services/shareCalendar';
-import { useAuthStore } from '@/stores/authStore';
-import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { useUser } from '@/stores/authStore';
+import { useCanAccessCalendarMonth, useSubscriptionActions } from '@/stores/subscriptionStore';
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import { Avatar } from '@/components/ui/Avatar';
@@ -50,8 +50,9 @@ interface CustomerViewCalendarProps {
 
 export default function CalendarScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const { canAccessCalendarMonth, fetchSubscription, fetchPlans } = useSubscriptionStore();
+  const user = useUser();
+  const canAccessCalendarMonth = useCanAccessCalendarMonth();
+  const { fetchSubscription, fetchPlans } = useSubscriptionActions();
   const { isDesktop, isTablet } = useResponsive();
   const { showToast } = useToast();
   const [currentDate, setCurrentDate] = useState(new Date());

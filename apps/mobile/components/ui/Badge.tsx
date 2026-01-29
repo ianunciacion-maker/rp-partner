@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 
@@ -32,7 +33,7 @@ const VARIANT_STYLES: Record<BadgeVariant, { background: string; text: string }>
   },
 };
 
-export function Badge({ label, variant = 'default', icon }: BadgeProps) {
+export const Badge = memo(function Badge({ label, variant = 'default', icon }: BadgeProps) {
   const variantStyle = VARIANT_STYLES[variant];
 
   return (
@@ -41,7 +42,7 @@ export function Badge({ label, variant = 'default', icon }: BadgeProps) {
       <Text style={[styles.label, { color: variantStyle.text }]}>{label}</Text>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
