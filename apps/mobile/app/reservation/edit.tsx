@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Platform, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -83,51 +83,52 @@ const STATUS_OPTIONS = [
 ];
 
 // Helper to record income when reservation is completed
+// Throws on error so caller can handle it properly
 const recordReservationIncome = async (reservation: Reservation, formData: {
   guest_name: string;
   check_in: Date;
   check_out: Date;
   total_amount: string;
-}) => {
-  try {
-    // Check if income already recorded for this reservation
-    const { data: existing } = await supabase
-      .from('cashflow_entries')
-      .select('id')
-      .eq('reservation_id', reservation.id)
-      .eq('type', 'income')
-      .eq('category', 'rental_income')
-      .single();
+}): Promise<{ success: boolean; alreadyExists?: boolean }> => {
+  // Check if income already recorded for this reservation
+  const { data: existing, error: checkError } = await supabase
+    .from('cashflow_entries')
+    .select('id')
+    .eq('reservation_id', reservation.id)
+    .eq('type', 'income')
+    .eq('category', 'rental_income')
+    .single();
 
-    if (existing) {
-      return { alreadyExists: true };
-    }
-
-    // Format dates for description
-    const checkIn = formData.check_in.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const checkOut = formData.check_out.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const nights = Math.ceil((formData.check_out.getTime() - formData.check_in.getTime()) / 86400000);
-
-    // Create income entry
-    const { error } = await supabase.from('cashflow_entries').insert({
-      property_id: reservation.property_id,
-      user_id: reservation.user_id,
-      reservation_id: reservation.id,
-      type: 'income',
-      category: 'rental_income',
-      description: `Reservation payment - ${formData.guest_name} (${checkIn} - ${checkOut})`,
-      amount: parseFloat(formData.total_amount) || 0,
-      transaction_date: formatDateLocal(formData.check_out),
-      payment_method: null,
-      notes: `Auto-recorded from completed reservation. ${nights} nights.`,
-    });
-
-    if (error) throw error;
-    return { success: true };
-  } catch (error) {
-    console.error('Error recording reservation income:', error);
-    return { error };
+  // PGRST116 = no rows returned, which is expected when no entry exists
+  if (checkError && checkError.code !== 'PGRST116') {
+    throw checkError;
   }
+
+  if (existing) {
+    return { success: true, alreadyExists: true };
+  }
+
+  // Format dates for description
+  const checkIn = formData.check_in.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const checkOut = formData.check_out.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const nights = Math.ceil((formData.check_out.getTime() - formData.check_in.getTime()) / 86400000);
+
+  // Create income entry
+  const { error } = await supabase.from('cashflow_entries').insert({
+    property_id: reservation.property_id,
+    user_id: reservation.user_id,
+    reservation_id: reservation.id,
+    type: 'income',
+    category: 'rental_income',
+    description: `Reservation payment - ${formData.guest_name} (${checkIn} - ${checkOut})`,
+    amount: parseFloat(formData.total_amount) || 0,
+    transaction_date: formatDateLocal(formData.check_out),
+    payment_method: null,
+    notes: `Auto-recorded from completed reservation. ${nights} nights.`,
+  });
+
+  if (error) throw error;
+  return { success: true };
 };
 
 export default function EditReservationScreen() {
@@ -139,6 +140,15 @@ export default function EditReservationScreen() {
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showCheckOut, setShowCheckOut] = useState(false);
+  const isMountedRef = useRef(true);
+
+  // Track mounted state for async operations
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const [form, setForm] = useState({
     property_id: '',
@@ -254,24 +264,33 @@ export default function EditReservationScreen() {
       const wasCompleted = reservation.status === 'completed';
       const isNowCompleted = form.status === 'completed';
       let incomeRecorded = false;
+      let incomeError: Error | null = null;
 
       if (isNowCompleted && !wasCompleted) {
-        const incomeResult = await recordReservationIncome(reservation, {
-          guest_name: form.guest_name.trim(),
-          check_in: form.check_in,
-          check_out: form.check_out,
-          total_amount: form.total_amount,
-        });
-        if (incomeResult.success) {
-          incomeRecorded = true;
+        try {
+          const incomeResult = await recordReservationIncome(reservation, {
+            guest_name: form.guest_name.trim(),
+            check_in: form.check_in,
+            check_out: form.check_out,
+            total_amount: form.total_amount,
+          });
+          if (incomeResult.success && !incomeResult.alreadyExists) {
+            incomeRecorded = true;
+          }
+        } catch (err) {
+          console.error('Failed to record income:', err);
+          incomeError = err instanceof Error ? err : new Error('Failed to record income');
         }
       }
 
-      const message = incomeRecorded
-        ? `Reservation updated successfully!\n\nIncome of PHP ${totalAmount.toLocaleString()} has been automatically recorded in Cashflow.`
-        : 'Reservation updated successfully!';
+      let message = 'Reservation updated successfully!';
+      if (incomeRecorded) {
+        message = `Reservation updated successfully!\n\nIncome of PHP ${totalAmount.toLocaleString()} has been automatically recorded in Cashflow.`;
+      } else if (incomeError) {
+        message = `Reservation updated, but failed to record income: ${incomeError.message}\n\nPlease add the income entry manually in Cashflow.`;
+      }
 
-      showNotification('Success', message, () => {
+      showNotification(incomeError ? 'Partial Success' : 'Success', message, () => {
         if (isWeb) {
           router.replace(`/reservation/${reservation.id}`);
         } else {
@@ -279,12 +298,16 @@ export default function EditReservationScreen() {
         }
       });
     } catch (error: any) {
-      const errorMessage = error.code === '23P01'
-        ? 'These dates overlap with an existing reservation.'
-        : (error.message || 'Failed to update reservation');
-      showNotification(error.code === '23P01' ? 'Booking Conflict' : 'Error', errorMessage);
+      if (isMountedRef.current) {
+        const errorMessage = error.code === '23P01'
+          ? 'These dates overlap with an existing reservation.'
+          : (error.message || 'Failed to update reservation');
+        showNotification(error.code === '23P01' ? 'Booking Conflict' : 'Error', errorMessage);
+      }
     } finally {
-      setIsSaving(false);
+      if (isMountedRef.current) {
+        setIsSaving(false);
+      }
     }
   };
 

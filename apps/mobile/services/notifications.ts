@@ -104,37 +104,56 @@ export async function unregisterPushNotifications(userId: string): Promise<void>
 
 /**
  * Add notification response listener
+ * Returns an object with a remove() method that safely handles cleanup
  */
 export function addNotificationResponseListener(callback: (response: any) => void) {
   if (isWeb) return { remove: () => {} };
 
-  // Dynamic import for native
+  // Track both the subscription and pending state
   let subscription: any = null;
+  let isRemoved = false;
+
   import('expo-notifications').then((Notifications) => {
+    // Don't create subscription if already removed
+    if (isRemoved) return;
     subscription = Notifications.addNotificationResponseReceivedListener(callback);
   });
 
   return {
     remove: () => {
-      if (subscription) subscription.remove();
+      isRemoved = true;
+      if (subscription) {
+        subscription.remove();
+        subscription = null;
+      }
     }
   };
 }
 
 /**
  * Add notification received listener
+ * Returns an object with a remove() method that safely handles cleanup
  */
 export function addNotificationReceivedListener(callback: (notification: any) => void) {
   if (isWeb) return { remove: () => {} };
 
+  // Track both the subscription and pending state
   let subscription: any = null;
+  let isRemoved = false;
+
   import('expo-notifications').then((Notifications) => {
+    // Don't create subscription if already removed
+    if (isRemoved) return;
     subscription = Notifications.addNotificationReceivedListener(callback);
   });
 
   return {
     remove: () => {
-      if (subscription) subscription.remove();
+      isRemoved = true;
+      if (subscription) {
+        subscription.remove();
+        subscription = null;
+      }
     }
   };
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -106,6 +106,15 @@ export default function AddCashflowScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Track mounted state for async operations
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const [form, setForm] = useState({
     property_id: '',
@@ -187,30 +196,25 @@ export default function AddCashflowScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const uploadReceipt = async (entryId: string) => {
-    if (!receiptImage) return null;
+  const uploadReceipt = async (entryId: string): Promise<string> => {
+    if (!receiptImage) throw new Error('No receipt image to upload');
 
-    try {
-      const response = await fetch(receiptImage);
-      const blob = await response.blob();
-      const fileExt = receiptImage.split('.').pop() || 'jpg';
-      const fileName = `${authUser?.id}/${entryId}/receipt.${fileExt}`;
+    const response = await fetch(receiptImage);
+    const blob = await response.blob();
+    const fileExt = receiptImage.split('.').pop() || 'jpg';
+    const fileName = `${authUser?.id}/${entryId}/receipt.${fileExt}`;
 
-      const { error } = await supabase.storage
-        .from('receipts')
-        .upload(fileName, blob, { contentType: `image/${fileExt}` });
+    const { error } = await supabase.storage
+      .from('receipts')
+      .upload(fileName, blob, { contentType: `image/${fileExt}` });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      const { data: urlData } = supabase.storage
-        .from('receipts')
-        .getPublicUrl(fileName);
+    const { data: urlData } = supabase.storage
+      .from('receipts')
+      .getPublicUrl(fileName);
 
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Error uploading receipt:', error);
-      return null;
-    }
+    return urlData.publicUrl;
   };
 
   const handleSubmit = async () => {
@@ -238,17 +242,31 @@ export default function AddCashflowScreen() {
       if (error) throw error;
 
       // Upload receipt if selected
+      let receiptUploadFailed = false;
       if (receiptImage && entry) {
-        const receiptUrl = await uploadReceipt(entry.id);
-        if (receiptUrl) {
-          await supabase
+        try {
+          const receiptUrl = await uploadReceipt(entry.id);
+          const { error: updateError } = await supabase
             .from('cashflow_entries')
             .update({ receipt_url: receiptUrl })
             .eq('id', entry.id);
+
+          if (updateError) {
+            console.error('Failed to update receipt URL:', updateError);
+            receiptUploadFailed = true;
+          }
+        } catch (uploadError) {
+          console.error('Failed to upload receipt:', uploadError);
+          receiptUploadFailed = true;
         }
       }
 
-      showNotification('Success', `${form.type === 'income' ? 'Income' : 'Expense'} recorded successfully!`, () => {
+      const baseMessage = `${form.type === 'income' ? 'Income' : 'Expense'} recorded successfully!`;
+      const message = receiptUploadFailed
+        ? `${baseMessage}\n\nNote: Receipt upload failed. You can add the receipt later by editing this entry.`
+        : baseMessage;
+
+      showNotification(receiptUploadFailed ? 'Partial Success' : 'Success', message, () => {
         if (isWeb) {
           router.replace('/(tabs)/cashflow');
         } else {
@@ -256,9 +274,13 @@ export default function AddCashflowScreen() {
         }
       });
     } catch (error: any) {
-      showNotification('Error', error.message || 'Failed to record transaction');
+      if (isMountedRef.current) {
+        showNotification('Error', error.message || 'Failed to record transaction');
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 

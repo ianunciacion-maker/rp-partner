@@ -104,11 +104,16 @@ export default function CalendarScreen() {
         lockQuery = lockQuery.eq('property_id', selectedProperty);
       }
 
-      const [{ data: propsData }, { data: resData }, { data: lockData }] = await Promise.all([
+      const results = await Promise.all([
         propsQuery,
         resQuery,
         lockQuery,
-      ]);
+      ]).catch((error) => {
+        console.error('Failed to fetch calendar data:', error);
+        return [{ data: null }, { data: null }, { data: null }];
+      });
+
+      const [{ data: propsData }, { data: resData }, { data: lockData }] = results;
 
       setProperties(propsData || []);
       setReservations(resData || []);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, Platform } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -40,6 +40,15 @@ export default function AddPropertyScreen() {
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [propertyCount, setPropertyCount] = useState(0);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const isMountedRef = useRef(true);
+
+  // Track mounted state for async operations
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const [form, setForm] = useState({
     name: '',
@@ -58,17 +67,17 @@ export default function AddPropertyScreen() {
   useEffect(() => {
     const fetchData = async () => {
       if (authUser?.id) {
-        // Fetch subscription
-        await fetchSubscription(authUser.id);
+        // Fetch subscription and property count in parallel
+        const [, countResult] = await Promise.all([
+          fetchSubscription(authUser.id),
+          supabase
+            .from('properties')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', authUser.id),
+        ]);
 
-        // Fetch property count
-        const { count, error } = await supabase
-          .from('properties')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', authUser.id);
-
-        if (!error && count !== null) {
-          setPropertyCount(count);
+        if (isMountedRef.current && !countResult.error && countResult.count !== null) {
+          setPropertyCount(countResult.count);
         }
       }
     };
@@ -205,9 +214,13 @@ export default function AddPropertyScreen() {
         }
       });
     } catch (error: any) {
-      showNotification('Error', error.message || 'Failed to create property');
+      if (isMountedRef.current) {
+        showNotification('Error', error.message || 'Failed to create property');
+      }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 

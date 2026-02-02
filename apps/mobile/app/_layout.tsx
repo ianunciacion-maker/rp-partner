@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform, AppState, AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
@@ -54,6 +54,55 @@ export default function RootLayout() {
       channel.unsubscribe();
     };
   }, [user?.id]);
+
+  // Handle browser visibility changes (web) and app state changes (native)
+  // Refresh auth session when app/tab becomes active after being idle
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      const isVisible = Platform.OS === 'web'
+        ? document.visibilityState === 'visible'
+        : AppState.currentState === 'active';
+
+      if (isVisible && useAuthStore.getState().session) {
+        try {
+          // Refresh the session when app becomes visible
+          const { data: { session }, error } = await supabase.auth.getSession();
+
+          if (error) {
+            console.error('Failed to refresh session on visibility change:', error);
+            return;
+          }
+
+          if (session) {
+            // Session is still valid, update the store
+            useAuthStore.setState({ session, authUser: session.user });
+          } else {
+            // Session expired, clear auth state
+            console.warn('Session expired while app was inactive');
+            useAuthStore.setState({ session: null, authUser: null, user: null });
+          }
+        } catch (error) {
+          console.error('Error refreshing session:', error);
+        }
+      }
+    };
+
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
+    } else {
+      const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
+        if (state === 'active') {
+          handleVisibilityChange();
+        }
+      });
+      return () => {
+        subscription.remove();
+      };
+    }
+  }, []);
 
   // Register for push notifications when user is authenticated (native only)
   useEffect(() => {

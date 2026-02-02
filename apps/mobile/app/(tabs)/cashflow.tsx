@@ -91,10 +91,15 @@ export default function CashflowScreen() {
         entriesQuery = entriesQuery.eq('property_id', selectedProperty);
       }
 
-      const [{ data: propsData }, { data: entriesData }] = await Promise.all([
+      const results = await Promise.all([
         supabase.from('properties').select('id, name'),
         entriesQuery,
-      ]);
+      ]).catch((error) => {
+        console.error('Failed to fetch cashflow data:', error);
+        return [{ data: null }, { data: null }];
+      });
+
+      const [{ data: propsData }, { data: entriesData }] = results;
 
       setProperties(propsData || []);
       setEntries(entriesData || []);

@@ -110,3 +110,37 @@ export const updatePassword = async (newPassword: string) => {
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
 };
+
+/**
+ * Utility to wrap a promise with a timeout
+ * Use for critical queries that shouldn't hang indefinitely
+ */
+export const withTimeout = <T>(
+  promise: Promise<T>,
+  timeoutMs: number = 30000,
+  errorMessage: string = 'Request timed out'
+): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+    ),
+  ]);
+};
+
+/**
+ * Check if the Supabase connection is healthy
+ * Returns true if we can reach the database
+ */
+export const checkConnection = async (): Promise<boolean> => {
+  try {
+    const result = await withTimeout(
+      supabase.from('users').select('id').limit(1),
+      5000,
+      'Connection check timed out'
+    );
+    return !result.error;
+  } catch {
+    return false;
+  }
+};

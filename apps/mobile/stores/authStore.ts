@@ -26,11 +26,32 @@ export const useAuthStore = create<AuthState>((set, get) => {
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (!get().isInitialized) return;
 
-      if (session?.user) {
-        const { data: userData } = await supabase.from('users').select('*').eq('id', session.user.id).single();
-        set({ session, authUser: session.user, user: userData || null });
-      } else {
-        set({ session: null, authUser: null, user: null });
+      try {
+        if (event === 'TOKEN_REFRESHED') {
+          console.log('Auth token refreshed successfully');
+        }
+
+        if (event === 'SIGNED_OUT') {
+          set({ session: null, authUser: null, user: null });
+          return;
+        }
+
+        if (session?.user) {
+          const { data: userData, error } = await supabase.from('users').select('*').eq('id', session.user.id).single();
+          if (error) {
+            console.error('Failed to fetch user data on auth change:', error);
+          }
+          set({ session, authUser: session.user, user: userData || null });
+        } else {
+          set({ session: null, authUser: null, user: null });
+        }
+      } catch (error) {
+        console.error('Error in auth state change handler:', error);
+        // On error, clear session to force re-authentication
+        if (event === 'TOKEN_REFRESHED') {
+          console.warn('Token refresh failed, clearing session');
+          set({ session: null, authUser: null, user: null });
+        }
       }
     });
   }

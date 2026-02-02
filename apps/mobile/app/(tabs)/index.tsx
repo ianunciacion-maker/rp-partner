@@ -86,7 +86,9 @@ export default function HomeScreen() {
           fetchSubscription(user.id),
           checkPendingSubmission(user.id),
           fetchProperties(),
-        ]);
+        ]).catch((error) => {
+          console.error('Failed to fetch data on focus:', error);
+        });
       } else {
         fetchProperties();
       }

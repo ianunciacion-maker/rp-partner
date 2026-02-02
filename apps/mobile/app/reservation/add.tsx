@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Platform, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -74,6 +74,15 @@ export default function AddReservationScreen() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showCheckOut, setShowCheckOut] = useState(false);
+  const isMountedRef = useRef(true);
+
+  // Track mounted state for async operations
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Parse initial date from query params (for backdating)
   const getInitialCheckIn = () => {
@@ -177,17 +186,21 @@ export default function AddReservationScreen() {
         ]);
       }
     } catch (error: any) {
-      const errorMessage = error.code === '23P01'
-        ? 'These dates overlap with an existing reservation.'
-        : (error.message || 'Failed to create reservation');
+      if (isMountedRef.current) {
+        const errorMessage = error.code === '23P01'
+          ? 'These dates overlap with an existing reservation.'
+          : (error.message || 'Failed to create reservation');
 
-      if (isWeb) {
-        window.alert(errorMessage);
-      } else {
-        Alert.alert(error.code === '23P01' ? 'Booking Conflict' : 'Error', errorMessage);
+        if (isWeb) {
+          window.alert(errorMessage);
+        } else {
+          Alert.alert(error.code === '23P01' ? 'Booking Conflict' : 'Error', errorMessage);
+        }
       }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
