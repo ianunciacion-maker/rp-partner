@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Rental property management platform for Filipino property owners. Monorepo containing an Expo React Native app (with web support) and a Next.js admin dashboard.
+Rental property management platform for Filipino property owners, branded as **Tuknang**. Monorepo containing an Expo React Native app (with web support) and a Next.js admin dashboard.
 
 ## Commands
 
@@ -48,7 +48,10 @@ npx supabase functions deploy <function-name>  # Deploy single function
 npm run dev                 # Open Remotion Studio
 npm run build               # Render desktop showcase video
 npm run build:mobile        # Render mobile showcase video
+npm run build:explainer     # Render explainer video
 npm run move                # Copy desktop video to mobile/public/videos/
+npm run move:mobile         # Copy mobile video to mobile/public/videos/
+npm run move:explainer      # Copy explainer video to mobile/public/videos/
 ```
 
 ## Environment Setup
