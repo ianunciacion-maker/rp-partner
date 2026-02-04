@@ -3,11 +3,34 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Platform, AppState, AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, useSessionError } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
-import { supabase } from '@/services/supabase';
-import { ToastProvider } from '@/components/ui/Toast';
+import { supabase, withTimeout } from '@/services/supabase';
+import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { Colors } from '@/constants/theme';
+
+// Component that handles session errors and redirects to login
+function SessionErrorHandler() {
+  const router = useRouter();
+  const sessionError = useSessionError();
+  const { showToast } = useToast();
+
+  useEffect(() => {
+    if (sessionError === 'expired') {
+      showToast('Your session has expired. Please sign in again.', 'error');
+      // Small delay to let toast appear before redirect
+      setTimeout(() => {
+        useAuthStore.getState().clearSessionError();
+        router.replace('/(auth)/login');
+      }, 100);
+    } else if (sessionError === 'network') {
+      showToast('Connection issue. Please refresh the page.', 'error');
+      useAuthStore.getState().clearSessionError();
+    }
+  }, [sessionError, router, showToast]);
+
+  return null;
+}
 
 export default function RootLayout() {
   const router = useRouter();
@@ -65,11 +88,16 @@ export default function RootLayout() {
 
       if (isVisible && useAuthStore.getState().session) {
         try {
-          // Refresh the session when app becomes visible
-          const { data: { session }, error } = await supabase.auth.getSession();
+          // Refresh the session when app becomes visible with 5s timeout
+          const { data: { session }, error } = await withTimeout(
+            supabase.auth.getSession(),
+            5000,
+            'Session refresh timed out'
+          );
 
           if (error) {
             console.error('Failed to refresh session on visibility change:', error);
+            useAuthStore.getState().handleAuthError('network');
             return;
           }
 
@@ -77,12 +105,14 @@ export default function RootLayout() {
             // Session is still valid, update the store
             useAuthStore.setState({ session, authUser: session.user });
           } else {
-            // Session expired, clear auth state
+            // Session expired, clear auth state and notify user
             console.warn('Session expired while app was inactive');
-            useAuthStore.setState({ session: null, authUser: null, user: null });
+            useAuthStore.getState().handleAuthError('expired');
           }
         } catch (error) {
           console.error('Error refreshing session:', error);
+          // Timeout or network error
+          useAuthStore.getState().handleAuthError('network');
         }
       }
     };
@@ -153,6 +183,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ToastProvider>
+      <SessionErrorHandler />
       <Stack
         screenOptions={{
           headerShown: false,

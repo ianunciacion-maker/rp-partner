@@ -17,6 +17,9 @@ interface UserOverrides {
   property_limit: number;
 }
 
+// Deduplication: skip fetch if last fetch was within this time
+const FETCH_DEBOUNCE_MS = 30000;
+
 interface SubscriptionState {
   subscription: SubscriptionWithPlan | null;
   plan: SubscriptionPlan | null;
@@ -26,6 +29,7 @@ interface SubscriptionState {
   userOverrides: UserOverrides | null;
   isLoading: boolean;
   error: string | null;
+  lastFetchedAt: number | null;
 
   // Feature checks
   canAccessCalendarMonth: (monthsFromNow: number) => boolean;
@@ -63,6 +67,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   userOverrides: null,
   isLoading: false,
   error: null,
+  lastFetchedAt: null,
 
   canAccessCalendarMonth: (monthsFromNow: number) => {
     const { plan, subscription, userOverrides } = get();
@@ -182,8 +187,15 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   },
 
   fetchSubscription: async (userId: string) => {
+    // Skip if already fetched within debounce window
+    const { lastFetchedAt } = get();
+    const now = Date.now();
+    if (lastFetchedAt && now - lastFetchedAt < FETCH_DEBOUNCE_MS) {
+      return;
+    }
+
     try {
-      set({ isLoading: true, error: null });
+      set({ isLoading: true, error: null, lastFetchedAt: now });
 
       // Fetch subscription and user overrides in parallel
       const [subResult, userResult] = await Promise.all([

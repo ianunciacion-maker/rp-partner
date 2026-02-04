@@ -4,6 +4,8 @@ import { Session, User as AuthUser } from '@supabase/supabase-js';
 import { supabase, signInWithEmail, signUpWithEmail, signOut as supabaseSignOut } from '@/services/supabase';
 import type { User } from '@/types/database';
 
+export type SessionErrorType = 'expired' | 'network' | null;
+
 interface AuthState {
   session: Session | null;
   authUser: AuthUser | null;
@@ -11,11 +13,14 @@ interface AuthState {
   isLoading: boolean;
   isInitialized: boolean;
   error: string | null;
+  sessionError: SessionErrorType;
   initialize: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
+  handleAuthError: (type: 'expired' | 'network') => void;
+  clearSessionError: () => void;
 }
 
 let authListenerSetup = false;
@@ -63,6 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     isLoading: false,
     isInitialized: false,
     error: null,
+    sessionError: null,
 
     initialize: async () => {
       if (get().isInitialized) return;
@@ -147,6 +153,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
   },
 
   clearError: () => set({ error: null }),
+
+  handleAuthError: (type: 'expired' | 'network') => {
+    set({ session: null, authUser: null, user: null, sessionError: type });
+  },
+
+  clearSessionError: () => set({ sessionError: null }),
   };
 });
 
@@ -169,6 +181,9 @@ export const useAuthError = () => useAuthStore(state => state.error);
 export const useIsAuthenticated = () => useAuthStore(state => !!state.session);
 export const useUserId = () => useAuthStore(state => state.user?.id ?? state.authUser?.id ?? null);
 
+// Session error selector
+export const useSessionError = () => useAuthStore(state => state.sessionError);
+
 // Action selectors - stable references (actions never change)
 export const useAuthActions = () => useAuthStore(
   useShallow(state => ({
@@ -177,5 +192,7 @@ export const useAuthActions = () => useAuthStore(
     signUp: state.signUp,
     signOut: state.signOut,
     clearError: state.clearError,
+    handleAuthError: state.handleAuthError,
+    clearSessionError: state.clearSessionError,
   }))
 );
