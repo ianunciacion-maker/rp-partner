@@ -89,7 +89,7 @@ export function UpgradePrompt({ visible, onClose, onCancel, feature, reason = 'l
   const showContactUs = isPremiumUser && feature === 'properties' && reason === 'limit_reached';
 
   const handleContactUs = () => {
-    Linking.openURL('mailto:support@rppartner.com?subject=Request%20for%20More%20Properties');
+    Linking.openURL('mailto:ian@autonoiq.com?subject=Request%20for%20More%20Properties');
     onClose();
   };
 

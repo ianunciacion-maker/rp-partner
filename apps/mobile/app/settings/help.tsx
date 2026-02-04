@@ -36,7 +36,7 @@ const FAQ_ITEMS: FAQItem[] = [
 
 export default function HelpScreen() {
   const handleEmail = () => {
-    Linking.openURL('mailto:support@rp-partner.com?subject=Help Request');
+    Linking.openURL('mailto:ian@autonoiq.com?subject=Help Request');
   };
 
   return (
