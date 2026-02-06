@@ -1,0 +1,313 @@
+import { Platform, ScrollView, Text, StyleSheet, Pressable, View, Image } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Colors, Spacing, Typography, Breakpoints } from '@/constants/theme';
+import { useWindowDimensions } from 'react-native';
+
+const PRIVACY_CONTENT = `Last Updated: February 4, 2026
+
+Tuknang ("we," "our," or "us") operates the Tuknang mobile application and web platform (collectively, the "Service"). This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our Service.
+
+By using Tuknang, you agree to the collection and use of information in accordance with this Privacy Policy.
+
+
+1. INFORMATION WE COLLECT
+
+1.1 Information You Provide
+
+Account Information: When you create an account, we collect your email address and password. You may also provide your name and profile information.
+
+Property Information: Details about rental properties you manage, including property names, addresses, descriptions, and cover images.
+
+Reservation Data: Information about reservations including guest names, check-in and check-out dates, rental amounts, and booking notes.
+
+Financial Records: Cashflow entries including income and expense records, payment amounts, and transaction descriptions.
+
+Payment Information: When submitting subscription payments, you may upload receipt images (e.g., GCash or bank transfer screenshots) for verification.
+
+1.2 Information Collected Automatically
+
+Device Information: We collect device identifiers and information necessary for push notifications, including your device type, operating system, and Expo push notification tokens.
+
+Usage Data: We may collect information about how you access and use the Service, including access times, pages viewed, and features used.
+
+Log Data: Our servers automatically record information when you use the Service, including your IP address, browser type, and referring pages.
+
+1.3 Information from Camera and Photos
+
+Camera Access: With your permission, the Service accesses your device camera to capture receipt images for payment verification and property cover photos.
+
+Photo Library: With your permission, we access your photo library to allow you to select existing images for receipts and property photos.
+
+
+2. HOW WE USE YOUR INFORMATION
+
+We use the information we collect to:
+
+- Provide, maintain, and improve the Service
+- Process and manage your property rentals and reservations
+- Generate financial reports and cashflow analytics
+- Process subscription payments and verify payment receipts
+- Send push notifications about reservations, payments, and account activity
+- Send subscription reminders and service updates
+- Respond to your inquiries and provide customer support
+- Monitor and analyze usage patterns to improve user experience
+- Detect, prevent, and address technical issues and security threats
+- Comply with legal obligations
+
+
+3. INFORMATION SHARING AND DISCLOSURE
+
+3.1 Service Providers
+
+We share information with third-party service providers that perform services on our behalf:
+
+- Supabase: Database hosting, user authentication, and file storage
+- Expo: Mobile app infrastructure and push notification delivery
+- Vercel: Web application hosting
+- Meta/Facebook: Analytics and platform services
+
+3.2 Shared Calendar Feature
+
+If you choose to share your property calendar using our shareable link feature, the following information becomes accessible to anyone with the link:
+
+- Property name
+- Reservation dates (check-in and check-out)
+- Guest names (first name and last initial only)
+- Locked/blocked dates
+
+You can revoke shared calendar links at any time through the app.
+
+3.3 Legal Requirements
+
+We may disclose your information if required to do so by law or in response to valid requests by public authorities.
+
+3.4 Business Transfers
+
+If we are involved in a merger, acquisition, or sale of assets, your information may be transferred as part of that transaction.
+
+
+4. DATA STORAGE AND SECURITY
+
+4.1 Data Storage
+
+Your data is stored on secure servers provided by Supabase, located in cloud data centers. Images (property photos, receipt uploads) are stored in Supabase Storage.
+
+4.2 Security Measures
+
+We implement appropriate technical and organizational measures to protect your personal information, including:
+
+- Encryption of data in transit using HTTPS/TLS
+- Secure authentication using industry-standard protocols
+- Row-level security policies ensuring users can only access their own data
+- Secure token-based storage for authentication credentials
+
+4.3 Data Retention
+
+We retain your personal information for as long as your account is active or as needed to provide you the Service. You may request deletion of your account and associated data at any time by contacting us.
+
+
+5. YOUR RIGHTS AND CHOICES
+
+5.1 Access and Update
+
+You can access and update your account information through the app's settings.
+
+5.2 Delete Your Account
+
+You may request deletion of your account and personal data by contacting us at the email address below.
+
+5.3 Push Notifications
+
+You can opt out of push notifications through your device settings or within the app.
+
+5.4 Camera and Photo Access
+
+You can revoke camera and photo library permissions through your device settings at any time.
+
+
+6. CHILDREN'S PRIVACY
+
+The Service is not intended for use by children under the age of 18. We do not knowingly collect personal information from children under 18. If we learn that we have collected personal information from a child under 18, we will take steps to delete such information.
+
+
+7. INTERNATIONAL DATA TRANSFERS
+
+Your information may be transferred to and processed in countries other than your country of residence. These countries may have data protection laws that are different from the laws of your country. By using the Service, you consent to the transfer of your information to these countries.
+
+
+8. CHANGES TO THIS PRIVACY POLICY
+
+We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date. You are advised to review this Privacy Policy periodically for any changes.
+
+
+9. CONTACT US
+
+If you have any questions about this Privacy Policy or our data practices, please contact us at:
+
+Email: ian@autonoiq.com
+
+Tuknang
+Property Management Platform
+
+
+10. ADDITIONAL DISCLOSURES FOR META/FACEBOOK
+
+10.1 Data Obtained from Meta
+
+If you interact with our Service through Meta platforms or we use Meta services, we may receive certain information in accordance with Meta's terms and policies.
+
+10.2 Use of Meta Data
+
+Any data obtained from Meta platforms is used solely for the purposes disclosed in this Privacy Policy and in compliance with Meta Platform Terms.
+
+10.3 Data Deletion
+
+To request deletion of data associated with Meta services, contact us at ian@autonoiq.com or use the data deletion request process provided by Meta.
+
+10.4 Meta Data Retention
+
+We retain data obtained from Meta services only for as long as necessary to provide our Service or as required by applicable law.`;
+
+const isWeb = Platform.OS === 'web';
+
+export default function PrivacyPolicyScreen() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isDesktop = isWeb && width >= Breakpoints.tablet;
+
+  if (isWeb) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#ffffff',
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
+        {/* Header */}
+        <header style={{
+          borderBottom: `1px solid ${Colors.neutral.gray100}`,
+          padding: '16px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          maxWidth: 900,
+          width: '100%',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          boxSizing: 'border-box',
+        }}>
+          <Pressable onPress={() => router.push('/')}>
+            <Image
+              source={require('@/assets/images/tuknang-logo-whitetext.png')}
+              style={{
+                width: 140,
+                height: 36,
+                // @ts-ignore
+                filter: 'brightness(0)',
+              }}
+              resizeMode="contain"
+            />
+          </Pressable>
+          <span
+            onClick={() => router.push('/')}
+            style={{
+              fontSize: 14,
+              color: Colors.primary.teal,
+              cursor: 'pointer',
+              fontWeight: 500,
+            }}
+          >
+            Back to home
+          </span>
+        </header>
+
+        {/* Content */}
+        <main style={{
+          flex: 1,
+          maxWidth: 900,
+          width: '100%',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          padding: isDesktop ? '48px 24px' : '32px 16px',
+          boxSizing: 'border-box',
+        }}>
+          <h1 style={{
+            fontSize: isDesktop ? 40 : 32,
+            fontWeight: 800,
+            color: Colors.primary.navy,
+            margin: 0,
+            marginBottom: 32,
+            letterSpacing: -1,
+          }}>
+            Privacy Policy
+          </h1>
+
+          <div style={{
+            fontSize: 16,
+            color: Colors.neutral.gray700,
+            lineHeight: 1.8,
+            whiteSpace: 'pre-wrap',
+          }}>
+            {PRIVACY_CONTENT}
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer style={{
+          borderTop: `1px solid ${Colors.neutral.gray100}`,
+          padding: '24px',
+          textAlign: 'center',
+        }}>
+          <span style={{ fontSize: 14, color: Colors.neutral.gray500 }}>
+            {'\u00A9'} 2026 Tuknang. Made with {'\u2764'} in the Philippines.
+          </span>
+        </footer>
+      </div>
+    );
+  }
+
+  // Native fallback
+  return (
+    <View style={styles.container}>
+      <Pressable onPress={() => router.back()} style={styles.backButton}>
+        <Text style={styles.backButtonText}>{'\u2190'} Back</Text>
+      </Pressable>
+      <ScrollView style={styles.scrollView}>
+        <Text style={styles.title}>Privacy Policy</Text>
+        <Text style={styles.content}>{PRIVACY_CONTENT}</Text>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: Colors.primary.navy,
+    paddingTop: 60,
+  },
+  backButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  backButtonText: {
+    color: Colors.primary.teal,
+    fontSize: Typography.fontSize.md,
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  title: {
+    fontSize: Typography.fontSize['3xl'],
+    fontWeight: 'bold',
+    color: Colors.neutral.white,
+    marginBottom: Spacing.xl,
+  },
+  content: {
+    fontSize: Typography.fontSize.md,
+    color: Colors.neutral.gray300,
+    lineHeight: 26,
+    paddingBottom: 48,
+  },
+});

@@ -194,7 +194,7 @@ export default function RegisterScreen() {
             margin: 0,
             maxWidth: 480,
           }}>
-            Join 1,000+ Filipino property owners who've simplified their rental management. Free forever, no credit card required.
+            Simplify your rental management. Free forever, no credit card required.
           </p>
 
           {/* Trust badges */}
@@ -209,12 +209,12 @@ export default function RegisterScreen() {
               <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }}>Forever plan</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 28, fontWeight: 700, color: '#ffffff' }}>5,000+</span>
-              <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }}>Properties managed</span>
+              <span style={{ fontSize: 28, fontWeight: 700, color: '#ffffff' }}>2 min</span>
+              <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }}>Quick setup</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 28, fontWeight: 700, color: '#ffffff' }}>4.8★</span>
-              <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }}>User rating</span>
+              <span style={{ fontSize: 28, fontWeight: 700, color: '#ffffff' }}>Secure</span>
+              <span style={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }}>Bank-level encryption</span>
             </div>
           </div>
         </div>

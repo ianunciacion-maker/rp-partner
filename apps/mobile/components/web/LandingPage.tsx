@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import {
   Header,
   Hero,
-  SocialProofBar,
   FeaturesShowcase,
   PricingSection,
   FAQ,
@@ -98,7 +97,6 @@ export default function LandingPage() {
       <Header />
       <main style={{ flex: 1 }}>
         <Hero />
-        <SocialProofBar />
         <FeaturesShowcase />
         <PricingSection />
         <FAQ />

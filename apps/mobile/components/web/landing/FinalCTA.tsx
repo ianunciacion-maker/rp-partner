@@ -73,7 +73,7 @@ export function FinalCTA() {
             marginLeft: 'auto',
             marginRight: 'auto',
           }}>
-            Join 1,000+ Filipino property owners who've simplified their rental management. Start free today.
+            Simplify your rental business with the all-in-one app built for Filipino property owners. Start free today.
           </p>
 
           <Pressable

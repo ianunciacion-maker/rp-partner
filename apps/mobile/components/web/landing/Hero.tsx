@@ -179,45 +179,6 @@ export function Hero() {
             </div>
           </ScrollReveal>
 
-          {/* Trust Indicators */}
-          <ScrollReveal delay={400}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              width: '100%',
-            }}>
-              <div style={{
-                display: 'inline-flex',
-                flexDirection: 'row',
-                gap: isDesktop ? 48 : 24,
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-                padding: '24px 40px',
-                backgroundColor: 'rgba(255, 255, 255, 0.08)',
-                backdropFilter: 'blur(12px)',
-                borderRadius: 20,
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 24, color: '#fbbf24' }}>{'\u2605'}</span>
-                    <span style={{ fontSize: 28, fontWeight: 700, color: '#ffffff' }}>4.8</span>
-                  </div>
-                  <span style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: 1 }}>Rating</span>
-                </div>
-                <div style={{ width: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', display: isDesktop ? 'block' : 'none' }} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 28, fontWeight: 700, color: '#ffffff' }}>1,000+</span>
-                  <span style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: 1 }}>Users</span>
-                </div>
-                <div style={{ width: 1, backgroundColor: 'rgba(255, 255, 255, 0.15)', display: isDesktop ? 'block' : 'none' }} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 28, fontWeight: 700, color: '#ffffff' }}>5,000+</span>
-                  <span style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.6)', textTransform: 'uppercase', letterSpacing: 1 }}>Properties</span>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
         </div>
       </div>
 
