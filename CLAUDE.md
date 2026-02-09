@@ -44,14 +44,6 @@ npm run lint               # Run Next.js ESLint
 npx supabase functions serve   # Local development
 npx supabase functions deploy <function-name>  # Deploy single function
 
-# Remotion (from apps/remotion)
-npm run dev                 # Open Remotion Studio
-npm run build               # Render desktop showcase video
-npm run build:mobile        # Render mobile showcase video
-npm run build:explainer     # Render explainer video
-npm run move                # Copy desktop video to mobile/public/videos/
-npm run move:mobile         # Copy mobile video to mobile/public/videos/
-npm run move:explainer      # Copy explainer video to mobile/public/videos/
 ```
 
 ## Environment Setup
@@ -74,8 +66,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Required for admin operations
 ### Monorepo Structure
 - `apps/mobile/` - Expo React Native app (main user-facing app)
 - `apps/admin/` - Next.js admin dashboard (port 3001, Tailwind CSS)
-- `apps/remotion/` - Remotion video generation (React 18, outputs to apps/mobile/public/videos/)
-- `supabase/migrations/` - PostgreSQL migrations
+- `apps/website/` - Placeholder/unused
+- `supabase/migrations/` - PostgreSQL migrations (numbered 001-008, continue sequence for new migrations)
 - `supabase/functions/` - Supabase Edge Functions (check-subscriptions, send-payment-reminders, get-shared-calendar)
 
 ### Tech Stack
@@ -114,6 +106,8 @@ Next.js App Router with route groups:
 - `(dashboard)/` - Authenticated admin pages (dashboard, users, payments)
 - `(dashboard)/users/[id]` - User detail/management
 - `(dashboard)/payments/[id]` - Payment detail
+
+Admin routes are protected by `middleware.ts` which checks for a valid session AND `role === 'admin'` in the users table. Non-admin users are signed out and redirected to `/login`.
 
 ### Admin Supabase Clients
 ```typescript
@@ -168,9 +162,24 @@ The subscription system uses a manual payment verification flow (GCash/bank tran
 - **User overrides**: Admins can grant users specific limits via `calendar_months_override`, `report_months_override`, `property_limit` (-1 = unlimited)
 - **Store**: `stores/subscriptionStore.ts` - Manages subscription state and feature access checks
 
+## Code Style
+
+### Naming Conventions
+- Components: PascalCase (`Button`, `LoginScreen`). Files: PascalCase for components, lowercase-hyphenated for utilities.
+- Functions/variables: camelCase. Constants: PascalCase (`Colors`, `Spacing`) or UPPER_SNAKE_CASE (`PROPERTY_TYPES`).
+- Type definitions: PascalCase (`ButtonProps`, `AuthState`).
+- Default exports for screen components, named exports for reusable UI components.
+
+### Comments
+Do NOT add comments unless explicitly requested. Code should be self-documenting through clear naming.
+
+### Import Order
+React imports → third-party imports → internal `@/` modules. Use `import type` for pure type imports.
+
 ## Code Patterns
 
-### Form Validation
+### Form Patterns
+**react-hook-form + zod** (preferred for complex forms):
 ```typescript
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -181,6 +190,16 @@ const { control, handleSubmit } = useForm({
   resolver: zodResolver(schema),
   defaultValues: { /* ... */ }
 });
+```
+
+**Controlled inputs + useState** (simpler forms):
+```typescript
+const [form, setForm] = useState({ name: '', email: '' });
+const [errors, setErrors] = useState<Record<string, string>>({});
+const updateForm = (key: string, value: string) => {
+  setForm(prev => ({ ...prev, [key]: value }));
+  if (errors[key]) setErrors(prev => ({ ...prev, [key]: '' }));
+};
 ```
 
 ### Supabase Queries
@@ -196,7 +215,7 @@ const { data } = await supabase
 Use date-fns and work with Date objects. Store dates as ISO strings in database. Be careful with timezone handling - the app uses local dates for display.
 
 ### UI Components (Mobile)
-Reusable components in `components/ui/` (Button, Input, Select, Modal) follow the design system in `constants/theme.ts`. Use design tokens (Colors, Spacing, Typography, BorderRadius, Shadows) instead of hardcoded values.
+Reusable components in `components/ui/` (Button, Input, Select, Modal) follow the design system in `constants/theme.ts`. Use design tokens (Colors, Spacing, Typography, BorderRadius, Shadows) instead of hardcoded values. Spacing scale: xs(4), sm(8), md(16), lg(24), xl(32), xxl(48). StyleSheet definitions go at the bottom of component files.
 
 ### Responsive Design (Mobile)
 The theme includes responsive utilities for cross-platform layouts:
@@ -230,13 +249,22 @@ router.back();           // Go back
 router.replace('/path'); // Replace (use for web redirects)
 ```
 
+### Common Mobile UI Patterns
+- Loading: `<ActivityIndicator size="large" color={Colors.primary.teal} />`
+- Pull-to-refresh: `<RefreshControl refreshing={isRefreshing} onRefresh={...} />`
+- Empty states: centered content with icon, title, text, and CTA button
+- FAB: absolute positioning with `Shadows.lg`
+- Web cursor: `Platform.OS === 'web' && ({ cursor: 'pointer' } as any)`
+- Screen refresh on focus: `useFocusEffect` with `useCallback`
+
 ## Important Constraints
 
-- **PHP currency**: All amounts displayed in Philippine Peso (₱)
+- **PHP currency**: All amounts displayed in Philippine Peso (₱) with `toLocaleString()`
 - **Property limits**: Users have configurable `property_limit` based on subscription
 - **RLS enabled**: All tables have Row Level Security - users only see their own data
 - **Date-only reservations**: check_in/check_out are DATE type, not timestamps - avoid timezone math
 - **Typed routes**: expo-router typed routes enabled - use type-safe navigation
+- **No reanimated in Expo Go**: Worklets version mismatch prevents react-native-reanimated animations in Expo Go
 
 ## Troubleshooting
 
