@@ -177,6 +177,14 @@ export default function PropertyDetailScreen() {
             <Text style={styles.actionText}>Add Income/Expense</Text>
             <Text style={styles.actionArrow}>›</Text>
           </Pressable>
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => router.push(`/property/${id}/sync`)}
+          >
+            <Text style={styles.actionIcon}>🔄</Text>
+            <Text style={styles.actionText}>Calendar Sync</Text>
+            <Text style={styles.actionArrow}>›</Text>
+          </Pressable>
         </View>
 
         {/* Recent Reservations */}
