@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Property, CashflowEntry } from '@/types/database';
+import { MonthBreakdownModal } from '@/components/analytics/MonthBreakdownModal';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 
 interface CashflowWithProperty extends CashflowEntry {
@@ -59,6 +60,7 @@ export default function CashflowDashboardScreen() {
   const [entries, setEntries] = useState<CashflowWithProperty[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [selectedProperty, setSelectedProperty] = useState<string | null>(params.propertyId || null);
+  const [breakdownMonth, setBreakdownMonth] = useState<string | null>(null);
 
   const monthsToFetch = isPremium() ? 6 : 2;
   const now = new Date();
@@ -260,7 +262,7 @@ export default function CashflowDashboardScreen() {
             </View>
 
             {monthlyData.map((month) => (
-              <View key={month.month} style={styles.chartRow}>
+              <Pressable key={month.month} style={styles.chartRow} onPress={() => setBreakdownMonth(month.month)}>
                 <Text style={styles.chartLabel}>{month.monthLabel}</Text>
                 <View style={styles.barContainer}>
                   <View style={styles.barPair}>
@@ -284,7 +286,7 @@ export default function CashflowDashboardScreen() {
                     <Text style={styles.barValue}>₱{month.expense.toLocaleString()}</Text>
                   </View>
                 </View>
-              </View>
+              </Pressable>
             ))}
           </View>
         </View>
@@ -398,6 +400,15 @@ export default function CashflowDashboardScreen() {
 
         <View style={styles.bottomPadding} />
       </ScrollView>
+
+      {breakdownMonth && (
+        <MonthBreakdownModal
+          visible={!!breakdownMonth}
+          onClose={() => setBreakdownMonth(null)}
+          monthLabel={format(new Date(breakdownMonth + '-01'), 'MMMM yyyy')}
+          entries={entries.filter((e) => e.transaction_date.startsWith(breakdownMonth))}
+        />
+      )}
     </View>
   );
 }

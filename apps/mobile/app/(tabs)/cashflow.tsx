@@ -10,6 +10,8 @@ import { usePlan, useCanExportReportMonth, useSubscriptionActions } from '@/stor
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
 import { useToast } from '@/components/ui/Toast';
+import { OccupancySection } from '@/components/analytics/OccupancySection';
+import { ReportOptionsModal } from '@/components/reports/ReportOptionsModal';
 import type { Property, CashflowEntry } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 
@@ -63,6 +65,7 @@ export default function CashflowScreen() {
   const [exportType, setExportType] = useState<'both' | 'income' | 'expense'>('both');
   const [isExporting, setIsExporting] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   // Fetch subscription data on mount
   useEffect(() => {
@@ -345,6 +348,14 @@ export default function CashflowScreen() {
           ))}
         </ScrollView>
 
+        {/* Occupancy */}
+        <OccupancySection
+          selectedProperty={selectedProperty}
+          selectedMonth={selectedMonth}
+          selectedYear={selectedYear}
+          properties={properties}
+        />
+
         {/* Month Selector */}
         <View style={styles.monthSelector}>
           <View style={styles.monthNav}>
@@ -362,6 +373,9 @@ export default function CashflowScreen() {
               style={styles.dashboardButton}
             >
               <Text style={styles.dashboardButtonText}>Dashboard</Text>
+            </Pressable>
+            <Pressable onPress={() => setShowReportModal(true)} style={styles.pdfButton}>
+              <Text style={styles.pdfButtonText}>PDF</Text>
             </Pressable>
             <Pressable onPress={() => setShowExportModal(true)} style={styles.exportButton}>
               <Text style={styles.exportButtonText}>Export</Text>
@@ -536,6 +550,14 @@ export default function CashflowScreen() {
         </View>
       </Modal>
 
+      <ReportOptionsModal
+        visible={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        properties={properties}
+        selectedProperty={selectedProperty}
+        monthOptions={monthOptions}
+      />
+
       <UpgradePrompt
         visible={showUpgradePrompt}
         onClose={() => setShowUpgradePrompt(false)}
@@ -627,6 +649,8 @@ const styles = StyleSheet.create({
   actionButtons: { flexDirection: 'row', gap: Spacing.sm },
   dashboardButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.primary.teal },
   dashboardButtonText: { color: Colors.primary.teal, fontSize: Typography.fontSize.sm, fontWeight: '600' },
+  pdfButton: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md, borderWidth: 1, borderColor: Colors.semantic.error },
+  pdfButtonText: { color: Colors.semantic.error, fontSize: Typography.fontSize.sm, fontWeight: '600' },
   exportButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.md },
   exportButtonText: { color: Colors.neutral.white, fontSize: Typography.fontSize.sm, fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, Platform, Switch } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { addMonths, addYears } from 'date-fns';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase, ensureSession, isAuthError } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
@@ -98,6 +99,20 @@ const PAYMENT_METHODS = [
   { label: 'Other', value: 'other' },
 ];
 
+const RECURRENCE_OPTIONS = [
+  { label: 'Monthly', value: 'monthly' },
+  { label: 'Quarterly', value: 'quarterly' },
+  { label: 'Yearly', value: 'yearly' },
+];
+
+const calculateNextDueDate = (transactionDate: Date, frequency: string): Date => {
+  switch (frequency) {
+    case 'quarterly': return addMonths(transactionDate, 3);
+    case 'yearly': return addYears(transactionDate, 1);
+    default: return addMonths(transactionDate, 1);
+  }
+};
+
 export default function AddCashflowScreen() {
   const router = useRouter();
   const { type: initialType } = useLocalSearchParams<{ type?: string }>();
@@ -126,7 +141,11 @@ export default function AddCashflowScreen() {
     payment_method: 'cash',
     reference_number: '',
     notes: '',
+    is_recurring: false,
+    recurrence_frequency: 'monthly',
+    recurrence_end_date: null as Date | null,
   });
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -229,6 +248,14 @@ export default function AddCashflowScreen() {
         return;
       }
 
+      const isRecurring = form.type === 'expense' && form.is_recurring;
+      const nextDueDate = isRecurring
+        ? formatDateLocal(calculateNextDueDate(form.transaction_date, form.recurrence_frequency))
+        : null;
+      const recurrenceEndDate = isRecurring && form.recurrence_end_date
+        ? formatDateLocal(form.recurrence_end_date)
+        : null;
+
       const { data: entry, error } = await supabase
         .from('cashflow_entries')
         .insert({
@@ -242,6 +269,10 @@ export default function AddCashflowScreen() {
           payment_method: form.payment_method,
           reference_number: form.reference_number.trim() || null,
           notes: form.notes.trim() || null,
+          is_recurring: isRecurring,
+          recurrence_frequency: isRecurring ? form.recurrence_frequency : null,
+          next_due_date: nextDueDate,
+          recurrence_end_date: recurrenceEndDate,
         })
         .select()
         .single();
@@ -408,6 +439,68 @@ export default function AddCashflowScreen() {
           />
         </View>
 
+        {/* Recurring (expense only) */}
+        {form.type === 'expense' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Recurring</Text>
+            <View style={styles.recurringToggle}>
+              <Text style={styles.recurringLabel}>Make this recurring</Text>
+              <Switch
+                value={form.is_recurring}
+                onValueChange={(v) => updateForm('is_recurring', v)}
+                trackColor={{ false: Colors.neutral.gray200, true: Colors.primary.teal + '80' }}
+                thumbColor={form.is_recurring ? Colors.primary.teal : Colors.neutral.gray400}
+              />
+            </View>
+            {form.is_recurring && (
+              <>
+                <Select
+                  label="Frequency"
+                  value={form.recurrence_frequency}
+                  options={RECURRENCE_OPTIONS}
+                  onChange={(v) => updateForm('recurrence_frequency', v)}
+                />
+                <Text style={styles.label}>End Date (Optional)</Text>
+                {isWeb ? (
+                  <WebDateInput
+                    value={form.recurrence_end_date || new Date(new Date().getFullYear() + 1, new Date().getMonth(), new Date().getDate())}
+                    onChange={(date) => updateForm('recurrence_end_date', date)}
+                  />
+                ) : (
+                  <>
+                    <Pressable
+                      style={styles.dateButton}
+                      onPress={() => setShowEndDatePicker(true)}
+                    >
+                      <Text style={styles.dateButtonText}>
+                        {form.recurrence_end_date
+                          ? form.recurrence_end_date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                          : 'No end date'}
+                      </Text>
+                    </Pressable>
+                    {showEndDatePicker && (
+                      <DateTimePicker
+                        value={form.recurrence_end_date || new Date(new Date().getFullYear() + 1, new Date().getMonth(), new Date().getDate())}
+                        mode="date"
+                        minimumDate={form.transaction_date}
+                        onChange={(_, date) => {
+                          setShowEndDatePicker(Platform.OS === 'ios');
+                          if (date) updateForm('recurrence_end_date', date);
+                        }}
+                      />
+                    )}
+                  </>
+                )}
+                {form.recurrence_end_date && (
+                  <Pressable onPress={() => updateForm('recurrence_end_date', null)}>
+                    <Text style={styles.clearEndDate}>Clear end date</Text>
+                  </Pressable>
+                )}
+              </>
+            )}
+          </View>
+        )}
+
         {/* Receipt */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Receipt (Optional)</Text>
@@ -512,5 +605,23 @@ const styles = StyleSheet.create({
     color: Colors.primary.teal,
     fontSize: Typography.fontSize.md,
     fontWeight: '600',
+  },
+  recurringToggle: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  recurringLabel: {
+    fontSize: Typography.fontSize.md,
+    color: Colors.neutral.gray700,
+    fontWeight: '500',
+  },
+  clearEndDate: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.semantic.error,
+    fontWeight: '500',
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
 });

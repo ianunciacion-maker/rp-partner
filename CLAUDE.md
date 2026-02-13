@@ -67,8 +67,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Required for admin operations
 - `apps/mobile/` - Expo React Native app (main user-facing app)
 - `apps/admin/` - Next.js admin dashboard (port 3001, Tailwind CSS)
 - `apps/website/` - Placeholder/unused
-- `supabase/migrations/` - PostgreSQL migrations (numbered 001-008, continue sequence for new migrations)
-- `supabase/functions/` - Supabase Edge Functions (check-subscriptions, send-payment-reminders, get-shared-calendar)
+- `supabase/migrations/` - PostgreSQL migrations (numbered 001-009, continue sequence for new migrations)
+- `supabase/functions/` - Supabase Edge Functions (check-subscriptions, send-payment-reminders, get-shared-calendar, process-recurring-expenses)
 
 ### Tech Stack
 - **Mobile/Web**: Expo SDK ~54.0, React Native 0.81.5, React 19, expo-router 6.x with typed routes
@@ -153,6 +153,12 @@ Property owners can generate public share links for their calendar:
 - **Month limits**: Based on owner's subscription (Free: ±2 months, Paid: unlimited, -1 = unlimited)
 - **Services**: `services/shareCalendar.ts` - createShareToken, fetchSharedCalendar, getShareUrl, revokeShareToken
 - **Components**: `SharedCalendarView.tsx` - Standalone calendar component for public view
+
+### Analytics & Reports
+- **Occupancy**: `services/analytics.ts` — calculates per-property occupancy from reservations + locked dates
+- **PDF Reports**: `services/pdfReport.ts` — generates HTML financial reports; web uses `window.open()` + `window.print()`, native uses `expo-print` + `expo-sharing`
+- **Recurring Expenses**: `cashflow_entries` has `is_recurring`, `recurrence_frequency`, `next_due_date`, `recurrence_end_date`, `parent_entry_id`; `process-recurring-expenses` edge function clones due entries daily
+- **Components**: `components/analytics/` (OccupancySection, MonthBreakdownModal), `components/reports/` (ReportOptionsModal)
 
 ### Subscription System
 The subscription system uses a manual payment verification flow (GCash/bank transfer screenshots reviewed by admin):
@@ -265,6 +271,8 @@ router.replace('/path'); // Replace (use for web redirects)
 - **Date-only reservations**: check_in/check_out are DATE type, not timestamps - avoid timezone math
 - **Typed routes**: expo-router typed routes enabled - use type-safe navigation
 - **No reanimated in Expo Go**: Worklets version mismatch prevents react-native-reanimated animations in Expo Go
+- **expo-print on web**: `printToFileAsync` does NOT generate PDFs from HTML on web — it prints the current page. Use `window.open()` + `window.print()` for web PDF export instead.
+- **Hook ordering**: `useEnterSubmit(handler)` must be called AFTER `handler` is defined (`const` is not hoisted). Placing it before causes a TDZ crash.
 
 ## Troubleshooting
 

@@ -51,8 +51,6 @@ export default function EditProfileScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const enterSubmit = useEnterSubmit(handleSave, isLoading);
-
   const handleSave = async () => {
     if (!validate()) return;
 
@@ -77,6 +75,8 @@ export default function EditProfileScreen() {
       setIsLoading(false);
     }
   };
+
+  const enterSubmit = useEnterSubmit(handleSave, isLoading);
 
   return (
     <View style={styles.wrapper}>
