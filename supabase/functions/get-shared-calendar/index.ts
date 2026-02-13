@@ -144,7 +144,7 @@ serve(async (req) => {
         .gt('check_out', startDate),
       supabase
         .from('locked_dates')
-        .select('id, date')
+        .select('id, date, source, source_name')
         .eq('property_id', shareToken.property_id)
         .gte('date', startDate)
         .lte('date', endDate),
