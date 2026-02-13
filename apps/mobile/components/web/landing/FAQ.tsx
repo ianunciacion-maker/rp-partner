@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Pressable } from 'react-native';
-import { Colors } from '@/constants/theme';
-import { ScrollReveal } from './ScrollReveal';
+import { Pressable, useWindowDimensions } from 'react-native';
+import { Breakpoints } from '@/constants/theme';
+import { SectionReveal } from './SectionReveal';
+import { PlusIcon, MinusIcon } from './icons';
 
 const faqs = [
   {
@@ -50,89 +51,103 @@ function FAQItem({ question, answer, isOpen, onToggle }: {
 }) {
   return (
     <div style={{
-      backgroundColor: Colors.neutral.white,
-      borderRadius: 16,
-      border: `1px solid ${Colors.neutral.gray200}`,
-      overflow: 'hidden',
-      transition: 'all 0.2s ease',
-      boxShadow: isOpen ? '0 4px 16px rgba(0,0,0,0.1)' : 'none',
+      borderBottom: '1px solid #e7e5e4',
     }}>
-      <Pressable onPress={onToggle} style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 24,
-        gap: 16,
-      }}>
+      <Pressable
+        onPress={onToggle}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingTop: 24,
+          paddingBottom: 24,
+          gap: 16,
+        }}
+      >
         <span style={{
           fontSize: 16,
           fontWeight: 500,
-          color: Colors.neutral.gray900,
+          color: '#1c1917',
           flex: 1,
-        }}>{question}</span>
-        <span style={{
-          fontSize: 20,
-          color: Colors.neutral.gray400,
-          fontWeight: 'bold',
-        }}>{isOpen ? '\u2212' : '+'}</span>
-      </Pressable>
-      {isOpen && (
+        }}>
+          {question}
+        </span>
         <div style={{
-          paddingLeft: 24,
-          paddingRight: 24,
+          transition: 'transform 200ms ease',
+          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          flexShrink: 0,
+        }}>
+          {isOpen
+            ? <MinusIcon size={20} color="#a8a29e" />
+            : <PlusIcon size={20} color="#a8a29e" />
+          }
+        </div>
+      </Pressable>
+      <div style={{
+        maxHeight: isOpen ? 300 : 0,
+        overflow: 'hidden',
+        transition: 'max-height 300ms ease',
+      }}>
+        <p style={{
+          fontSize: 16,
+          color: '#57534e',
+          lineHeight: 1.6,
+          margin: 0,
           paddingBottom: 24,
         }}>
-          <p style={{
-            fontSize: 16,
-            color: Colors.neutral.gray600,
-            lineHeight: 1.5,
-            margin: 0,
-          }}>{answer}</p>
-        </div>
-      )}
+          {answer}
+        </p>
+      </div>
     </div>
   );
 }
 
-/**
- * FAQ accordion section.
- */
 export function FAQ() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= Breakpoints.tablet;
 
   return (
     <section id="faq" style={{
-      paddingTop: 80,
-      paddingBottom: 80,
-      backgroundColor: Colors.neutral.gray50,
+      paddingTop: isDesktop ? 120 : 80,
+      paddingBottom: isDesktop ? 120 : 80,
+      backgroundColor: '#ffffff',
     }}>
       <div style={{
-        maxWidth: 768,
+        maxWidth: 680,
         marginLeft: 'auto',
         marginRight: 'auto',
-        paddingLeft: 16,
-        paddingRight: 16,
+        paddingLeft: 24,
+        paddingRight: 24,
       }}>
-        <ScrollReveal>
-          <div style={{ marginBottom: 48, textAlign: 'center' }}>
+        <SectionReveal>
+          <div style={{ textAlign: 'center', marginBottom: isDesktop ? 64 : 48 }}>
+            <span style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              color: '#0d9488',
+              marginBottom: 16,
+            }}>
+              FAQ
+            </span>
             <h2 style={{
-              fontSize: 36,
-              fontWeight: 'bold',
-              color: Colors.neutral.gray900,
-              marginBottom: 16,
+              fontSize: isDesktop ? 52 : 32,
+              fontWeight: 700,
+              letterSpacing: -1.5,
+              color: '#1c1917',
               margin: 0,
-              marginBottom: 16,
-            }}>Frequently Asked Questions</h2>
-            <p style={{
-              fontSize: 18,
-              color: Colors.neutral.gray600,
-              margin: 0,
-            }}>Got questions? We've got answers.</p>
+              lineHeight: 1.1,
+            }}>
+              Frequently asked questions
+            </h2>
           </div>
-        </ScrollReveal>
+        </SectionReveal>
 
-        <ScrollReveal delay={100}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <SectionReveal delay={100}>
+          <div>
             {faqs.map((faq) => (
               <FAQItem
                 key={faq.id}
@@ -143,7 +158,7 @@ export function FAQ() {
               />
             ))}
           </div>
-        </ScrollReveal>
+        </SectionReveal>
       </div>
     </section>
   );

@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform, useWindowDimensions, Image } from 'react-native';
+import { Pressable, Platform, useWindowDimensions, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors, Breakpoints } from '@/constants/theme';
+import { Breakpoints } from '@/constants/theme';
+import { MenuIcon, CloseIcon } from './icons';
 
-/**
- * Fixed header with scroll-triggered glassmorphism effect.
- */
 export function Header() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
@@ -34,223 +32,183 @@ export function Header() {
     setMobileMenuOpen(false);
   };
 
-  const headerStyle = scrolled
-    ? {
-        backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        ...(Platform.OS === 'web' ? {
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-        } : {}),
-        borderBottomWidth: 1,
-        borderBottomColor: Colors.neutral.gray100,
-      }
-    : {
-        backgroundColor: 'transparent',
-      };
-
   return (
-    <View style={[styles.header, headerStyle as any]}>
-      <View style={[styles.headerContent, { paddingTop: isDesktop ? 16 : 28 }]}>
-        {/* Logo */}
-        <View style={styles.logo}>
-          <Image
-            source={require('@/assets/images/tuknang-logo-whitetext.png')}
-            style={[styles.logoImage, scrolled && styles.logoImageScrolled]}
-            resizeMode="contain"
-          />
-        </View>
+    <header style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+      transition: 'all 0.3s ease',
+      backgroundColor: scrolled ? 'rgba(255, 255, 255, 0.85)' : 'transparent',
+      backdropFilter: scrolled ? 'blur(20px)' : 'none',
+      WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'none',
+      borderBottom: scrolled ? '1px solid #e7e5e4' : '1px solid transparent',
+    } as any}>
+      <div style={{
+        maxWidth: 1200,
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        paddingLeft: 24,
+        paddingRight: 24,
+        paddingTop: isDesktop ? 16 : 20,
+        paddingBottom: 16,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <Image
+          source={require('@/assets/images/tuknang-logo-whitetext.png')}
+          style={{
+            width: isDesktop ? 200 : 160,
+            height: isDesktop ? 52 : 42,
+            // @ts-ignore
+            filter: scrolled ? 'brightness(0)' : 'none',
+            transition: 'filter 0.3s ease',
+          }}
+          resizeMode="contain"
+        />
 
-        {/* Desktop Navigation */}
         {isDesktop && (
-          <View style={styles.desktopNav}>
-            <Pressable onPress={() => scrollToSection('features')}>
-              <Text style={[styles.navLink, scrolled && styles.navLinkScrolled]}>Features</Text>
-            </Pressable>
-            <Pressable onPress={() => scrollToSection('pricing')}>
-              <Text style={[styles.navLink, scrolled && styles.navLinkScrolled]}>Pricing</Text>
-            </Pressable>
-            <Pressable onPress={() => scrollToSection('faq')}>
-              <Text style={[styles.navLink, scrolled && styles.navLinkScrolled]}>FAQ</Text>
-            </Pressable>
-          </View>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+            {['features', 'pricing', 'faq'].map((id) => (
+              <span
+                key={id}
+                onClick={() => scrollToSection(id)}
+                style={{
+                  fontSize: 15,
+                  fontWeight: 500,
+                  color: scrolled ? '#57534e' : 'rgba(255, 255, 255, 0.8)',
+                  cursor: 'pointer',
+                  transition: 'color 0.2s',
+                  textTransform: 'capitalize',
+                }}
+              >
+                {id === 'faq' ? 'FAQ' : id.charAt(0).toUpperCase() + id.slice(1)}
+              </span>
+            ))}
+          </nav>
         )}
 
-        {/* Desktop CTA */}
         {isDesktop && (
-          <View style={styles.headerButtons}>
-            <Pressable onPress={() => router.push('/(auth)/login')} style={styles.loginButton}>
-              <Text style={[styles.loginButtonText, scrolled && styles.loginButtonTextScrolled]}>
-                Log In
-              </Text>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span
+              onClick={() => router.push('/(auth)/login')}
+              style={{
+                fontSize: 15,
+                fontWeight: 500,
+                color: scrolled ? '#1c1917' : 'rgba(255, 255, 255, 0.9)',
+                cursor: 'pointer',
+                transition: 'color 0.2s',
+              }}
+            >
+              Log In
+            </span>
+            <Pressable
+              onPress={() => router.push('/(auth)/register')}
+              style={{
+                backgroundColor: '#0d9488',
+                paddingHorizontal: 24,
+                paddingVertical: 10,
+                borderRadius: 100,
+              }}
+            >
+              <span style={{
+                color: '#ffffff',
+                fontSize: 15,
+                fontWeight: 600,
+              }}>
+                Get Started
+              </span>
             </Pressable>
-            <Pressable onPress={() => router.push('/(auth)/register')} style={styles.signupButton}>
-              <Text style={styles.signupButtonText}>Get Started</Text>
-            </Pressable>
-          </View>
+          </div>
         )}
 
-        {/* Mobile Menu Button */}
         {!isDesktop && (
           <Pressable
             onPress={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={styles.menuButton}
+            style={{ padding: 8 }}
           >
-            <Text style={[styles.menuIcon, scrolled && styles.menuIconScrolled]}>
-              {mobileMenuOpen ? '\u2715' : '\u2630'}
-            </Text>
+            {mobileMenuOpen
+              ? <CloseIcon size={24} color={scrolled ? '#1c1917' : '#ffffff'} />
+              : <MenuIcon size={24} color={scrolled ? '#1c1917' : '#ffffff'} />
+            }
           </Pressable>
         )}
-      </View>
+      </div>
 
-      {/* Mobile Menu */}
       {!isDesktop && mobileMenuOpen && (
-        <View style={[styles.mobileMenu, scrolled && styles.mobileMenuScrolled]}>
-          <Pressable onPress={() => scrollToSection('features')} style={styles.mobileNavItem}>
-            <Text style={styles.mobileNavText}>Features</Text>
-          </Pressable>
-          <Pressable onPress={() => scrollToSection('pricing')} style={styles.mobileNavItem}>
-            <Text style={styles.mobileNavText}>Pricing</Text>
-          </Pressable>
-          <Pressable onPress={() => scrollToSection('faq')} style={styles.mobileNavItem}>
-            <Text style={styles.mobileNavText}>FAQ</Text>
-          </Pressable>
-          <View style={styles.mobileMenuButtons}>
-            <Pressable onPress={() => router.push('/(auth)/login')} style={styles.mobileLoginButton}>
-              <Text style={styles.mobileLoginText}>Log In</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push('/(auth)/register')} style={styles.mobileSignupButton}>
-              <Text style={styles.mobileSignupText}>Get Started</Text>
-            </Pressable>
-          </View>
-        </View>
+        <div style={{
+          backgroundColor: '#ffffff',
+          paddingLeft: 24,
+          paddingRight: 24,
+          paddingTop: 8,
+          paddingBottom: 24,
+          borderTop: '1px solid #e7e5e4',
+        }}>
+          {['features', 'pricing', 'faq'].map((id) => (
+            <div
+              key={id}
+              onClick={() => scrollToSection(id)}
+              style={{
+                paddingTop: 14,
+                paddingBottom: 14,
+                fontSize: 16,
+                fontWeight: 500,
+                color: '#57534e',
+                cursor: 'pointer',
+                minHeight: 48,
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {id === 'faq' ? 'FAQ' : id.charAt(0).toUpperCase() + id.slice(1)}
+            </div>
+          ))}
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div
+              onClick={() => { router.push('/(auth)/login'); setMobileMenuOpen(false); }}
+              style={{
+                paddingTop: 14,
+                paddingBottom: 14,
+                textAlign: 'center',
+                fontSize: 16,
+                fontWeight: 500,
+                color: '#1c1917',
+                border: '1px solid #e7e5e4',
+                borderRadius: 12,
+                cursor: 'pointer',
+                minHeight: 48,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              Log In
+            </div>
+            <div
+              onClick={() => { router.push('/(auth)/register'); setMobileMenuOpen(false); }}
+              style={{
+                paddingTop: 14,
+                paddingBottom: 14,
+                textAlign: 'center',
+                fontSize: 16,
+                fontWeight: 600,
+                color: '#ffffff',
+                backgroundColor: '#0d9488',
+                borderRadius: 12,
+                cursor: 'pointer',
+                minHeight: 48,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              Get Started
+            </div>
+          </div>
+        </div>
       )}
-    </View>
+    </header>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100,
-    // @ts-ignore - web transition
-    transition: 'all 0.3s ease',
-  },
-  headerContent: {
-    maxWidth: 1200,
-    marginHorizontal: 'auto',
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-  },
-  logo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoImage: {
-    width: 220,
-    height: 56,
-  },
-  logoImageScrolled: {
-    // When scrolled (white bg), make logo dark
-    // @ts-ignore - web filter
-    filter: 'brightness(0)',
-  },
-  desktopNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 32,
-  },
-  navLink: {
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '500',
-    fontSize: 15,
-  },
-  navLinkScrolled: {
-    color: Colors.neutral.gray600,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  loginButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  loginButtonText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontWeight: '500',
-  },
-  loginButtonTextScrolled: {
-    color: Colors.primary.navy,
-  },
-  signupButton: {
-    backgroundColor: Colors.primary.teal,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  signupButtonText: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  menuButton: {
-    padding: 8,
-  },
-  menuIcon: {
-    fontSize: 24,
-    color: '#ffffff',
-  },
-  menuIconScrolled: {
-    color: Colors.primary.navy,
-  },
-  mobileMenu: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: Colors.neutral.gray100,
-  },
-  mobileMenuScrolled: {
-    backgroundColor: '#ffffff',
-  },
-  mobileNavItem: {
-    paddingVertical: 12,
-  },
-  mobileNavText: {
-    fontSize: 16,
-    color: Colors.neutral.gray600,
-    fontWeight: '500',
-  },
-  mobileMenuButtons: {
-    marginTop: 16,
-    gap: 12,
-  },
-  mobileLoginButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.neutral.gray200,
-    borderRadius: 8,
-  },
-  mobileLoginText: {
-    color: Colors.primary.navy,
-    fontWeight: '500',
-  },
-  mobileSignupButton: {
-    backgroundColor: Colors.primary.teal,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  mobileSignupText: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-});

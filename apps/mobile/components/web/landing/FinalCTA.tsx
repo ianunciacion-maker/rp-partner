@@ -1,46 +1,25 @@
-import { View, Text, StyleSheet, Pressable, ViewStyle } from 'react-native';
+import { Text, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors } from '@/constants/theme';
-import { VideoBackground } from './VideoBackground';
-import { ScrollReveal } from './ScrollReveal';
+import { Breakpoints } from '@/constants/theme';
+import { SectionReveal } from './SectionReveal';
 
-/**
- * Final call-to-action section with dark background.
- */
 export function FinalCTA() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const isDesktop = width >= Breakpoints.tablet;
 
   return (
     <section style={{
       position: 'relative',
-      paddingTop: 100,
-      paddingBottom: 100,
+      paddingTop: isDesktop ? 120 : 80,
+      paddingBottom: isDesktop ? 120 : 80,
+      backgroundColor: '#0c1a2e',
       overflow: 'hidden',
     }}>
-      <VideoBackground overlay overlayOpacity={50} />
-
-      {/* Decorations */}
       <div style={{
         position: 'absolute',
-        top: '25%',
-        right: '-25%',
-        width: 600,
-        height: 600,
-        borderRadius: '50%',
-        backgroundColor: 'rgba(56, 178, 172, 0.2)',
-        filter: 'blur(100px)',
-        pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute',
-        bottom: '-25%',
-        left: '-25%',
-        width: 400,
-        height: 400,
-        borderRadius: '50%',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        filter: 'blur(100px)',
-        pointerEvents: 'none',
+        inset: 0,
+        background: 'radial-gradient(ellipse at 50% 50%, rgba(13,148,136,0.15) 0%, transparent 60%)',
       }} />
 
       <div style={{
@@ -48,71 +27,54 @@ export function FinalCTA() {
         maxWidth: 800,
         marginLeft: 'auto',
         marginRight: 'auto',
-        paddingLeft: 16,
-        paddingRight: 16,
+        paddingLeft: 24,
+        paddingRight: 24,
         textAlign: 'center',
       }}>
-        <ScrollReveal>
+        <SectionReveal>
           <h2 style={{
-            fontSize: 36,
-            fontWeight: 'bold',
-            color: Colors.neutral.white,
-            marginTop: 0,
+            fontSize: isDesktop ? 40 : 32,
+            fontWeight: 700,
+            color: '#ffffff',
+            margin: 0,
             marginBottom: 32,
-            lineHeight: 1.22,
+            lineHeight: 1.2,
+            letterSpacing: -1,
           }}>
-            Ready to Manage Your Properties Like a Pro?
+            Ready to simplify your rental business?
           </h2>
-          <p style={{
-            fontSize: 18,
-            color: 'rgba(255, 255, 255, 0.8)',
-            marginTop: 0,
-            marginBottom: 48,
-            lineHeight: 1.6,
-            maxWidth: 600,
-            marginLeft: 'auto',
-            marginRight: 'auto',
-          }}>
-            Simplify your rental business with the all-in-one app built for Filipino property owners. Start free today.
-          </p>
 
           <Pressable
             onPress={() => router.push('/(auth)/register')}
-            style={styles.ctaButton}
+            style={{
+              backgroundColor: '#ffffff',
+              paddingHorizontal: 40,
+              paddingVertical: 18,
+              borderRadius: 100,
+              alignSelf: 'center',
+              height: 56,
+              justifyContent: 'center',
+            }}
           >
-            <Text style={styles.ctaButtonText}>Get Started Free {'\u2192'}</Text>
+            <Text style={{
+              color: '#0c1a2e',
+              fontSize: 18,
+              fontWeight: '600',
+            }}>
+              Get Started Free
+            </Text>
           </Pressable>
 
           <p style={{
             fontSize: 14,
-            color: 'rgba(255, 255, 255, 0.6)',
-            marginTop: 32,
+            color: 'rgba(255, 255, 255, 0.4)',
+            marginTop: 24,
             marginBottom: 0,
           }}>
-            No credit card required {'\u2022'} Free forever {'\u2022'} Cancel anytime
+            Free forever. No credit card required.
           </p>
-        </ScrollReveal>
+        </SectionReveal>
       </div>
     </section>
   );
 }
-
-const styles = StyleSheet.create({
-  ctaButton: {
-    backgroundColor: Colors.neutral.white,
-    paddingHorizontal: 40,
-    paddingVertical: 18,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 8,
-    alignSelf: 'center',
-  },
-  ctaButtonText: {
-    color: Colors.primary.navy,
-    fontSize: 18,
-    fontWeight: '600',
-  },
-});

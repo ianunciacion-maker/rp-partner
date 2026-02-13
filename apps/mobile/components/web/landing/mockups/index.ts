@@ -4,3 +4,7 @@ export { CashflowScreenMockup } from './CashflowScreenMockup';
 export { GuestScreenMockup } from './GuestScreenMockup';
 export { MockupStatusBar } from './MockupStatusBar';
 export { MockupBottomNav } from './MockupBottomNav';
+export { DesktopPropertiesScreenMockup } from './DesktopPropertiesScreenMockup';
+export { DesktopCalendarScreenMockup } from './DesktopCalendarScreenMockup';
+export { DesktopCashflowScreenMockup } from './DesktopCashflowScreenMockup';
+export { DesktopGuestScreenMockup } from './DesktopGuestScreenMockup';

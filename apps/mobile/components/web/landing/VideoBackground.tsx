@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import { Colors } from '@/constants/theme';
+import { Platform } from 'react-native';
 
 interface VideoBackgroundProps {
   src?: string;
@@ -8,10 +7,14 @@ interface VideoBackgroundProps {
   overlayOpacity?: number;
 }
 
-/**
- * Video background component for web.
- * Falls back to gradient on native or if video fails.
- */
+const fill: React.CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+};
+
 export function VideoBackground({
   src = '/videos/gradient-bg.mp4',
   overlay = false,
@@ -19,19 +22,10 @@ export function VideoBackground({
 }: VideoBackgroundProps) {
   const [videoFailed, setVideoFailed] = useState(false);
 
-  if (Platform.OS !== 'web') {
-    return (
-      <View style={styles.container}>
-        <View style={styles.gradientFallback} />
-        {overlay && (
-          <View style={[styles.overlay, { opacity: overlayOpacity / 100 }]} />
-        )}
-      </View>
-    );
-  }
+  if (Platform.OS !== 'web') return null;
 
   return (
-    <View style={styles.container}>
+    <div style={{ ...fill, overflow: 'hidden', zIndex: 0 }}>
       {!videoFailed && (
         <video
           autoPlay
@@ -40,9 +34,7 @@ export function VideoBackground({
           playsInline
           onError={() => setVideoFailed(true)}
           style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
+            ...fill,
             width: '100%',
             height: '100%',
             objectFit: 'cover',
@@ -52,38 +44,13 @@ export function VideoBackground({
         </video>
       )}
 
-      {videoFailed && <View style={styles.gradientFallback} />}
+      {videoFailed && (
+        <div style={{ ...fill, backgroundColor: '#0c1a2e' }} />
+      )}
 
       {overlay && (
-        <View style={[styles.overlay, { opacity: overlayOpacity / 100 }]} />
+        <div style={{ ...fill, backgroundColor: '#000000', opacity: overlayOpacity / 100 }} />
       )}
-    </View>
+    </div>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    overflow: 'hidden',
-  },
-  gradientFallback: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: Colors.primary.navy,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#000000',
-  },
-});

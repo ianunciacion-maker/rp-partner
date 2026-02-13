@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, Modal, Pressable, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { supabase } from '@/services/supabase';
-import { getAllPropertiesOccupancy, calculatePropertyOccupancy } from '@/services/analytics';
+import { calculatePropertyOccupancy } from '@/services/analytics';
 import { exportPDFReport } from '@/services/pdfReport';
 import type { Property, CashflowEntry } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
@@ -31,48 +31,69 @@ export function ReportOptionsModal({ visible, onClose, properties, selectedPrope
       const lastDay = new Date(toYear, toMon, 0).getDate();
       const endDate = `${sortedTo}-${String(lastDay).padStart(2, '0')}`;
 
-      let query = supabase
-        .from('cashflow_entries')
-        .select('*')
-        .gte('transaction_date', startDate)
-        .lte('transaction_date', endDate)
-        .order('transaction_date', { ascending: true });
+      const slugify = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
       if (selectedProperty) {
-        query = query.eq('property_id', selectedProperty);
-      }
+        const { data: entries } = await supabase
+          .from('cashflow_entries')
+          .select('*')
+          .eq('property_id', selectedProperty)
+          .gte('transaction_date', startDate)
+          .lte('transaction_date', endDate)
+          .order('transaction_date', { ascending: true });
 
-      const { data: entries } = await query;
-
-      let occupancy = [];
-      try {
-        if (selectedProperty) {
+        let occupancy = [];
+        try {
           const result = await calculatePropertyOccupancy(selectedProperty, toYear, toMon - 1);
           occupancy = result ? [result] : [];
-        } else {
-          occupancy = await getAllPropertiesOccupancy(toYear, toMon - 1, properties.map((p) => p.id));
+        } catch {}
+
+        const propertyName = properties.find((p) => p.id === selectedProperty)?.name || 'Property';
+        const filename = `${slugify(propertyName)}-report-${sortedFrom}-to-${sortedTo}.pdf`;
+
+        await exportPDFReport(
+          {
+            entries: (entries || []) as CashflowEntry[],
+            properties,
+            occupancy,
+            fromMonth: sortedFrom,
+            toMonth: sortedTo,
+            propertyName,
+          },
+          filename
+        );
+      } else {
+        const { data: allEntries } = await supabase
+          .from('cashflow_entries')
+          .select('*')
+          .gte('transaction_date', startDate)
+          .lte('transaction_date', endDate)
+          .order('transaction_date', { ascending: true });
+
+        for (const property of properties) {
+          const propertyEntries = (allEntries || []).filter((e) => e.property_id === property.id) as CashflowEntry[];
+
+          let occupancy = [];
+          try {
+            const result = await calculatePropertyOccupancy(property.id, toYear, toMon - 1);
+            occupancy = result ? [result] : [];
+          } catch {}
+
+          const filename = `${slugify(property.name)}-report-${sortedFrom}-to-${sortedTo}.pdf`;
+
+          await exportPDFReport(
+            {
+              entries: propertyEntries,
+              properties: [property],
+              occupancy,
+              fromMonth: sortedFrom,
+              toMonth: sortedTo,
+              propertyName: property.name,
+            },
+            filename
+          );
         }
-      } catch {
-        // Occupancy is optional in the report
       }
-
-      const propertyName = selectedProperty
-        ? properties.find((p) => p.id === selectedProperty)?.name
-        : undefined;
-
-      const filename = `tuknang-report-${sortedFrom}-to-${sortedTo}.pdf`;
-
-      await exportPDFReport(
-        {
-          entries: (entries || []) as CashflowEntry[],
-          properties,
-          occupancy,
-          fromMonth: sortedFrom,
-          toMonth: sortedTo,
-          propertyName,
-        },
-        filename
-      );
 
       onClose();
     } catch (error: any) {

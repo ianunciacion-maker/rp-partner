@@ -1,4 +1,4 @@
-import { StyleSheet, Platform, View } from 'react-native';
+import { Platform } from 'react-native';
 import { useEffect } from 'react';
 import {
   Header,
@@ -10,35 +10,68 @@ import {
   Footer,
   ScrollToTop,
 } from './landing';
+import { ProblemStatement } from './landing/ProblemStatement';
+import { ProductOverview } from './landing/ProductOverview';
+import { HowItWorks } from './landing/HowItWorks';
+import { SocialProof } from './landing/SocialProof';
 
-// Only render on web
 if (Platform.OS !== 'web') {
   module.exports = { default: () => null };
 }
 
-/**
- * Full landing page for tuknang.com web experience.
- * Composed of multiple sections matching the rpwebsite design.
- */
 export default function LandingPage() {
-  // Inject global CSS for web animations
   useEffect(() => {
     if (Platform.OS === 'web') {
       const style = document.createElement('style');
       style.textContent = `
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
         @keyframes fadeInUp {
           from {
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(24px);
           }
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes slideInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-24px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(24px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
           }
         }
 
@@ -55,29 +88,51 @@ export default function LandingPage() {
           overflow-x: hidden;
           margin: 0;
           padding: 0;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         #root {
           min-height: 100vh;
         }
 
-        h1, h2, h3, h4, h5, h6 {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        h1, h2, h3, h4, h5, h6, p, span, a, li, div {
+          font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
-        /* Smooth transitions */
         a, button, [role="button"] {
           transition: all 0.2s ease;
         }
 
-        /* Better button hover states */
         button:hover, [role="button"]:hover {
           transform: translateY(-1px);
         }
 
         button:active, [role="button"]:active {
           transform: translateY(0);
+        }
+
+        /* SectionReveal animation classes */
+        .sr {
+          opacity: 0;
+          transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+                      transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .sr.sr-up {
+          transform: translateY(24px);
+        }
+
+        .sr.sr-left {
+          transform: translateX(-24px);
+        }
+
+        .sr.sr-right {
+          transform: translateX(24px);
+        }
+
+        .sr.sr-visible {
+          opacity: 1;
+          transform: translateY(0) translateX(0);
         }
       `;
       if (!document.getElementById('landing-styles')) {
@@ -90,19 +145,23 @@ export default function LandingPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#fafaf9',
       display: 'flex',
       flexDirection: 'column',
     }}>
       <Header />
       <main style={{ flex: 1 }}>
         <Hero />
+        <ProblemStatement />
+        <ProductOverview />
         <FeaturesShowcase />
+        <HowItWorks />
+        <SocialProof />
         <PricingSection />
         <FAQ />
         <FinalCTA />
-        <Footer />
       </main>
+      <Footer />
       <ScrollToTop />
     </div>
   );

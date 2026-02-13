@@ -10,7 +10,7 @@ interface ReportData {
   occupancy: OccupancyData[];
   fromMonth: string;
   toMonth: string;
-  propertyName?: string;
+  propertyName: string;
 }
 
 function formatCurrency(amount: number): string {
@@ -42,12 +42,9 @@ export function generateReportHTML(data: ReportData): string {
     ? formatMonthLabel(fromMonth)
     : `${formatMonthLabel(fromMonth)} - ${formatMonthLabel(toMonth)}`;
 
-  const subtitle = propertyName ? `${propertyName} | ${dateRange}` : dateRange;
-
   const occupancyRows = occupancy.length > 0
     ? occupancy.map((o) => `
         <tr>
-          <td>${o.propertyName}</td>
           <td style="text-align:center">${o.occupancyRate}%</td>
           <td style="text-align:center">${o.bookedNights}</td>
           <td style="text-align:center">${o.totalDays - o.lockedDays}</td>
@@ -93,8 +90,8 @@ export function generateReportHTML(data: ReportData): string {
 </head>
 <body>
   <div class="header">
-    <h1>Tuknang Financial Report</h1>
-    <p>${subtitle}</p>
+    <h1>${propertyName}</h1>
+    <p>${dateRange}</p>
     <p class="generated">Generated on ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
   </div>
 
@@ -116,7 +113,7 @@ export function generateReportHTML(data: ReportData): string {
   ${occupancyRows ? `
   <h2>Occupancy Rates</h2>
   <table>
-    <tr><th>Property</th><th style="text-align:center">Rate</th><th style="text-align:center">Booked</th><th style="text-align:center">Available</th></tr>
+    <tr><th style="text-align:center">Rate</th><th style="text-align:center">Booked</th><th style="text-align:center">Available</th></tr>
     ${occupancyRows}
   </table>` : ''}
 

@@ -1,6 +1,6 @@
 import { useWindowDimensions, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors, Breakpoints } from '@/constants/theme';
+import { Breakpoints } from '@/constants/theme';
 
 const FOOTER_LINKS = [
   { href: '#features', label: 'Features' },
@@ -10,9 +10,6 @@ const FOOTER_LINKS = [
   { href: 'mailto:ian@autonoiq.com', label: 'Contact' },
 ];
 
-/**
- * Main site footer with working links only.
- */
 export function Footer() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -35,8 +32,8 @@ export function Footer() {
 
   return (
     <footer style={{
-      backgroundColor: Colors.neutral.gray50,
-      borderTop: `1px solid ${Colors.neutral.gray100}`,
+      backgroundColor: '#ffffff',
+      borderTop: '1px solid #e7e5e4',
       paddingTop: 48,
       paddingBottom: 48,
     }}>
@@ -44,44 +41,27 @@ export function Footer() {
         maxWidth: 1200,
         marginLeft: 'auto',
         marginRight: 'auto',
-        paddingLeft: 16,
-        paddingRight: 16,
+        paddingLeft: 24,
+        paddingRight: 24,
       }}>
         <div style={{
           display: 'flex',
           flexDirection: isDesktop ? 'row' : 'column',
-          alignItems: isDesktop ? 'flex-start' : 'center',
-          gap: isDesktop ? 48 : 32,
+          alignItems: isDesktop ? 'center' : 'center',
+          justifyContent: 'space-between',
+          gap: 32,
         }}>
-          {/* Brand Column */}
-          <div style={{
-            flex: isDesktop ? 1 : 'none',
-            textAlign: isDesktop ? 'left' : 'center',
-          }}>
-            <div style={{ marginBottom: 16 }}>
-              <Image
-                source={require('@/assets/images/tuknang-logo-whitetext.png')}
-                style={{
-                  width: 160,
-                  height: 42,
-                  // @ts-ignore - web filter to make white logo dark
-                  filter: 'brightness(0)',
-                }}
-                resizeMode="contain"
-              />
-            </div>
-            <p style={{
-              fontSize: 14,
-              color: Colors.neutral.gray500,
-              lineHeight: 1.6,
-              maxWidth: 280,
-              margin: isDesktop ? 0 : '0 auto',
-            }}>
-              The all-in-one property management app for Filipino landlords.
-            </p>
-          </div>
+          <Image
+            source={require('@/assets/images/tuknang-logo-whitetext.png')}
+            style={{
+              width: 180,
+              height: 46,
+              // @ts-ignore
+              filter: 'brightness(0)',
+            }}
+            resizeMode="contain"
+          />
 
-          {/* Links */}
           <div style={{
             display: 'flex',
             flexDirection: 'row',
@@ -96,15 +76,15 @@ export function Footer() {
                 onClick={() => handleLinkPress(link.href)}
                 style={{
                   fontSize: 14,
-                  color: Colors.neutral.gray600,
+                  color: '#57534e',
                   cursor: 'pointer',
                   transition: 'color 0.2s',
                 }}
                 onMouseEnter={(e: any) => {
-                  e.target.style.color = Colors.primary.teal;
+                  e.target.style.color = '#0d9488';
                 }}
                 onMouseLeave={(e: any) => {
-                  e.target.style.color = Colors.neutral.gray600;
+                  e.target.style.color = '#57534e';
                 }}
               >
                 {link.label}
@@ -113,15 +93,14 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom Bar */}
         <div style={{
           marginTop: 48,
           paddingTop: 32,
-          borderTop: `1px solid ${Colors.neutral.gray200}`,
+          borderTop: '1px solid #e7e5e4',
           textAlign: 'center',
         }}>
-          <span style={{ fontSize: 14, color: Colors.neutral.gray500 }}>
-            {'\u00A9'} 2026 Tuknang. Made with {'\u2764'} in the Philippines.
+          <span style={{ fontSize: 14, color: '#a8a29e' }}>
+            {'\u00A9'} 2026 Tuknang. Made in the Philippines.
           </span>
         </div>
       </div>

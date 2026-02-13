@@ -1,302 +1,249 @@
-import { View, Text, StyleSheet, Pressable, useWindowDimensions, ViewStyle } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { Text, Pressable, useWindowDimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors, Breakpoints } from '@/constants/theme';
-import { VideoBackground } from './VideoBackground';
-import { ScrollReveal } from './ScrollReveal';
+import { Breakpoints } from '@/constants/theme';
+import { PhoneMockup } from './PhoneMockup';
+import { BrowserMockup } from './BrowserMockup';
+import { PropertiesScreenMockup, DesktopPropertiesScreenMockup } from './mockups';
 
-/**
- * Hero section with video background and centered content.
- */
 export function Hero() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = width >= Breakpoints.tablet;
+  const [scrollY, setScrollY] = useState(0);
+  const videoContainerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const container = videoContainerRef.current;
+    if (!container) return;
+
+    const video = document.createElement('video');
+    video.autoplay = true;
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.src = '/videos/herobg.mov';
+    Object.assign(video.style, {
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+    });
+    container.appendChild(video);
+    video.play().catch(() => {});
+
+    return () => {
+      container.removeChild(video);
+    };
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <VideoBackground
-        src="/videos/hero-villa.mp4"
-        overlay
-        overlayOpacity={55}
+    <section style={{
+      position: 'relative',
+      overflow: 'hidden',
+      backgroundColor: '#0c1a2e',
+    }}>
+      {/* Video background container — video injected via DOM API */}
+      <div
+        ref={videoContainerRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 0,
+          overflow: 'hidden',
+        }}
       />
-
-      {/* Gradient overlay for better text contrast */}
+      {/* Dark overlay */}
       <div style={{
         position: 'absolute',
         inset: 0,
-        background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.4) 100%)',
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
         zIndex: 1,
       }} />
-
-      {/* Background decoration */}
-      <View style={styles.decoration1} />
-      <View style={styles.decoration2} />
+      {/* Teal radial accent */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'radial-gradient(ellipse at 80% 20%, rgba(13,148,136,0.15) 0%, transparent 60%)',
+        transform: `translateY(${scrollY * 0.3}px)`,
+        zIndex: 1,
+      }} />
 
       <div style={{
         position: 'relative',
         zIndex: 2,
-        width: '100%',
-        display: 'flex',
-        justifyContent: 'center',
-        paddingTop: isDesktop ? 160 : 120,
-        paddingBottom: 100,
+        maxWidth: 1200,
+        marginLeft: 'auto',
+        marginRight: 'auto',
         paddingLeft: 24,
         paddingRight: 24,
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          width: '100%',
-          maxWidth: 900,
-        }}>
-          {/* Badge */}
-          <ScrollReveal delay={0}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              width: '100%',
-            }}>
-              <div style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: 'rgba(56, 178, 172, 0.2)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(56, 178, 172, 0.3)',
-                paddingLeft: 16,
-                paddingRight: 16,
-                paddingTop: 10,
-                paddingBottom: 10,
-                borderRadius: 50,
-                marginBottom: 32,
-              }}>
-                <span style={{ fontSize: 16 }}>🇵🇭</span>
-                <span style={{
-                  color: '#ffffff',
-                  fontSize: 14,
-                  fontWeight: 500,
-                  letterSpacing: 0.5,
-                }}>
-                  Built for Filipino Property Owners
-                </span>
-              </div>
-            </div>
-          </ScrollReveal>
-
-          {/* Main Headline */}
-          <ScrollReveal delay={100}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              width: '100%',
-            }}>
-              <h1 style={{
-                fontSize: isDesktop ? 72 : 44,
-                fontWeight: 800,
-                color: '#ffffff',
-                textAlign: 'center',
-                lineHeight: 1.05,
-                margin: 0,
-                marginBottom: 28,
-                letterSpacing: -2,
-                textShadow: '0 4px 30px rgba(0, 0, 0, 0.4)',
-              }}>
-                Manage Your Rentals
-                <br />
-                <span style={{
-                  background: 'linear-gradient(135deg, #38b2ac 0%, #4fd1c5 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}>
-                  Like a Pro
-                </span>
-              </h1>
-            </div>
-          </ScrollReveal>
-
-          {/* Subheadline */}
-          <ScrollReveal delay={200}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              width: '100%',
-            }}>
-              <p style={{
-                fontSize: isDesktop ? 22 : 18,
-                color: 'rgba(255, 255, 255, 0.9)',
-                textAlign: 'center',
-                lineHeight: 1.7,
-                margin: 0,
-                marginBottom: 48,
-                maxWidth: 600,
-                textShadow: '0 2px 10px rgba(0, 0, 0, 0.3)',
-              }}>
-                The all-in-one app to track bookings, manage finances, and grow your rental business.
-                <strong style={{ color: '#ffffff' }}> Free to start.</strong>
-              </p>
-            </div>
-          </ScrollReveal>
-
-          {/* CTAs */}
-          <ScrollReveal delay={300}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              width: '100%',
-            }}>
-              <div style={{
-                display: 'flex',
-                flexDirection: isDesktop ? 'row' : 'column',
-                gap: 16,
-                marginBottom: 56,
-                alignItems: 'center',
-              }}>
-              <Pressable
-                onPress={() => router.push('/(auth)/register')}
-                style={({ pressed }) => [
-                  styles.primaryButton,
-                  pressed && { opacity: 0.9, transform: [{ scale: 0.98 }] },
-                ]}
-              >
-                <Text style={styles.primaryButtonText}>Get Started Free</Text>
-                <Text style={styles.primaryButtonArrow}>{'\u2192'}</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  const el = document.getElementById('features');
-                  if (el) el.scrollIntoView({ behavior: 'smooth' });
-                }}
-                style={({ pressed }) => [
-                  styles.secondaryButton,
-                  pressed && { opacity: 0.8 },
-                ]}
-              >
-                <Text style={styles.secondaryButtonText}>See How It Works</Text>
-              </Pressable>
-              </div>
-            </div>
-          </ScrollReveal>
-
-        </div>
-      </div>
-
-      {/* Scroll indicator */}
-      <div style={{
-        position: 'absolute',
-        bottom: 32,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 10,
+        paddingTop: isDesktop ? 160 : 130,
+        paddingBottom: isDesktop ? 80 : 60,
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: isDesktop ? 'row' : 'column',
         alignItems: 'center',
-        gap: 8,
-        opacity: 0.6,
-        animation: 'bounce 2s infinite',
+        gap: isDesktop ? 64 : 48,
       }}>
-        <span style={{ fontSize: 12, color: '#ffffff', letterSpacing: 2, textTransform: 'uppercase' }}>Scroll</span>
         <div style={{
-          width: 24,
-          height: 40,
-          border: '2px solid rgba(255, 255, 255, 0.5)',
-          borderRadius: 12,
+          flex: 1,
+          maxWidth: isDesktop ? '50%' : '100%',
+          textAlign: isDesktop ? 'left' : 'center',
+        }}>
+          <div className="hero-anim" style={{
+            opacity: 0,
+            animation: 'fadeInUp 700ms cubic-bezier(0.16, 1, 0.3, 1) 200ms forwards',
+          }}>
+            <span style={{
+              display: 'inline-block',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              color: '#0d9488',
+              marginBottom: 24,
+            }}>
+              Built for Filipino Property Owners
+            </span>
+          </div>
+
+          <div className="hero-anim" style={{
+            opacity: 0,
+            animation: 'fadeInUp 700ms cubic-bezier(0.16, 1, 0.3, 1) 400ms forwards',
+          }}>
+            <h1 style={{
+              fontSize: isDesktop ? 80 : 44,
+              fontWeight: 800,
+              color: '#ffffff',
+              lineHeight: 1.05,
+              letterSpacing: isDesktop ? -3 : -1.5,
+              margin: 0,
+              marginBottom: 24,
+            }}>
+              Manage your rentals with clarity
+            </h1>
+          </div>
+
+          <div className="hero-anim" style={{
+            opacity: 0,
+            animation: 'fadeInUp 700ms cubic-bezier(0.16, 1, 0.3, 1) 600ms forwards',
+          }}>
+            <p style={{
+              fontSize: isDesktop ? 20 : 18,
+              color: 'rgba(255, 255, 255, 0.7)',
+              lineHeight: 1.6,
+              margin: 0,
+              marginBottom: 40,
+              maxWidth: isDesktop ? 480 : '100%',
+              marginLeft: isDesktop ? 0 : 'auto',
+              marginRight: isDesktop ? 0 : 'auto',
+            }}>
+              Track bookings, manage finances, and grow your rental business — all in one app.
+            </p>
+          </div>
+
+          <div className="hero-anim" style={{
+            opacity: 0,
+            animation: 'fadeInUp 700ms cubic-bezier(0.16, 1, 0.3, 1) 800ms forwards',
+            display: 'flex',
+            flexDirection: isDesktop ? 'row' : 'column',
+            alignItems: isDesktop ? 'center' : 'center',
+            gap: 16,
+          }}>
+            <Pressable
+              onPress={() => router.push('/(auth)/register')}
+              style={{
+                backgroundColor: '#0d9488',
+                paddingHorizontal: 36,
+                paddingVertical: 18,
+                borderRadius: 100,
+              }}
+            >
+              <Text style={{
+                color: '#ffffff',
+                fontSize: 18,
+                fontWeight: '600',
+              }}>
+                Get Started Free
+              </Text>
+            </Pressable>
+            <span
+              onClick={() => {
+                const el = document.getElementById('features');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              style={{
+                fontSize: 16,
+                color: 'rgba(255, 255, 255, 0.7)',
+                cursor: 'pointer',
+                transition: 'color 0.2s',
+              }}
+            >
+              See how it works →
+            </span>
+          </div>
+
+          <div className="hero-anim" style={{
+            opacity: 0,
+            animation: 'fadeInUp 700ms cubic-bezier(0.16, 1, 0.3, 1) 1000ms forwards',
+            marginTop: 24,
+          }}>
+            <span style={{
+              fontSize: 14,
+              color: 'rgba(255, 255, 255, 0.4)',
+            }}>
+              Free forever. No credit card required.
+            </span>
+          </div>
+        </div>
+
+        <div style={{
+          flex: 1,
           display: 'flex',
           justifyContent: 'center',
-          paddingTop: 8,
+          alignItems: 'center',
+          maxWidth: isDesktop ? '55%' : '100%',
         }}>
-          <div style={{
-            width: 4,
-            height: 8,
-            backgroundColor: '#ffffff',
-            borderRadius: 2,
-            animation: 'scrollDown 1.5s infinite',
-          }} />
+          <div className="hero-anim" style={{
+            opacity: 0,
+            animation: 'fadeInUp 700ms cubic-bezier(0.16, 1, 0.3, 1) 600ms forwards',
+            width: '100%',
+          }}>
+            {isDesktop ? (
+              <BrowserMockup width="100%">
+                <DesktopPropertiesScreenMockup />
+              </BrowserMockup>
+            ) : (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+              }}>
+                <div style={{
+                  boxShadow: '0 32px 64px rgba(0,0,0,0.4)',
+                  borderRadius: 40,
+                }}>
+                  <PhoneMockup>
+                    <PropertiesScreenMockup />
+                  </PhoneMockup>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {/* CSS animations */}
-      <style>{`
-        @keyframes bounce {
-          0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
-          40% { transform: translateX(-50%) translateY(-8px); }
-          60% { transform: translateX(-50%) translateY(-4px); }
-        }
-        @keyframes scrollDown {
-          0% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(12px); }
-        }
-      `}</style>
-    </View>
+    </section>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    position: 'relative',
-    minHeight: '100vh' as any,
-    overflow: 'hidden',
-  },
-  decoration1: {
-    position: 'absolute',
-    top: '-30%',
-    right: '-20%',
-    width: 800,
-    height: 800,
-    borderRadius: 400,
-    backgroundColor: 'rgba(56, 178, 172, 0.15)',
-    filter: 'blur(120px)',
-    zIndex: 1,
-  } as ViewStyle,
-  decoration2: {
-    position: 'absolute',
-    bottom: '-20%',
-    left: '-20%',
-    width: 700,
-    height: 700,
-    borderRadius: 350,
-    backgroundColor: 'rgba(26, 54, 93, 0.15)',
-    filter: 'blur(120px)',
-    zIndex: 1,
-  } as ViewStyle,
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: Colors.primary.teal,
-    paddingHorizontal: 40,
-    paddingVertical: 20,
-    borderRadius: 16,
-    shadowColor: Colors.primary.teal,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
-    elevation: 12,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  primaryButtonArrow: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '400',
-  },
-  secondaryButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 40,
-    paddingVertical: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    backdropFilter: 'blur(10px)',
-  } as ViewStyle,
-  secondaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '500',
-  },
-});

@@ -1,13 +1,13 @@
-import { Text, StyleSheet, Pressable, useWindowDimensions } from 'react-native';
+import { Text, Pressable, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Colors, Breakpoints } from '@/constants/theme';
-import { ScrollReveal } from './ScrollReveal';
+import { Breakpoints } from '@/constants/theme';
+import { SectionReveal } from './SectionReveal';
+import { CheckIcon } from './icons';
 
 const PRICING = {
   free: {
     name: 'Free',
     price: 0,
-    currency: '\u20B1',
     period: 'month',
     description: 'Perfect for getting started',
     features: [
@@ -20,11 +20,11 @@ const PRICING = {
       'iOS, Android, & Web access',
     ],
     cta: 'Start Free',
+    popular: true,
   },
   premium: {
     name: 'Premium',
     price: 499,
-    currency: '\u20B1',
     period: 'month',
     description: 'For growing property portfolios',
     features: [
@@ -37,12 +37,10 @@ const PRICING = {
       'Advanced analytics (coming soon)',
     ],
     cta: 'Upgrade to Premium',
+    popular: false,
   },
 };
 
-/**
- * Pricing section with Free and Premium plans.
- */
 export function PricingSection() {
   const router = useRouter();
   const { width } = useWindowDimensions();
@@ -50,199 +48,191 @@ export function PricingSection() {
 
   return (
     <section id="pricing" style={{
-      paddingTop: 100,
-      paddingBottom: 100,
-      backgroundColor: Colors.neutral.white,
+      paddingTop: isDesktop ? 120 : 80,
+      paddingBottom: isDesktop ? 120 : 80,
+      backgroundColor: '#fafaf9',
     }}>
       <div style={{
-        maxWidth: 1000,
+        maxWidth: 900,
         marginLeft: 'auto',
         marginRight: 'auto',
         paddingLeft: 24,
         paddingRight: 24,
       }}>
-        <ScrollReveal>
-          <div style={{ marginBottom: 64, textAlign: 'center' }}>
-            <h2 style={{
-              fontSize: 42,
-              fontWeight: 'bold',
-              color: Colors.neutral.gray900,
-              margin: 0,
+        <SectionReveal>
+          <div style={{ textAlign: 'center', marginBottom: isDesktop ? 64 : 48 }}>
+            <span style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              color: '#0d9488',
               marginBottom: 16,
-              letterSpacing: -1,
-            }}>Simple, Transparent Pricing</h2>
+            }}>
+              Pricing
+            </span>
+            <h2 style={{
+              fontSize: isDesktop ? 52 : 32,
+              fontWeight: 700,
+              letterSpacing: -1.5,
+              color: '#1c1917',
+              margin: 0,
+              marginBottom: 12,
+              lineHeight: 1.1,
+            }}>
+              Simple, transparent pricing
+            </h2>
             <p style={{
               fontSize: 18,
-              color: Colors.neutral.gray500,
+              color: '#a8a29e',
               margin: 0,
-            }}>Start free, upgrade when you're ready.</p>
+            }}>
+              {"Start free, upgrade when you're ready."}
+            </p>
           </div>
-        </ScrollReveal>
+        </SectionReveal>
 
         <div style={{
           display: 'grid',
           gridTemplateColumns: isDesktop ? '1fr 1fr' : '1fr',
           gap: 32,
-          maxWidth: 850,
-          marginLeft: 'auto',
-          marginRight: 'auto',
         }}>
-          {/* Free Plan */}
-          <ScrollReveal delay={100}>
-            <div style={{
-              backgroundColor: '#ffffff',
-              borderRadius: 24,
-              padding: 40,
-              border: `2px solid ${Colors.primary.teal}`,
-              boxShadow: '0 4px 24px rgba(56, 178, 172, 0.15)',
-              position: 'relative',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
-              {/* Most Popular Badge */}
+          {Object.values(PRICING).map((plan, i) => (
+            <SectionReveal key={plan.name} delay={i * 150} style={{ height: '100%' }}>
               <div style={{
-                position: 'absolute',
-                top: -14,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                backgroundColor: Colors.primary.teal,
-                color: '#fff',
-                padding: '6px 20px',
+                backgroundColor: '#ffffff',
                 borderRadius: 20,
-                fontSize: 13,
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-              }}>Most Popular</div>
-
-              <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: Colors.neutral.gray900, marginBottom: 16 }}>
-                  {PRICING.free.name}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 48, fontWeight: 700, color: Colors.neutral.gray900 }}>
-                    {PRICING.free.currency}{PRICING.free.price}
-                  </span>
-                  <span style={{ fontSize: 16, color: Colors.neutral.gray500 }}>
-                    /{PRICING.free.period}
-                  </span>
-                </div>
-                <div style={{ fontSize: 14, color: Colors.primary.teal, fontWeight: 600, marginTop: 4 }}>forever</div>
-                <div style={{ fontSize: 15, color: Colors.neutral.gray500, marginTop: 12 }}>
-                  {PRICING.free.description}
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32 }}>
-                {PRICING.free.features.map((feature) => (
-                  <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{
-                      fontSize: 18,
-                      color: Colors.primary.teal,
-                      fontWeight: 'bold',
-                    }}>{'\u2713'}</span>
-                    <span style={{ fontSize: 15, color: Colors.neutral.gray600 }}>{feature}</span>
+                padding: 40,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06)',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+              }}>
+                {plan.popular && (
+                  <div style={{
+                    position: 'absolute',
+                    top: -14,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: '#0d9488',
+                    color: '#ffffff',
+                    padding: '6px 20px',
+                    borderRadius: 100,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    Most Popular
                   </div>
-                ))}
-              </div>
+                )}
 
-              <Pressable
-                onPress={() => router.push('/(auth)/register')}
-                style={styles.primaryButton}
-              >
-                <Text style={styles.primaryButtonText}>{PRICING.free.cta}</Text>
-              </Pressable>
-            </div>
-          </ScrollReveal>
-
-          {/* Premium Plan */}
-          <ScrollReveal delay={200}>
-            <div style={{
-              backgroundColor: '#f8fafc',
-              borderRadius: 24,
-              padding: 40,
-              border: '1px solid #e2e8f0',
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
-              <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                <div style={{ fontSize: 22, fontWeight: 700, color: Colors.neutral.gray900, marginBottom: 16 }}>
-                  {PRICING.premium.name}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 4 }}>
-                  <span style={{ fontSize: 48, fontWeight: 700, color: Colors.neutral.gray900 }}>
-                    {PRICING.premium.currency}{PRICING.premium.price}
-                  </span>
-                  <span style={{ fontSize: 16, color: Colors.neutral.gray500 }}>
-                    /{PRICING.premium.period}
-                  </span>
-                </div>
-                <div style={{ fontSize: 15, color: Colors.neutral.gray500, marginTop: 12 }}>
-                  {PRICING.premium.description}
-                </div>
-              </div>
-
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 32 }}>
-                {PRICING.premium.features.map((feature) => (
-                  <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span style={{
-                      fontSize: 18,
-                      color: Colors.primary.teal,
-                      fontWeight: 'bold',
-                    }}>{'\u2713'}</span>
-                    <span style={{ fontSize: 15, color: Colors.neutral.gray600 }}>{feature}</span>
+                <div style={{ textAlign: 'center', marginBottom: 32 }}>
+                  <div style={{
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: '#1c1917',
+                    marginBottom: 16,
+                  }}>
+                    {plan.name}
                   </div>
-                ))}
-              </div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    justifyContent: 'center',
+                    gap: 4,
+                  }}>
+                    <span style={{
+                      fontSize: 56,
+                      fontWeight: 800,
+                      color: '#1c1917',
+                      letterSpacing: -2,
+                    }}>
+                      {'\u20B1'}{plan.price}
+                    </span>
+                    <span style={{ fontSize: 16, color: '#a8a29e' }}>
+                      /{plan.period}
+                    </span>
+                  </div>
+                  {plan.price === 0 && (
+                    <div style={{
+                      fontSize: 14,
+                      color: '#0d9488',
+                      fontWeight: 600,
+                      marginTop: 4,
+                    }}>
+                      forever
+                    </div>
+                  )}
+                  <div style={{
+                    fontSize: 15,
+                    color: '#a8a29e',
+                    marginTop: 12,
+                  }}>
+                    {plan.description}
+                  </div>
+                </div>
 
-              <Pressable
-                onPress={() => router.push('/(auth)/register')}
-                style={styles.secondaryButton}
-              >
-                <Text style={styles.secondaryButtonText}>{PRICING.premium.cta}</Text>
-              </Pressable>
-            </div>
-          </ScrollReveal>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 14,
+                  marginBottom: 32,
+                  flex: 1,
+                }}>
+                  {plan.features.map((feature) => (
+                    <div key={feature} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                    }}>
+                      <CheckIcon size={18} color="#0d9488" />
+                      <span style={{ fontSize: 15, color: '#57534e' }}>
+                        {feature}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <Pressable
+                  onPress={() => router.push('/(auth)/register')}
+                  style={{
+                    backgroundColor: plan.popular ? '#0d9488' : '#ffffff',
+                    paddingVertical: 16,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    borderWidth: plan.popular ? 0 : 1,
+                    borderColor: '#e7e5e4',
+                    height: 48,
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{
+                    color: plan.popular ? '#ffffff' : '#1c1917',
+                    fontSize: 16,
+                    fontWeight: '600',
+                  }}>
+                    {plan.cta}
+                  </Text>
+                </Pressable>
+              </div>
+            </SectionReveal>
+          ))}
         </div>
 
-        <p style={{
-          textAlign: 'center',
-          color: Colors.neutral.gray500,
-          fontSize: 14,
-          margin: 0,
-          marginTop: 40,
-        }}>
-          Pay via GCash, Maya, or Bank Transfer. No credit card needed.
-        </p>
+        <SectionReveal delay={300}>
+          <p style={{
+            textAlign: 'center',
+            color: '#a8a29e',
+            fontSize: 14,
+            margin: 0,
+            marginTop: 100,
+          }}>
+            Pay via GCash, Maya, or Bank Transfer. No credit card needed.
+          </p>
+        </SectionReveal>
       </div>
     </section>
   );
 }
-
-const styles = StyleSheet.create({
-  primaryButton: {
-    backgroundColor: Colors.primary.teal,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: Colors.neutral.white,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    backgroundColor: Colors.neutral.white,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.neutral.gray200,
-  },
-  secondaryButtonText: {
-    color: Colors.primary.navy,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
