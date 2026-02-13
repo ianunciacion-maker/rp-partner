@@ -112,9 +112,13 @@ export interface Database {
           user_id: string;
           date: string;
           reason: string | null;
+          source: string;
+          source_name: string | null;
+          external_uid: string | null;
+          subscription_id: string | null;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['locked_dates']['Row'], 'id' | 'created_at'>;
+        Insert: Omit<Database['public']['Tables']['locked_dates']['Row'], 'id' | 'created_at' | 'source'> & { source?: string };
         Update: Partial<Database['public']['Tables']['locked_dates']['Insert']>;
       };
       subscription_plans: {
@@ -212,6 +216,36 @@ export interface Database {
         Insert: Omit<Database['public']['Tables']['calendar_share_tokens']['Row'], 'id' | 'created_at' | 'view_count' | 'last_viewed_at'>;
         Update: Partial<Database['public']['Tables']['calendar_share_tokens']['Insert']>;
       };
+      ical_subscriptions: {
+        Row: {
+          id: string;
+          property_id: string;
+          user_id: string;
+          feed_url: string;
+          source_name: string;
+          source_label: string | null;
+          is_active: boolean;
+          last_synced_at: string | null;
+          last_sync_status: string;
+          last_error_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['ical_subscriptions']['Row'], 'id' | 'created_at' | 'updated_at' | 'last_synced_at' | 'last_sync_status' | 'last_error_message'>;
+        Update: Partial<Database['public']['Tables']['ical_subscriptions']['Insert']>;
+      };
+      ical_feed_tokens: {
+        Row: {
+          id: string;
+          property_id: string;
+          user_id: string;
+          token: string;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['ical_feed_tokens']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['ical_feed_tokens']['Insert']>;
+      };
     };
     Views: {};
     Functions: {};
@@ -230,6 +264,8 @@ export type PaymentMethod = Database['public']['Tables']['payment_methods']['Row
 export type Subscription = Database['public']['Tables']['subscriptions']['Row'];
 export type PaymentSubmission = Database['public']['Tables']['payment_submissions']['Row'];
 export type SubscriptionReminder = Database['public']['Tables']['subscription_reminders']['Row'];
+export type IcalSubscription = Database['public']['Tables']['ical_subscriptions']['Row'];
+export type IcalFeedToken = Database['public']['Tables']['ical_feed_tokens']['Row'];
 
 export type InsertTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
 export type UpdateTables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];
