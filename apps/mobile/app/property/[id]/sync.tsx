@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, Platform, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, Platform, Alert } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
-import { supabase, isAuthError } from '@/services/supabase';
+import { isAuthError } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { useCanAddIcalSubscription } from '@/stores/subscriptionStore';
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
@@ -108,7 +108,7 @@ export default function CalendarSyncScreen() {
     } finally {
       setIsLoading(false);
     }
-  }, [id]);
+  }, [id, showToast]);
 
   useEffect(() => {
     loadData();
@@ -135,10 +135,11 @@ export default function CalendarSyncScreen() {
 
     setIsAdding(true);
     try {
-      await addIcalSubscription(id, trimmedUrl, selectedSource);
+      const newSub = await addIcalSubscription(id, trimmedUrl, selectedSource);
       setFeedUrl('');
-      showToast('Calendar added successfully', 'success');
+      showToast('Calendar added! Syncing now...', 'success');
       await loadData();
+      triggerSyncForSubscription(newSub.id).catch(() => {});
     } catch (error: any) {
       if (isAuthError(error)) {
         showToast('Session expired. Please sign in again.', 'error');
