@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Platform, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { supabase } from '@/services/supabase';
+import { supabase, ensureSession, isAuthError } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import type { Property } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
@@ -157,6 +157,17 @@ export default function AddReservationScreen() {
 
     setIsLoading(true);
     try {
+      const sessionValid = await ensureSession();
+      if (!sessionValid) {
+        if (isWeb) {
+          window.alert('Session Expired\n\nYour session has expired. Please sign in again.');
+        } else {
+          Alert.alert('Session Expired', 'Your session has expired. Please sign in again.');
+        }
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
+
       const { error } = await supabase.from('reservations').insert({
         property_id: form.property_id,
         user_id: authUser?.id,
@@ -177,7 +188,6 @@ export default function AddReservationScreen() {
       if (error) throw error;
 
       if (isWeb) {
-        // Use setTimeout to ensure alert doesn't block navigation
         window.alert('Reservation created successfully!');
         setTimeout(() => router.replace('/(tabs)/calendar'), 0);
       } else {
@@ -187,6 +197,16 @@ export default function AddReservationScreen() {
       }
     } catch (error: any) {
       if (isMountedRef.current) {
+        if (isAuthError(error)) {
+          if (isWeb) {
+            window.alert('Session Expired\n\nYour session has expired. Please sign in again.');
+          } else {
+            Alert.alert('Session Expired', 'Your session has expired. Please sign in again.');
+          }
+          useAuthStore.getState().handleAuthError('expired');
+          return;
+        }
+
         const errorMessage = error.code === '23P01'
           ? 'These dates overlap with an existing reservation.'
           : (error.message || 'Failed to create reservation');

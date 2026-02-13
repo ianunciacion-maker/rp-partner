@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { supabase } from '@/services/supabase';
+import { supabase, isAuthError } from '@/services/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { Property, Reservation } from '@/types/database';
 import { Button } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
@@ -191,6 +192,15 @@ export default function ReservationDetailScreen() {
           router.back();
         }
       } catch (error: any) {
+        if (isAuthError(error)) {
+          if (isWeb) {
+            window.alert('Session expired. Please sign in again.');
+          } else {
+            Alert.alert('Session Expired', 'Your session has expired. Please sign in again.');
+          }
+          useAuthStore.getState().handleAuthError('expired');
+          return;
+        }
         if (isWeb) {
           window.alert(error.message);
         } else {

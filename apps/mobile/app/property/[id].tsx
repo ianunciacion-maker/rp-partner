@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, Alert, RefreshControl, Platform, Image } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-router';
-import { supabase } from '@/services/supabase';
+import { supabase, isAuthError } from '@/services/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { Property, Reservation } from '@/types/database';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 import { BottomNav } from '@/components/BottomNav';
@@ -52,6 +53,15 @@ export default function PropertyDetailScreen() {
           router.back();
         }
       } catch (error: any) {
+        if (isAuthError(error)) {
+          if (isWeb) {
+            window.alert('Session expired. Please sign in again.');
+          } else {
+            Alert.alert('Session Expired', 'Your session has expired. Please sign in again.');
+          }
+          useAuthStore.getState().handleAuthError('expired');
+          return;
+        }
         if (isWeb) {
           window.alert(error.message);
         } else {

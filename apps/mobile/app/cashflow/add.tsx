@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Image, Platform }
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { supabase } from '@/services/supabase';
+import { supabase, ensureSession, isAuthError } from '@/services/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import type { Property } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
@@ -222,6 +222,13 @@ export default function AddCashflowScreen() {
 
     setIsLoading(true);
     try {
+      const sessionValid = await ensureSession();
+      if (!sessionValid) {
+        showNotification('Session Expired', 'Your session has expired. Please sign in again.');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
+
       const { data: entry, error } = await supabase
         .from('cashflow_entries')
         .insert({
@@ -275,6 +282,11 @@ export default function AddCashflowScreen() {
       });
     } catch (error: any) {
       if (isMountedRef.current) {
+        if (isAuthError(error)) {
+          showNotification('Session Expired', 'Your session has expired. Please sign in again.');
+          useAuthStore.getState().handleAuthError('expired');
+          return;
+        }
         showNotification('Error', error.message || 'Failed to record transaction');
       }
     } finally {

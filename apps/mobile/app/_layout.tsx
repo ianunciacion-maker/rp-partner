@@ -88,10 +88,10 @@ export default function RootLayout() {
 
       if (isVisible && useAuthStore.getState().session) {
         try {
-          // Refresh the session when app becomes visible with 5s timeout
+          // Refresh the session when app becomes visible with 10s timeout
           const { data: { session }, error } = await withTimeout(
             supabase.auth.getSession(),
-            5000,
+            10000,
             'Session refresh timed out'
           );
 

@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter, Stack, useFocusEffect } from 'expo-rou
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
-import { supabase } from '@/services/supabase';
+import { supabase, isAuthError } from '@/services/supabase';
 import { createShareToken, getShareUrl } from '@/services/shareCalendar';
 import { useAuthStore } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
@@ -178,6 +178,11 @@ export default function PropertyCalendarScreen() {
       setLockModal({ visible: false, date: '' });
       fetchData();
     } catch (error: any) {
+      if (isAuthError(error)) {
+        showToast('Session expired. Please sign in again.', 'error');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
       if (isWeb) {
         showToast(error.message || 'Failed to lock date', 'error');
       }
@@ -198,6 +203,11 @@ export default function PropertyCalendarScreen() {
       setLockModal({ visible: false, date: '' });
       fetchData();
     } catch (error: any) {
+      if (isAuthError(error)) {
+        showToast('Session expired. Please sign in again.', 'error');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
       if (isWeb) {
         showToast(error.message || 'Failed to unlock date', 'error');
       }

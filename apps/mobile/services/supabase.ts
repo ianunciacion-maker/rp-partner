@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import type { Database } from '@/types/database';
+import { useAuthStore } from '@/stores/authStore';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
@@ -126,6 +127,31 @@ export const withTimeout = <T>(
       setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
     ),
   ]);
+};
+
+export const ensureSession = async (): Promise<boolean> => {
+  try {
+    const { data: { session }, error } = await withTimeout(
+      supabase.auth.getSession(),
+      10000,
+      'Session check timed out'
+    );
+    if (error || !session) return false;
+    useAuthStore.setState({ session, authUser: session.user });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const isAuthError = (error: any): boolean => {
+  const code = error?.code;
+  const status = error?.status ?? error?.statusCode;
+  const message = error?.message?.toLowerCase() ?? '';
+  return status === 401 || status === 403 || status === 406
+    || code === 'PGRST301' || code === '42501'
+    || message.includes('jwt') || message.includes('token')
+    || message.includes('not authenticated');
 };
 
 /**

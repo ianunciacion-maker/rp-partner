@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, Pressable, Platform, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { supabase } from '@/services/supabase';
+import { supabase, ensureSession, isAuthError } from '@/services/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import type { Property, Reservation } from '@/types/database';
 import { Button, Input, Select } from '@/components/ui';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
@@ -238,6 +239,13 @@ export default function EditReservationScreen() {
 
     setIsSaving(true);
     try {
+      const sessionValid = await ensureSession();
+      if (!sessionValid) {
+        showNotification('Session Expired', 'Your session has expired. Please sign in again.');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
+
       const { error } = await supabase
         .from('reservations')
         .update({
@@ -299,6 +307,11 @@ export default function EditReservationScreen() {
       });
     } catch (error: any) {
       if (isMountedRef.current) {
+        if (isAuthError(error)) {
+          showNotification('Session Expired', 'Your session has expired. Please sign in again.');
+          useAuthStore.getState().handleAuthError('expired');
+          return;
+        }
         const errorMessage = error.code === '23P01'
           ? 'These dates overlap with an existing reservation.'
           : (error.message || 'Failed to update reservation');

@@ -5,9 +5,9 @@ import { useFocusEffect } from '@react-navigation/native';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
-import { supabase } from '@/services/supabase';
+import { supabase, isAuthError } from '@/services/supabase';
 import { createShareToken, getShareUrl } from '@/services/shareCalendar';
-import { useUser } from '@/stores/authStore';
+import { useUser, useAuthStore } from '@/stores/authStore';
 import { useCanAccessCalendarMonth, useSubscriptionActions } from '@/stores/subscriptionStore';
 import { UpgradePrompt } from '@/components/subscription/UpgradePrompt';
 import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitIndicator';
@@ -237,6 +237,11 @@ export default function CalendarScreen() {
       setLockModal({ visible: false, date: '', propertyId: null });
       fetchData();
     } catch (error: any) {
+      if (isAuthError(error)) {
+        showToast('Session expired. Please sign in again.', 'error');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
       if (isWeb) {
         showToast(error.message || 'Failed to lock date', 'error');
       }
@@ -257,6 +262,11 @@ export default function CalendarScreen() {
       setLockModal({ visible: false, date: '', propertyId: null });
       fetchData();
     } catch (error: any) {
+      if (isAuthError(error)) {
+        showToast('Session expired. Please sign in again.', 'error');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
       if (isWeb) {
         showToast(error.message || 'Failed to unlock date', 'error');
       }
