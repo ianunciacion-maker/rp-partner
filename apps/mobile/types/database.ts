@@ -95,6 +95,10 @@ export interface Database {
           notes: string | null;
           is_recurring: boolean;
           recurring_config: Json | null;
+          recurrence_frequency: string | null;
+          next_due_date: string | null;
+          recurrence_end_date: string | null;
+          parent_entry_id: string | null;
           created_at: string;
           updated_at: string;
         };
