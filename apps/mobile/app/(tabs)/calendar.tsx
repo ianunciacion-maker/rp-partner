@@ -96,7 +96,7 @@ export default function CalendarScreen() {
         .not('status', 'in', '("cancelled","no_show")')
         .order('check_in', { ascending: true });
 
-      let lockQuery = supabase.from('locked_dates').select('id, property_id, date, reason');
+      let lockQuery = supabase.from('locked_dates').select('id, property_id, date, reason, source, source_name');
       const propsQuery = supabase.from('properties').select('id, name, city, user_id');
 
       if (selectedProperty) {
@@ -147,12 +147,12 @@ export default function CalendarScreen() {
 
   // Memoized date status map - computed once when data changes, O(1) lookup per day
   const dateStatusMap = useMemo(() => {
-    const map = new Map<string, { status: 'available' | 'booked' | 'completed' | 'past' | 'locked'; reservation?: ReservationWithProperty; lockedDate?: LockedDate }>();
+    const map = new Map<string, { status: 'available' | 'booked' | 'completed' | 'past' | 'locked' | 'external'; reservation?: ReservationWithProperty; lockedDate?: LockedDate }>();
     const today = new Date().toISOString().split('T')[0];
 
-    // Pre-index locked dates
     for (const locked of lockedDates) {
-      map.set(locked.date, { status: 'locked', lockedDate: locked });
+      const status = locked.source === 'external' ? 'external' : 'locked';
+      map.set(locked.date, { status, lockedDate: locked });
     }
 
     // Pre-index reservations (expand date ranges)
@@ -177,7 +177,7 @@ export default function CalendarScreen() {
     return map;
   }, [reservations, lockedDates]);
 
-  const getDateStatus = (day: number): { status: 'available' | 'booked' | 'completed' | 'past' | 'locked'; reservation?: ReservationWithProperty; lockedDate?: LockedDate } => {
+  const getDateStatus = (day: number): { status: 'available' | 'booked' | 'completed' | 'past' | 'locked' | 'external'; reservation?: ReservationWithProperty; lockedDate?: LockedDate } => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const today = new Date().toISOString().split('T')[0];
 
@@ -193,7 +193,7 @@ export default function CalendarScreen() {
     const today = new Date().toISOString().split('T')[0];
 
     const cached = dateStatusMap.get(dateStr);
-    if (cached && (cached.status === 'locked' || cached.status === 'booked' || cached.status === 'completed')) {
+    if (cached && (cached.status === 'locked' || cached.status === 'booked' || cached.status === 'completed' || cached.status === 'external')) {
       return 'notAvailable';
     }
 
@@ -202,6 +202,8 @@ export default function CalendarScreen() {
   };
 
   const handleDateLongPress = (day: number, status: string, lockedDate?: LockedDate) => {
+    if (status === 'external') return;
+
     if (!selectedProperty && properties.length > 1) {
       if (isWeb) {
         showToast('Please select a property to lock/unlock dates', 'info');
@@ -509,9 +511,14 @@ export default function CalendarScreen() {
                     styles.dayCell,
                     isToday && styles.todayCell,
                     status === 'past' && styles.pastCell,
+                    status === 'external' && styles.externalCell,
                   ]}
                   onPress={() => {
-                    if (status === 'locked') {
+                    if (status === 'external' && lockedDate) {
+                      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      const propertyId = selectedProperty || (properties.length === 1 ? properties[0].id : null);
+                      setLockModal({ visible: true, date: dateStr, propertyId, existingLock: lockedDate });
+                    } else if (status === 'locked') {
                       handleDateLongPress(day, status, lockedDate);
                     } else if (reservation) {
                       router.push(`/reservation/${reservation.id}`);
@@ -531,11 +538,15 @@ export default function CalendarScreen() {
                     styles.dayNumber,
                     status === 'past' && styles.pastText,
                     isToday && styles.todayNumber,
+                    status === 'external' && styles.externalText,
                   ]}>
                     {day}
                   </Text>
                   {status === 'locked' && (
                     <Text style={styles.lockIcon}>🔒</Text>
+                  )}
+                  {status === 'external' && lockedDate?.source_name && (
+                    <Text style={styles.externalSourceLabel} numberOfLines={1}>{lockedDate.source_name}</Text>
                   )}
                   {reservation && (status === 'booked' || status === 'completed') && (
                     <View style={styles.avatarWithBadge}>
@@ -651,11 +662,32 @@ export default function CalendarScreen() {
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>
-                  {lockModal.existingLock ? 'Unlock Date' : 'Lock Date'}
+                  {lockModal.existingLock?.source === 'external'
+                    ? 'External Booking'
+                    : lockModal.existingLock
+                      ? 'Unlock Date'
+                      : 'Lock Date'}
                 </Text>
-                <Text style={styles.modalDate}>{lockModal.date}</Text>
+                <Text style={[
+                  styles.modalDate,
+                  lockModal.existingLock?.source === 'external' && styles.externalModalDate,
+                ]}>{lockModal.date}</Text>
 
-                {lockModal.existingLock ? (
+                {lockModal.existingLock?.source === 'external' ? (
+                  <>
+                    <View style={styles.reasonBox}>
+                      <Text style={styles.reasonLabel}>Source:</Text>
+                      <Text style={styles.reasonText}>{lockModal.existingLock.source_name || 'External'}</Text>
+                    </View>
+                    {lockModal.existingLock.reason && (
+                      <View style={styles.reasonBox}>
+                        <Text style={styles.reasonLabel}>Details:</Text>
+                        <Text style={styles.reasonText}>{lockModal.existingLock.reason}</Text>
+                      </View>
+                    )}
+                    <Text style={styles.modalHint}>This date is blocked by an external calendar.</Text>
+                  </>
+                ) : lockModal.existingLock ? (
                   <>
                     {lockModal.existingLock.reason && (
                       <View style={styles.reasonBox}>
@@ -686,19 +718,31 @@ export default function CalendarScreen() {
                   >
                     <Text style={styles.cancelModalText}>Cancel</Text>
                   </Pressable>
-                  <Pressable
-                    style={[
-                      styles.confirmModalButton,
-                      lockModal.existingLock ? styles.unlockButton : styles.lockButton,
-                      isLocking && styles.disabledButton,
-                    ]}
-                    onPress={lockModal.existingLock ? handleUnlockDate : handleLockDate}
-                    disabled={isLocking}
-                  >
-                    <Text style={styles.confirmModalText}>
-                      {isLocking ? 'Saving...' : lockModal.existingLock ? 'Unlock' : 'Lock Date'}
-                    </Text>
-                  </Pressable>
+                  {lockModal.existingLock?.source === 'external' ? (
+                    <Pressable
+                      style={[styles.confirmModalButton, styles.convertButton]}
+                      onPress={() => {
+                        setLockModal({ visible: false, date: '', propertyId: null });
+                        router.push(`/reservation/add?propertyId=${lockModal.propertyId}&checkIn=${lockModal.date}&checkOut=${lockModal.date}&source=${lockModal.existingLock?.source_name || 'External'}`);
+                      }}
+                    >
+                      <Text style={styles.confirmModalText}>Convert to Reservation</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      style={[
+                        styles.confirmModalButton,
+                        lockModal.existingLock ? styles.unlockButton : styles.lockButton,
+                        isLocking && styles.disabledButton,
+                      ]}
+                      onPress={lockModal.existingLock ? handleUnlockDate : handleLockDate}
+                      disabled={isLocking}
+                    >
+                      <Text style={styles.confirmModalText}>
+                        {isLocking ? 'Saving...' : lockModal.existingLock ? 'Unlock' : 'Lock Date'}
+                      </Text>
+                    </Pressable>
+                  )}
                 </View>
               </View>
             </View>
@@ -939,6 +983,11 @@ const styles = StyleSheet.create({
   pastText: { color: Colors.neutral.gray400 },
   todayNumber: { fontWeight: Typography.fontWeight.bold, color: Colors.primary.teal },
   lockIcon: { fontSize: 10 },
+  externalCell: { backgroundColor: 'rgba(245, 158, 11, 0.15)' },
+  externalText: { color: Colors.semantic.warning },
+  externalSourceLabel: { fontSize: 7, color: Colors.semantic.warning, textAlign: 'center', maxWidth: '100%' },
+  externalModalDate: { color: Colors.semantic.warning },
+  convertButton: { backgroundColor: Colors.semantic.warning },
   avatarContainer: { marginTop: 2 },
   avatarWithBadge: { position: 'relative', marginTop: 2 },
   paxBadge: { position: 'absolute', bottom: -4, right: -6, backgroundColor: Colors.primary.navy, borderRadius: 8, minWidth: 16, height: 16, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: Colors.neutral.white },
