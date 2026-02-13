@@ -488,6 +488,15 @@ export const useCanAddProperty = () => {
   }, [plan, userOverrides]);
 };
 
+export const useCanAddIcalSubscription = () => {
+  const isPremium = useIsPremium();
+
+  return useCallback((currentSubscriptionCount: number): boolean => {
+    if (isPremium) return true;
+    return currentSubscriptionCount < 1;
+  }, [isPremium]);
+};
+
 // Action selectors - stable references (actions never change)
 export const useSubscriptionActions = () => useSubscriptionStore(
   useShallow(state => ({
