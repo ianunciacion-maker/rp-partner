@@ -68,7 +68,7 @@ const BOOKING_SOURCES = [
 
 export default function AddReservationScreen() {
   const router = useRouter();
-  const { propertyId, date } = useLocalSearchParams<{ propertyId?: string; date?: string }>();
+  const { propertyId, date, checkIn, checkOut, source: sourceParam } = useLocalSearchParams<{ propertyId?: string; date?: string; checkIn?: string; checkOut?: string; source?: string }>();
   const { authUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -84,18 +84,22 @@ export default function AddReservationScreen() {
     };
   }, []);
 
-  // Parse initial date from query params (for backdating)
   const getInitialCheckIn = () => {
-    if (date) {
-      const parsed = new Date(date + 'T00:00:00');
+    const dateStr = checkIn || date;
+    if (dateStr) {
+      const parsed = new Date(dateStr + 'T00:00:00');
       if (!isNaN(parsed.getTime())) return parsed;
     }
     return new Date();
   };
 
   const getInitialCheckOut = () => {
-    const checkIn = getInitialCheckIn();
-    return new Date(checkIn.getTime() + 86400000); // Next day
+    if (checkOut && checkOut !== checkIn) {
+      const parsed = new Date(checkOut + 'T00:00:00');
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    const ci = getInitialCheckIn();
+    return new Date(ci.getTime() + 86400000);
   };
 
   const [form, setForm] = useState({
@@ -106,7 +110,7 @@ export default function AddReservationScreen() {
     guest_count: '2',
     check_in: getInitialCheckIn(),
     check_out: getInitialCheckOut(),
-    source: 'direct',
+    source: BOOKING_SOURCES.some(s => s.value === sourceParam) ? sourceParam! : 'direct',
     notes: '',
     total_amount: '',
     deposit_amount: '0',
@@ -186,6 +190,14 @@ export default function AddReservationScreen() {
       });
 
       if (error) throw error;
+
+      await supabase
+        .from('locked_dates')
+        .delete()
+        .eq('property_id', form.property_id)
+        .eq('source', 'external')
+        .gte('date', formatDateLocal(form.check_in))
+        .lt('date', formatDateLocal(form.check_out));
 
       if (isWeb) {
         window.alert('Reservation created successfully!');

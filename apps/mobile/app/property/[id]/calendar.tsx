@@ -126,7 +126,8 @@ export default function PropertyCalendarScreen() {
 
       while (current < checkOut) {
         const dateStr = current.toISOString().split('T')[0];
-        if (!map.has(dateStr)) {
+        const existing = map.get(dateStr);
+        if (!existing || existing.status === 'external') {
           const isCompleted = r.check_out <= today;
           map.set(dateStr, {
             status: isCompleted ? 'completed' : 'booked',
