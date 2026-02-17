@@ -16,6 +16,7 @@ import { TogglePill } from '@/components/ui/TogglePill';
 import { useToast } from '@/components/ui/Toast';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Property, Reservation, LockedDate } from '@/types/database';
+import { SyncStatusButton } from '@/components/calendar/SyncStatusButton';
 import { Colors, Spacing, Typography, BorderRadius, Shadows, CardStyle } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
@@ -474,6 +475,10 @@ export default function CalendarScreen() {
 
           <View style={styles.limitIndicatorContainer}>
             <FeatureLimitIndicator feature="calendar" />
+            <SyncStatusButton
+              propertyId={selectedProperty || (properties.length === 1 ? properties[0].id : null)}
+              onSyncComplete={fetchData}
+            />
           </View>
 
           <View style={styles.calendarHeader}>
@@ -964,7 +969,7 @@ const styles = StyleSheet.create({
   filterChipText: { fontSize: Typography.fontSize.sm, fontFamily: Typography.fontFamily.medium, color: Colors.neutral.gray600 },
   filterChipTextActive: { color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold },
   calendarHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
-  limitIndicatorContainer: { backgroundColor: Colors.neutral.white, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, alignItems: 'center' },
+  limitIndicatorContainer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: Colors.neutral.white, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },

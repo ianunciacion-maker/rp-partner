@@ -21,6 +21,7 @@ import {
   type IcalSourceName,
 } from '@/services/icalSync';
 import type { IcalSubscription } from '@/types/database';
+import { formatRelativeTime } from '@/utils/formatRelativeTime';
 import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
@@ -31,22 +32,6 @@ const SOURCES: { key: IcalSourceName; label: string; color: string }[] = [
   { key: 'booking_com', label: 'Booking.com', color: '#003580' },
   { key: 'other', label: 'Other', color: Colors.neutral.gray500 },
 ];
-
-function formatRelativeTime(dateStr: string | null): string {
-  if (!dateStr) return 'Never';
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / (1000 * 60));
-  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffMinutes < 1) return 'Just now';
-  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-  if (diffDays < 30) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-  return date.toLocaleDateString();
-}
 
 function getStatusBadge(status: string): { label: string; color: string; bgColor: string } {
   switch (status) {

@@ -101,6 +101,12 @@ export async function triggerSyncForSubscription(subscriptionId: string): Promis
   }
 }
 
+export async function triggerSyncForProperty(propertyId: string): Promise<void> {
+  const subscriptions = await getIcalSubscriptions(propertyId);
+  if (subscriptions.length === 0) return;
+  await Promise.all(subscriptions.map(sub => triggerSyncForSubscription(sub.id)));
+}
+
 // --- Export (iCal Feed Tokens) ---
 
 export async function getOrCreateFeedToken(propertyId: string): Promise<string> {
