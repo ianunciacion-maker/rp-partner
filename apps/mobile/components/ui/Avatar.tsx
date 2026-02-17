@@ -76,5 +76,6 @@ const styles = StyleSheet.create({
   initials: {
     color: Colors.neutral.white,
     fontWeight: Typography.fontWeight.semibold,
+    fontFamily: Typography.fontFamily.semibold,
   },
 });

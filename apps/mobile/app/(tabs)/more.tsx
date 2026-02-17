@@ -6,7 +6,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { Avatar } from '@/components/ui/Avatar';
 import { supabase } from '@/services/supabase';
 import type { Property, Reservation, CashflowEntry } from '@/types/database';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+import { Colors, Spacing, Typography, BorderRadius, Shadows, CardStyle } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
@@ -270,25 +270,25 @@ export default function MoreScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.neutral.gray50 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  profileSection: { alignItems: 'center', paddingVertical: Spacing.xl, backgroundColor: Colors.neutral.white },
-  userName: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900, marginTop: Spacing.md },
+  profileSection: { alignItems: 'center', paddingVertical: Spacing.xl, backgroundColor: Colors.neutral.white, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray200 },
+  userName: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold, fontFamily: Typography.fontFamily.bold, color: Colors.neutral.gray900, marginTop: Spacing.md },
   userEmail: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
   section: { backgroundColor: Colors.neutral.white, padding: Spacing.lg, marginTop: Spacing.md },
-  sectionTitle: { fontSize: Typography.fontSize.sm, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray500, textTransform: 'uppercase', marginBottom: Spacing.md },
+  sectionTitle: { fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, color: Colors.primary.teal, textTransform: 'uppercase', letterSpacing: Typography.letterSpacing.wide, marginBottom: Spacing.md },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.md },
-  statCard: { width: '47%', backgroundColor: Colors.neutral.white, padding: Spacing.lg, borderRadius: BorderRadius.lg, alignItems: 'center', ...Shadows.sm },
-  statValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.bold, color: Colors.neutral.gray900 },
+  statCard: { width: '47%', padding: Spacing.lg, alignItems: 'center', ...CardStyle },
+  statValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.bold, fontFamily: Typography.fontFamily.bold, color: Colors.neutral.gray900 },
   statLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, marginTop: Spacing.xs },
   tealText: { color: Colors.primary.teal },
   financialRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: Spacing.md },
   financialItem: { flex: 1 },
   financialLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
-  financialValue: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold, marginTop: Spacing.xs },
+  financialValue: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, marginTop: Spacing.xs },
   incomeText: { color: Colors.semantic.success },
   expenseText: { color: Colors.semantic.error },
   netIncomeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.neutral.gray100 },
   netIncomeLabel: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
-  netIncomeValue: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold },
+  netIncomeValue: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.bold, fontFamily: Typography.fontFamily.bold },
   adrRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.md, paddingTop: Spacing.md, borderTopWidth: 1, borderTopColor: Colors.neutral.gray100 },
   adrLabel: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray600 },
   adrValue: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.primary.teal },
@@ -301,6 +301,6 @@ const styles = StyleSheet.create({
   subscriptionBadgeText: { fontSize: Typography.fontSize.xs, color: Colors.primary.teal, fontWeight: Typography.fontWeight.semibold, textTransform: 'capitalize' },
   signOutSection: { padding: Spacing.lg, alignItems: 'center', marginBottom: Spacing.xxl },
   signOutButton: { backgroundColor: Colors.neutral.white, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xxl, borderRadius: BorderRadius.lg, borderWidth: 1, borderColor: Colors.semantic.error },
-  signOutText: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.semantic.error },
+  signOutText: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, color: Colors.semantic.error },
   versionText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray400, marginTop: Spacing.lg },
 });

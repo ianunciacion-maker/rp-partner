@@ -8,7 +8,7 @@ import { FeatureLimitIndicator } from '@/components/subscription/FeatureLimitInd
 import { PropertyCard } from '@/components/ui/PropertyCard';
 import { supabase } from '@/services/supabase';
 import type { Property } from '@/types/database';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+import { Colors, Spacing, Typography, BorderRadius, Shadows, CardStyle } from '@/constants/theme';
 import { SubscriptionBanner } from '@/components/subscription/SubscriptionBanner';
 import { useResponsive } from '@/hooks/useResponsive';
 
@@ -56,6 +56,7 @@ export default function HomeScreen() {
   const ListHeaderComponent = useMemo(() => (
     <View style={styles.header}>
       <View>
+        <Text style={styles.sectionLabel}>YOUR PROPERTIES</Text>
         <Text style={styles.greeting}>Hello, {user?.full_name?.split(' ')[0] || 'there'}!</Text>
         <View style={styles.subtitleRow}>
           <FeatureLimitIndicator feature="properties" currentUsage={properties.length} />
@@ -137,7 +138,8 @@ const styles = StyleSheet.create({
   emptyContainer: { flexGrow: 1 },
   loading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { marginBottom: Spacing.md },
-  greeting: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.medium, color: Colors.neutral.gray500 },
+  sectionLabel: { fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, color: Colors.primary.teal, letterSpacing: Typography.letterSpacing.wide, textTransform: 'uppercase', marginBottom: Spacing.xs },
+  greeting: { fontSize: Typography.fontSize['2xl'], fontWeight: Typography.fontWeight.bold, fontFamily: Typography.fontFamily.bold, color: Colors.neutral.gray900, letterSpacing: Typography.letterSpacing.tight },
   subtitle: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
   subtitleRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs },
   subtitleSuffix: { fontSize: Typography.fontSize.xs, color: Colors.neutral.gray500 },
@@ -152,10 +154,10 @@ const styles = StyleSheet.create({
   },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xxl },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.md },
-  emptyTitle: { fontSize: Typography.fontSize.xl, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
+  emptyTitle: { fontSize: Typography.fontSize['2xl'], fontWeight: Typography.fontWeight.bold, fontFamily: Typography.fontFamily.bold, color: Colors.neutral.gray900 },
   emptyText: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500, marginBottom: Spacing.lg },
-  emptyButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg },
-  emptyButtonText: { color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold, fontSize: Typography.fontSize.md },
+  emptyButton: { backgroundColor: Colors.primary.teal, paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderRadius: BorderRadius.full },
+  emptyButtonText: { color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, fontSize: Typography.fontSize.md },
   fab: { position: 'absolute', bottom: Spacing.xl, right: Spacing.xl, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primary.teal, justifyContent: 'center', alignItems: 'center', ...Shadows.lg },
   fabText: { fontSize: 28, color: Colors.neutral.white, lineHeight: 30 },
 });

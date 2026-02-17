@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
     color: Colors.neutral.white,
     fontSize: Typography.fontSize.md,
     fontWeight: Typography.fontWeight.medium,
+    fontFamily: Typography.fontFamily.medium,
   },
   dismissText: {
     color: Colors.neutral.white,

@@ -2,7 +2,8 @@ import { memo } from 'react';
 import { Pressable, Text, StyleSheet, ActivityIndicator, ViewStyle, Platform } from 'react-native';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger' | 'ghost' | 'pill';
+
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
@@ -97,6 +98,10 @@ const styles = StyleSheet.create({
   ghost: {
     backgroundColor: 'transparent',
   },
+  pill: {
+    backgroundColor: Colors.primary.teal,
+    borderRadius: BorderRadius.full,
+  },
   // Sizes - minimum 44px touch target height
   size_sm: {
     paddingVertical: Spacing.sm,
@@ -116,6 +121,7 @@ const styles = StyleSheet.create({
   // Text styles
   text: {
     fontWeight: '600',
+    fontFamily: Typography.fontFamily.semibold,
   },
   text_primary: {
     color: Colors.neutral.white,
@@ -131,6 +137,9 @@ const styles = StyleSheet.create({
   },
   text_ghost: {
     color: Colors.primary.teal,
+  },
+  text_pill: {
+    color: Colors.neutral.white,
   },
   text_sm: {
     fontSize: Typography.fontSize.md,

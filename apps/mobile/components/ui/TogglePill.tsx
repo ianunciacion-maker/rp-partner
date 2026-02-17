@@ -51,10 +51,12 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.neutral.gray600,
   },
   optionTextActive: {
     color: Colors.neutral.white,
     fontWeight: Typography.fontWeight.semibold,
+    fontFamily: Typography.fontFamily.semibold,
   },
 });

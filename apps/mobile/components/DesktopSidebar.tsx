@@ -1,6 +1,7 @@
 import { View, Text, Pressable, StyleSheet, Platform, Image } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Colors, Spacing, Typography, BorderRadius } from '@/constants/theme';
+import type { ViewStyle } from 'react-native';
 import { useAuthStore } from '@/stores/authStore';
 
 const NAV_ITEMS = [
@@ -131,8 +132,10 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? { cursor: 'pointer' as any } : {}),
   },
   navItemActive: {
-    backgroundColor: Colors.neutral.gray100,
-  },
+    backgroundColor: Colors.primary.teal + '10',
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary.teal,
+  } as ViewStyle,
   navIcon: {
     fontSize: 20,
     marginRight: Spacing.md,
@@ -140,11 +143,13 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: Typography.fontSize.md,
     fontWeight: Typography.fontWeight.medium,
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.neutral.gray600,
   },
   navLabelActive: {
     color: Colors.primary.teal,
     fontWeight: Typography.fontWeight.semibold,
+    fontFamily: Typography.fontFamily.semibold,
   },
   footer: {
     padding: Spacing.md,
@@ -168,6 +173,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: Typography.fontSize.md,
     fontWeight: Typography.fontWeight.bold,
+    fontFamily: Typography.fontFamily.bold,
     color: Colors.neutral.white,
   },
   userInfo: {
@@ -176,6 +182,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.neutral.gray900,
   },
   userEmail: {
@@ -194,6 +201,7 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.medium,
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.neutral.gray600,
   },
 });

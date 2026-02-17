@@ -62,6 +62,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: Typography.fontSize.sm,
     fontWeight: Typography.fontWeight.semibold,
+    fontFamily: Typography.fontFamily.semibold,
   },
   primaryLabel: {
     color: Colors.neutral.white,

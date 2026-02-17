@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Typography.fontSize.xl,
     fontWeight: '600',
+    fontFamily: Typography.fontFamily.semibold,
     color: Colors.neutral.gray900,
     flex: 1,
   },

@@ -13,7 +13,7 @@ import { useToast } from '@/components/ui/Toast';
 import { OccupancySection } from '@/components/analytics/OccupancySection';
 import { ReportOptionsModal } from '@/components/reports/ReportOptionsModal';
 import type { Property, CashflowEntry } from '@/types/database';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+import { Colors, Spacing, Typography, BorderRadius, Shadows, CardStyle } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 
@@ -601,15 +601,15 @@ const styles = StyleSheet.create({
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, backgroundColor: Colors.neutral.gray100, marginRight: Spacing.sm },
   filterChipActive: { backgroundColor: Colors.primary.teal },
   filterChipText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray600 },
-  filterChipTextActive: { color: Colors.neutral.white, fontWeight: '600' },
+  filterChipTextActive: { color: Colors.neutral.white, fontWeight: '600', fontFamily: Typography.fontFamily.semibold },
   monthSelector: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   limitIndicatorContainer: { backgroundColor: Colors.neutral.white, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, alignItems: 'center' },
   monthNav: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },
-  monthTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900 },
+  monthTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', fontFamily: Typography.fontFamily.semibold, color: Colors.neutral.gray900 },
   summaryContainer: { padding: Spacing.md, gap: Spacing.md },
-  summaryCard: { padding: Spacing.lg, borderRadius: BorderRadius.lg, ...Shadows.sm },
+  summaryCard: { padding: Spacing.lg, ...CardStyle },
   summaryHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.xs },
   incomeCard: { backgroundColor: Colors.neutral.white },
   expenseCard: { backgroundColor: Colors.neutral.white },
@@ -617,18 +617,18 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
   incomeArrow: { fontSize: Typography.fontSize.lg, color: Colors.semantic.success, marginRight: Spacing.xs, fontWeight: Typography.fontWeight.bold },
   expenseArrow: { fontSize: Typography.fontSize.lg, color: Colors.semantic.error, marginRight: Spacing.xs, fontWeight: Typography.fontWeight.bold },
-  incomeValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.extrabold, color: Colors.semantic.success },
-  expenseValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.extrabold, color: Colors.semantic.error },
+  incomeValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.extrabold, fontFamily: Typography.fontFamily.extrabold, color: Colors.semantic.success },
+  expenseValue: { fontSize: Typography.fontSize['3xl'], fontWeight: Typography.fontWeight.extrabold, fontFamily: Typography.fontFamily.extrabold, color: Colors.semantic.error },
   netLabel: { fontSize: Typography.fontSize.lg, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
-  netValue: { fontSize: Typography.fontSize['2xl'], fontWeight: Typography.fontWeight.extrabold },
+  netValue: { fontSize: Typography.fontSize['2xl'], fontWeight: Typography.fontWeight.extrabold, fontFamily: Typography.fontFamily.extrabold },
   netPositive: { color: Colors.semantic.success },
   netNegative: { color: Colors.semantic.error },
   transactionsSection: { padding: Spacing.lg },
-  sectionTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900, marginBottom: Spacing.md },
+  sectionTitle: { fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, color: Colors.primary.teal, letterSpacing: Typography.letterSpacing.wide, textTransform: 'uppercase', marginBottom: Spacing.md },
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xl },
   emptyIcon: { fontSize: 48, marginBottom: Spacing.sm },
   emptyText: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray500 },
-  transactionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, marginBottom: Spacing.sm, padding: Spacing.md, ...Shadows.sm },
+  transactionCard: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm, padding: Spacing.md, ...CardStyle },
   categoryIcon: { width: 44, height: 44, borderRadius: BorderRadius.lg, justifyContent: 'center', alignItems: 'center' },
   incomeIconBg: { backgroundColor: Colors.semantic.success + '15' },
   expenseIconBg: { backgroundColor: Colors.semantic.error + '15' },

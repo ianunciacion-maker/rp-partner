@@ -25,7 +25,7 @@ export default function TabsLayout() {
             : { backgroundColor: Colors.neutral.white, borderTopColor: Colors.neutral.gray200, paddingTop: 8, paddingBottom: 8, height: 70 },
           tabBarActiveTintColor: Colors.primary.teal,
           tabBarInactiveTintColor: Colors.neutral.gray500,
-          tabBarLabelStyle: { fontSize: Typography.fontSize.xs, fontWeight: '500' },
+          tabBarLabelStyle: { fontSize: Typography.fontSize.xs, fontWeight: '500', fontFamily: Typography.fontFamily.medium },
         }}
       >
         <Tabs.Screen name="index" options={{ title: 'Properties', headerTitle: 'Tuknang', tabBarLabel: 'Home', tabBarIcon: ({ focused }) => <TabBarIcon icon="🏠" focused={focused} /> }} />
