@@ -50,7 +50,7 @@ function formatRelativeTime(dateStr: string | null): string {
 
 function getStatusBadge(status: string): { label: string; color: string; bgColor: string } {
   switch (status) {
-    case 'synced':
+    case 'success':
       return { label: 'Synced', color: Colors.semantic.success, bgColor: Colors.semantic.success + '20' };
     case 'error':
       return { label: 'Error', color: Colors.semantic.error, bgColor: Colors.semantic.error + '20' };
@@ -81,6 +81,7 @@ export default function CalendarSyncScreen() {
   const [feedUrl, setFeedUrl] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [syncingId, setSyncingId] = useState<string | null>(null);
 
   const [exportToken, setExportToken] = useState<string | null>(null);
   const [isEnablingExport, setIsEnablingExport] = useState(false);
@@ -138,8 +139,12 @@ export default function CalendarSyncScreen() {
       const newSub = await addIcalSubscription(id, trimmedUrl, selectedSource);
       setFeedUrl('');
       showToast('Calendar added! Syncing now...', 'success');
+      try {
+        await triggerSyncForSubscription(newSub.id);
+      } catch {
+        showToast('Calendar added but initial sync failed. Try syncing again.', 'error');
+      }
       await loadData();
-      triggerSyncForSubscription(newSub.id).catch(() => {});
     } catch (error: any) {
       if (isAuthError(error)) {
         showToast('Session expired. Please sign in again.', 'error');
@@ -184,6 +189,25 @@ export default function CalendarSyncScreen() {
           { text: 'Remove', style: 'destructive', onPress: confirmRemove },
         ]
       );
+    }
+  };
+
+  const handleSyncNow = async (subscriptionId: string) => {
+    setSyncingId(subscriptionId);
+    try {
+      await triggerSyncForSubscription(subscriptionId);
+      showToast('Sync complete', 'success');
+      await loadData();
+    } catch (error: any) {
+      if (isAuthError(error)) {
+        showToast('Session expired. Please sign in again.', 'error');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
+      showToast(error.message || 'Sync failed', 'error');
+      await loadData();
+    } finally {
+      setSyncingId(null);
     }
   };
 
@@ -329,6 +353,7 @@ export default function CalendarSyncScreen() {
                 const badge = getStatusBadge(sub.last_sync_status);
                 const sourceColor = getSourceColor(sub.source_name);
                 const isRemoving = removingId === sub.id;
+                const isSyncing = syncingId === sub.id;
 
                 return (
                   <View key={sub.id} style={styles.subscriptionCard}>
@@ -354,19 +379,34 @@ export default function CalendarSyncScreen() {
                       <Text style={styles.lastSyncedText}>
                         Last synced: {formatRelativeTime(sub.last_synced_at)}
                       </Text>
-                      <Pressable
-                        style={[
-                          styles.removeButton,
-                          isRemoving && styles.disabledButton,
-                          isWeb && ({ cursor: isRemoving ? 'not-allowed' : 'pointer' } as any),
-                        ]}
-                        onPress={() => handleRemoveSubscription(sub.id)}
-                        disabled={isRemoving}
-                      >
-                        <Text style={styles.removeButtonText}>
-                          {isRemoving ? 'Removing...' : 'Remove'}
-                        </Text>
-                      </Pressable>
+                      <View style={styles.subscriptionActions}>
+                        <Pressable
+                          style={[
+                            styles.syncButton,
+                            isSyncing && styles.disabledButton,
+                            isWeb && ({ cursor: isSyncing ? 'not-allowed' : 'pointer' } as any),
+                          ]}
+                          onPress={() => handleSyncNow(sub.id)}
+                          disabled={isSyncing}
+                        >
+                          <Text style={styles.syncButtonText}>
+                            {isSyncing ? 'Syncing...' : 'Sync'}
+                          </Text>
+                        </Pressable>
+                        <Pressable
+                          style={[
+                            styles.removeButton,
+                            isRemoving && styles.disabledButton,
+                            isWeb && ({ cursor: isRemoving ? 'not-allowed' : 'pointer' } as any),
+                          ]}
+                          onPress={() => handleRemoveSubscription(sub.id)}
+                          disabled={isRemoving}
+                        >
+                          <Text style={styles.removeButtonText}>
+                            {isRemoving ? 'Removing...' : 'Remove'}
+                          </Text>
+                        </Pressable>
+                      </View>
                     </View>
 
                     {sub.last_sync_status === 'error' && sub.last_error_message && (
@@ -591,6 +631,23 @@ const styles = StyleSheet.create({
   lastSyncedText: {
     fontSize: Typography.fontSize.xs,
     color: Colors.neutral.gray400,
+  },
+  subscriptionActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  syncButton: {
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.primary.teal,
+    borderRadius: BorderRadius.sm,
+  },
+  syncButtonText: {
+    fontSize: Typography.fontSize.sm,
+    color: Colors.primary.teal,
+    fontWeight: Typography.fontWeight.medium,
   },
   removeButton: {
     paddingVertical: Spacing.xs,

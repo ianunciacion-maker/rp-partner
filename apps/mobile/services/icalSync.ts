@@ -160,5 +160,5 @@ export async function revokeFeedToken(propertyId: string): Promise<void> {
 }
 
 export function getFeedUrl(token: string): string {
-  return `${SUPABASE_URL}/functions/v1/ical-feed?token=${token}`;
+  return `${SUPABASE_URL}/functions/v1/ical-feed/${token}.ics`;
 }

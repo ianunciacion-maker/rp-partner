@@ -84,7 +84,15 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const url = new URL(req.url);
-    const token = url.searchParams.get('token');
+    let token = url.searchParams.get('token');
+
+    if (!token) {
+      const pathSegments = url.pathname.split('/');
+      const lastSegment = pathSegments[pathSegments.length - 1];
+      if (lastSegment && lastSegment.endsWith('.ics')) {
+        token = lastSegment.slice(0, -4);
+      }
+    }
 
     if (!token) {
       return new Response('Missing token parameter', {
