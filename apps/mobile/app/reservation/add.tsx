@@ -68,7 +68,7 @@ const BOOKING_SOURCES = [
 
 export default function AddReservationScreen() {
   const router = useRouter();
-  const { propertyId, date, checkIn, checkOut, source: sourceParam } = useLocalSearchParams<{ propertyId?: string; date?: string; checkIn?: string; checkOut?: string; source?: string }>();
+  const { propertyId, date, checkIn, checkOut, source: sourceParam, guestName: guestNameParam } = useLocalSearchParams<{ propertyId?: string; date?: string; checkIn?: string; checkOut?: string; source?: string; guestName?: string }>();
   const { authUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -104,7 +104,7 @@ export default function AddReservationScreen() {
 
   const [form, setForm] = useState({
     property_id: (propertyId && propertyId !== 'null') ? propertyId : '',
-    guest_name: '',
+    guest_name: guestNameParam ? decodeURIComponent(guestNameParam) : '',
     guest_phone: '',
     guest_email: '',
     guest_count: '2',
@@ -195,7 +195,7 @@ export default function AddReservationScreen() {
         .from('locked_dates')
         .delete()
         .eq('property_id', form.property_id)
-        .eq('source', 'external')
+        .in('source', ['external', 'pencil'])
         .gte('date', formatDateLocal(form.check_in))
         .lt('date', formatDateLocal(form.check_out));
 

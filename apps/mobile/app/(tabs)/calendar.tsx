@@ -74,6 +74,12 @@ export default function CalendarScreen() {
   const [viewMode, setViewMode] = useState<'today' | 'upcoming'>('today');
   const [showTodayButton, setShowTodayButton] = useState(false);
   const calendarRef = useRef<View>(null);
+  const [actionModal, setActionModal] = useState<{ visible: boolean; date: string; propertyId: string | null; existingLock?: LockedDate }>({ visible: false, date: '', propertyId: null });
+  const [pencilModal, setPencilModal] = useState<{ visible: boolean; date: string; propertyId: string | null }>({ visible: false, date: '', propertyId: null });
+  const [pencilGuestName, setPencilGuestName] = useState('');
+  const [pencilNote, setPencilNote] = useState('');
+  const [isPenciling, setIsPenciling] = useState(false);
+  const [pencilDetailModal, setPencilDetailModal] = useState<{ visible: boolean; date: string; propertyId: string | null; existingPencil?: LockedDate }>({ visible: false, date: '', propertyId: null });
 
   // Fetch subscription data on mount
   useEffect(() => {
@@ -97,7 +103,7 @@ export default function CalendarScreen() {
         .not('status', 'in', '("cancelled","no_show")')
         .order('check_in', { ascending: true });
 
-      let lockQuery = supabase.from('locked_dates').select('id, property_id, date, reason, source, source_name');
+      let lockQuery = supabase.from('locked_dates').select('id, property_id, date, reason, source, source_name, guest_name');
       const propsQuery = supabase.from('properties').select('id, name, city, user_id');
 
       if (selectedProperty) {
@@ -148,11 +154,15 @@ export default function CalendarScreen() {
 
   // Memoized date status map - computed once when data changes, O(1) lookup per day
   const dateStatusMap = useMemo(() => {
-    const map = new Map<string, { status: 'available' | 'booked' | 'completed' | 'past' | 'locked' | 'external'; reservation?: ReservationWithProperty; lockedDate?: LockedDate }>();
+    const map = new Map<string, { status: 'available' | 'booked' | 'completed' | 'past' | 'locked' | 'external' | 'pencil'; reservation?: ReservationWithProperty; lockedDate?: LockedDate }>();
     const today = new Date().toISOString().split('T')[0];
 
     for (const locked of lockedDates) {
-      const status = locked.source === 'external' ? 'external' : 'locked';
+      const status = locked.source === 'external' ? 'external' : locked.source === 'pencil' ? 'pencil' : 'locked';
+      const existing = map.get(locked.date);
+      if (existing && status === 'external' && (existing.status === 'pencil' || existing.status === 'locked')) {
+        continue;
+      }
       map.set(locked.date, { status, lockedDate: locked });
     }
 
@@ -164,7 +174,7 @@ export default function CalendarScreen() {
       while (current < checkOut) {
         const dateStr = current.toISOString().split('T')[0];
         const existing = map.get(dateStr);
-        if (!existing || existing.status === 'external') {
+        if (!existing || existing.status === 'external' || existing.status === 'pencil') {
           const isCompleted = r.check_out <= today;
           map.set(dateStr, {
             status: isCompleted ? 'completed' : 'booked',
@@ -178,7 +188,7 @@ export default function CalendarScreen() {
     return map;
   }, [reservations, lockedDates]);
 
-  const getDateStatus = (day: number): { status: 'available' | 'booked' | 'completed' | 'past' | 'locked' | 'external'; reservation?: ReservationWithProperty; lockedDate?: LockedDate } => {
+  const getDateStatus = (day: number): { status: 'available' | 'booked' | 'completed' | 'past' | 'locked' | 'external' | 'pencil'; reservation?: ReservationWithProperty; lockedDate?: LockedDate } => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const today = new Date().toISOString().split('T')[0];
 
@@ -194,7 +204,7 @@ export default function CalendarScreen() {
     const today = new Date().toISOString().split('T')[0];
 
     const cached = dateStatusMap.get(dateStr);
-    if (cached && (cached.status === 'locked' || cached.status === 'booked' || cached.status === 'completed' || cached.status === 'external')) {
+    if (cached && (cached.status === 'locked' || cached.status === 'booked' || cached.status === 'completed' || cached.status === 'external' || cached.status === 'pencil')) {
       return 'notAvailable';
     }
 
@@ -215,11 +225,14 @@ export default function CalendarScreen() {
 
     if (status === 'locked' && lockedDate) {
       setLockModal({ visible: true, date: dateStr, propertyId, existingLock: lockedDate });
-    } else if (status === 'available' || status === 'past' || status === 'external') {
-      const pid = status === 'external' && lockedDate ? lockedDate.property_id : propertyId;
-      setLockModal({ visible: true, date: dateStr, propertyId: pid });
+      setLockReason('');
+    } else if (status === 'pencil' && lockedDate) {
+      setPencilDetailModal({ visible: true, date: dateStr, propertyId, existingPencil: lockedDate });
+    } else if (status === 'external' && lockedDate) {
+      setActionModal({ visible: true, date: dateStr, propertyId: lockedDate.property_id, existingLock: lockedDate });
+    } else if (status === 'available' || status === 'past') {
+      setActionModal({ visible: true, date: dateStr, propertyId });
     }
-    setLockReason('');
   };
 
   const handleLockDate = async () => {
@@ -274,6 +287,65 @@ export default function CalendarScreen() {
       }
     } finally {
       setIsLocking(false);
+    }
+  };
+
+  const handlePencilBook = async () => {
+    if (!pencilModal.propertyId || !user?.id || !pencilGuestName.trim()) return;
+
+    setIsPenciling(true);
+    try {
+      const { error } = await supabase.from('locked_dates').insert({
+        property_id: pencilModal.propertyId,
+        user_id: user.id,
+        date: pencilModal.date,
+        source: 'pencil',
+        guest_name: pencilGuestName.trim(),
+        reason: pencilNote.trim() || null,
+      });
+
+      if (error) throw error;
+
+      setPencilModal({ visible: false, date: '', propertyId: null });
+      setPencilGuestName('');
+      setPencilNote('');
+      fetchData();
+    } catch (error: any) {
+      if (isAuthError(error)) {
+        showToast('Session expired. Please sign in again.', 'error');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
+      if (isWeb) {
+        showToast(error.message || 'Failed to create pencil booking', 'error');
+      }
+    } finally {
+      setIsPenciling(false);
+    }
+  };
+
+  const handleRemovePencil = async () => {
+    if (!pencilDetailModal.existingPencil) return;
+
+    setIsPenciling(true);
+    try {
+      const { error } = await supabase.from('locked_dates').delete().eq('id', pencilDetailModal.existingPencil.id);
+
+      if (error) throw error;
+
+      setPencilDetailModal({ visible: false, date: '', propertyId: null });
+      fetchData();
+    } catch (error: any) {
+      if (isAuthError(error)) {
+        showToast('Session expired. Please sign in again.', 'error');
+        useAuthStore.getState().handleAuthError('expired');
+        return;
+      }
+      if (isWeb) {
+        showToast(error.message || 'Failed to remove pencil booking', 'error');
+      }
+    } finally {
+      setIsPenciling(false);
     }
   };
 
@@ -516,11 +588,16 @@ export default function CalendarScreen() {
                     isToday && styles.todayCell,
                     status === 'past' && styles.pastCell,
                     status === 'external' && styles.externalCell,
+                    status === 'pencil' && styles.pencilCell,
                   ]}
                   onPress={() => {
-                    if (status === 'external' && lockedDate) {
+                    if (status === 'pencil' && lockedDate) {
                       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                      setLockModal({ visible: true, date: dateStr, propertyId: lockedDate.property_id, existingLock: lockedDate });
+                      const propertyId = selectedProperty || (properties.length === 1 ? properties[0].id : null);
+                      setPencilDetailModal({ visible: true, date: dateStr, propertyId, existingPencil: lockedDate });
+                    } else if (status === 'external' && lockedDate) {
+                      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                      setActionModal({ visible: true, date: dateStr, propertyId: lockedDate.property_id, existingLock: lockedDate });
                     } else if (status === 'locked') {
                       handleDateLongPress(day, status, lockedDate);
                     } else if (reservation) {
@@ -542,11 +619,20 @@ export default function CalendarScreen() {
                     status === 'past' && styles.pastText,
                     isToday && styles.todayNumber,
                     status === 'external' && styles.externalText,
+                    status === 'pencil' && styles.pencilText,
                   ]}>
                     {day}
                   </Text>
                   {status === 'locked' && (
                     <Text style={styles.lockIcon}>🔒</Text>
+                  )}
+                  {status === 'pencil' && (
+                    <>
+                      <Text style={styles.pencilIcon}>✏️</Text>
+                      {lockedDate?.guest_name && (
+                        <Text style={styles.pencilGuestLabel} numberOfLines={1}>{lockedDate.guest_name}</Text>
+                      )}
+                    </>
                   )}
                   {status === 'external' && lockedDate?.source_name && (
                     <Text style={styles.externalSourceLabel} numberOfLines={1}>{lockedDate.source_name}</Text>
@@ -746,6 +832,168 @@ export default function CalendarScreen() {
                       </Text>
                     </Pressable>
                   )}
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal
+            visible={actionModal.visible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setActionModal({ visible: false, date: '', propertyId: null })}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>What would you like to do?</Text>
+                <Text style={styles.modalDate}>{actionModal.date}</Text>
+
+                <Pressable
+                  style={styles.actionOption}
+                  onPress={() => {
+                    setActionModal({ visible: false, date: '', propertyId: null });
+                    setLockModal({ visible: true, date: actionModal.date, propertyId: actionModal.propertyId, existingLock: actionModal.existingLock });
+                    setLockReason('');
+                  }}
+                >
+                  <Text style={styles.actionOptionIcon}>
+                    {actionModal.existingLock?.source === 'external' ? '📅' : '🔒'}
+                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.actionOptionTitle}>
+                      {actionModal.existingLock?.source === 'external' ? 'View External Booking' : 'Lock Date'}
+                    </Text>
+                    <Text style={styles.actionOptionDescription}>
+                      {actionModal.existingLock?.source === 'external'
+                        ? `Blocked by ${actionModal.existingLock.source_name || 'External'}`
+                        : 'Block this date from bookings'}
+                    </Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  style={styles.actionOption}
+                  onPress={() => {
+                    setActionModal({ visible: false, date: '', propertyId: null });
+                    setPencilModal({ visible: true, date: actionModal.date, propertyId: actionModal.propertyId });
+                    setPencilGuestName('');
+                    setPencilNote('');
+                  }}
+                >
+                  <Text style={styles.actionOptionIcon}>✏️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.actionOptionTitle}>Pencil Booking</Text>
+                    <Text style={styles.actionOptionDescription}>Mark a tentative reservation</Text>
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  style={[styles.cancelModalButton, { marginTop: Spacing.md }]}
+                  onPress={() => setActionModal({ visible: false, date: '', propertyId: null })}
+                >
+                  <Text style={styles.cancelModalText}>Cancel</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal
+            visible={pencilModal.visible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => { setPencilModal({ visible: false, date: '', propertyId: null }); setPencilGuestName(''); setPencilNote(''); }}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Pencil Booking</Text>
+                <Text style={styles.pencilModalDate}>{pencilModal.date}</Text>
+
+                <Text style={styles.inputLabel}>Guest Name *</Text>
+                <TextInput
+                  style={styles.reasonInput}
+                  placeholder="Guest name"
+                  value={pencilGuestName}
+                  onChangeText={setPencilGuestName}
+                  placeholderTextColor={Colors.neutral.gray400}
+                />
+
+                <Text style={styles.inputLabel}>Note (optional)</Text>
+                <TextInput
+                  style={[styles.reasonInput, { minHeight: 60, textAlignVertical: 'top' }]}
+                  placeholder="e.g., Waiting for deposit"
+                  value={pencilNote}
+                  onChangeText={setPencilNote}
+                  placeholderTextColor={Colors.neutral.gray400}
+                  multiline
+                />
+
+                <View style={styles.modalButtons}>
+                  <Pressable
+                    style={styles.cancelModalButton}
+                    onPress={() => { setPencilModal({ visible: false, date: '', propertyId: null }); setPencilGuestName(''); setPencilNote(''); }}
+                  >
+                    <Text style={styles.cancelModalText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.confirmModalButton, styles.pencilButton, (!pencilGuestName.trim() || isPenciling) && styles.disabledButton]}
+                    onPress={handlePencilBook}
+                    disabled={!pencilGuestName.trim() || isPenciling}
+                  >
+                    <Text style={styles.confirmModalText}>{isPenciling ? 'Saving...' : 'Pencil Book'}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal
+            visible={pencilDetailModal.visible}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setPencilDetailModal({ visible: false, date: '', propertyId: null })}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Pencil Booking</Text>
+                <Text style={styles.pencilModalDate}>{pencilDetailModal.date}</Text>
+
+                {pencilDetailModal.existingPencil?.guest_name && (
+                  <View style={styles.reasonBox}>
+                    <Text style={styles.reasonLabel}>Guest:</Text>
+                    <Text style={styles.reasonText}>{pencilDetailModal.existingPencil.guest_name}</Text>
+                  </View>
+                )}
+                {pencilDetailModal.existingPencil?.reason && (
+                  <View style={styles.reasonBox}>
+                    <Text style={styles.reasonLabel}>Note:</Text>
+                    <Text style={styles.reasonText}>{pencilDetailModal.existingPencil.reason}</Text>
+                  </View>
+                )}
+
+                <View style={styles.modalButtonsVertical}>
+                  <Pressable
+                    style={[styles.confirmModalButton, styles.convertButton, { width: '100%' }]}
+                    onPress={() => {
+                      const guestName = pencilDetailModal.existingPencil?.guest_name || '';
+                      setPencilDetailModal({ visible: false, date: '', propertyId: null });
+                      router.push(`/reservation/add?propertyId=${pencilDetailModal.propertyId}&date=${pencilDetailModal.date}&guestName=${encodeURIComponent(guestName)}`);
+                    }}
+                  >
+                    <Text style={styles.confirmModalText}>Convert to Reservation</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.confirmModalButton, styles.removePencilButton, isPenciling && styles.disabledButton, { width: '100%' }]}
+                    onPress={handleRemovePencil}
+                    disabled={isPenciling}
+                  >
+                    <Text style={styles.confirmModalText}>{isPenciling ? 'Removing...' : 'Remove Pencil Booking'}</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.cancelModalButton, { width: '100%' }]}
+                    onPress={() => setPencilDetailModal({ visible: false, date: '', propertyId: null })}
+                  >
+                    <Text style={styles.cancelModalText}>Close</Text>
+                  </Pressable>
                 </View>
               </View>
             </View>
@@ -1061,4 +1309,16 @@ const styles = StyleSheet.create({
   bookedDot: { backgroundColor: Colors.semantic.error },
   availableCell: { backgroundColor: Colors.semantic.success + '20' },
   availableText: { color: Colors.semantic.success, fontWeight: '600' },
+  pencilCell: { backgroundColor: 'rgba(59, 130, 246, 0.12)' },
+  pencilText: { color: Colors.semantic.info },
+  pencilIcon: { fontSize: 10 },
+  pencilGuestLabel: { fontSize: 7, color: Colors.semantic.info, textAlign: 'center', maxWidth: '100%' },
+  pencilButton: { backgroundColor: Colors.semantic.info },
+  removePencilButton: { backgroundColor: Colors.semantic.error },
+  pencilModalDate: { fontSize: Typography.fontSize.lg, color: Colors.semantic.info, textAlign: 'center', marginTop: Spacing.xs, marginBottom: Spacing.lg },
+  modalButtonsVertical: { gap: Spacing.sm },
+  actionOption: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.neutral.gray50, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.sm },
+  actionOptionIcon: { fontSize: 24, marginRight: Spacing.md },
+  actionOptionTitle: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.neutral.gray900 },
+  actionOptionDescription: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, marginTop: 2 },
 });

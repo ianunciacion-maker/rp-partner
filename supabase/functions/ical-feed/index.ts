@@ -144,7 +144,7 @@ serve(async (req) => {
         .from('locked_dates')
         .select('date, reason')
         .eq('property_id', feedToken.property_id)
-        .eq('source', 'manual'),
+        .in('source', ['manual', 'pencil']),
     ]);
 
     const reservations = reservationsResult.data || [];

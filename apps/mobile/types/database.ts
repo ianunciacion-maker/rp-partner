@@ -116,9 +116,10 @@ export interface Database {
           source_name: string | null;
           external_uid: string | null;
           subscription_id: string | null;
+          guest_name: string | null;
           created_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['locked_dates']['Row'], 'id' | 'created_at' | 'source'> & { source?: string };
+        Insert: Omit<Database['public']['Tables']['locked_dates']['Row'], 'id' | 'created_at' | 'source' | 'guest_name'> & { source?: string; guest_name?: string | null };
         Update: Partial<Database['public']['Tables']['locked_dates']['Insert']>;
       };
       subscription_plans: {
