@@ -29,7 +29,13 @@ export const useAuthStore = create<AuthState>((set, get) => {
   if (!authListenerSetup) {
     authListenerSetup = true;
     supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!get().isInitialized) return;
+      if (!get().isInitialized) {
+        if (event === 'SIGNED_OUT') return;
+        if (session?.user) {
+          set({ session, authUser: session.user });
+        }
+        return;
+      }
 
       try {
         if (event === 'TOKEN_REFRESHED') {
@@ -155,7 +161,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
   clearError: () => set({ error: null }),
 
   handleAuthError: (type: 'expired' | 'network') => {
-    set({ session: null, authUser: null, user: null, sessionError: type });
+    if (type === 'expired') {
+      set({ session: null, authUser: null, user: null, sessionError: type });
+    } else {
+      set({ sessionError: type });
+    }
   },
 
   clearSessionError: () => set({ sessionError: null }),

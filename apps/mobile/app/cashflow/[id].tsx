@@ -71,7 +71,7 @@ export default function CashflowDetailScreen() {
 
       if (isWeb) {
         window.alert('Transaction deleted successfully!');
-        setTimeout(() => router.replace('/(tabs)/cashflow'), 0);
+        router.replace('/(tabs)/cashflow');
       } else {
         Alert.alert('Success', 'Transaction deleted successfully!', [
           { text: 'OK', onPress: () => router.back() }

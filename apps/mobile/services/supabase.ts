@@ -140,7 +140,8 @@ export const ensureSession = async (): Promise<boolean> => {
     useAuthStore.setState({ session, authUser: session.user });
     return true;
   } catch {
-    return false;
+    const existingSession = useAuthStore.getState().session;
+    return !!existingSession;
   }
 };
 

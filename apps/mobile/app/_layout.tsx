@@ -1,13 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet, Platform, AppState, AppStateStatus } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, Platform, AppState, AppStateStatus, Text, TextInput } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { useAuthStore, useSessionError } from '@/stores/authStore';
 import { useSubscriptionStore } from '@/stores/subscriptionStore';
 import { supabase, withTimeout } from '@/services/supabase';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 
 // Component that handles session errors and redirects to login
 function SessionErrorHandler() {
@@ -37,6 +45,42 @@ export default function RootLayout() {
   const { initialize, isInitialized, user } = useAuthStore();
   const notificationListener = useRef<any>();
   const responseListener = useRef<any>();
+
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const styleId = 'plus-jakarta-sans-style';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+          body, input, textarea, select, button {
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    } else if (fontsLoaded) {
+      const defaultTextProps = (Text as any).defaultProps || {};
+      (Text as any).defaultProps = {
+        ...defaultTextProps,
+        style: [{ fontFamily: Typography.fontFamily.regular }, defaultTextProps.style],
+      };
+      const defaultInputProps = (TextInput as any).defaultProps || {};
+      (TextInput as any).defaultProps = {
+        ...defaultInputProps,
+        style: [{ fontFamily: Typography.fontFamily.regular }, defaultInputProps.style],
+      };
+    }
+  }, [fontsLoaded]);
 
   useEffect(() => {
     initialize();
@@ -96,8 +140,7 @@ export default function RootLayout() {
           );
 
           if (error) {
-            console.error('Failed to refresh session on visibility change:', error);
-            useAuthStore.getState().handleAuthError('network');
+            console.warn('Failed to refresh session on visibility change:', error);
             return;
           }
 
@@ -110,9 +153,7 @@ export default function RootLayout() {
             useAuthStore.getState().handleAuthError('expired');
           }
         } catch (error) {
-          console.error('Error refreshing session:', error);
-          // Timeout or network error
-          useAuthStore.getState().handleAuthError('network');
+          console.warn('Session refresh timed out, keeping existing session:', error);
         }
       }
     };
@@ -170,8 +211,7 @@ export default function RootLayout() {
     }
   }, [user?.id]);
 
-  // Only block on isInitialized - isLoading is also used during sign-in/out
-  if (!isInitialized) {
+  if (!isInitialized || !fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary.teal} />

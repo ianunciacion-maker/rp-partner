@@ -189,7 +189,7 @@ export default function AddReservationScreen() {
 
       if (isWeb) {
         window.alert('Reservation created successfully!');
-        setTimeout(() => router.replace('/(tabs)/calendar'), 0);
+        router.replace('/(tabs)/calendar');
       } else {
         Alert.alert('Success', 'Reservation created successfully!', [
           { text: 'OK', onPress: () => router.back() },
