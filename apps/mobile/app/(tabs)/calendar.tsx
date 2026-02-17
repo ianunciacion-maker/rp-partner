@@ -202,8 +202,6 @@ export default function CalendarScreen() {
   };
 
   const handleDateLongPress = (day: number, status: string, lockedDate?: LockedDate) => {
-    if (status === 'external') return;
-
     if (!selectedProperty && properties.length > 1) {
       if (isWeb) {
         showToast('Please select a property to lock/unlock dates', 'info');
@@ -216,8 +214,9 @@ export default function CalendarScreen() {
 
     if (status === 'locked' && lockedDate) {
       setLockModal({ visible: true, date: dateStr, propertyId, existingLock: lockedDate });
-    } else if (status === 'available' || status === 'past') {
-      setLockModal({ visible: true, date: dateStr, propertyId });
+    } else if (status === 'available' || status === 'past' || status === 'external') {
+      const pid = status === 'external' && lockedDate ? lockedDate.property_id : propertyId;
+      setLockModal({ visible: true, date: dateStr, propertyId: pid });
     }
     setLockReason('');
   };

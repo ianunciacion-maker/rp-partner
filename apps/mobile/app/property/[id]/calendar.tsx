@@ -153,13 +153,11 @@ export default function PropertyCalendarScreen() {
   };
 
   const handleDateLongPress = (day: number, status: string, lockedDate?: LockedDate) => {
-    if (status === 'external') return;
-
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
     if (status === 'locked' && lockedDate) {
       setLockModal({ visible: true, date: dateStr, existingLock: lockedDate });
-    } else if (status === 'available' || status === 'past') {
+    } else if (status === 'available' || status === 'past' || status === 'external') {
       setLockModal({ visible: true, date: dateStr });
     }
     setLockReason('');
