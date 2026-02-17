@@ -67,8 +67,8 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # Required for admin operations
 - `apps/mobile/` - Expo React Native app (main user-facing app)
 - `apps/admin/` - Next.js admin dashboard (port 3001, Tailwind CSS)
 - `apps/website/` - Placeholder/unused
-- `supabase/migrations/` - PostgreSQL migrations (numbered 001-009, continue sequence for new migrations)
-- `supabase/functions/` - Supabase Edge Functions (check-subscriptions, send-payment-reminders, get-shared-calendar, process-recurring-expenses)
+- `supabase/migrations/` - PostgreSQL migrations (numbered 001-010, continue sequence for new migrations)
+- `supabase/functions/` - Supabase Edge Functions (check-subscriptions, send-payment-reminders, get-shared-calendar, process-recurring-expenses, ical-feed, sync-ical-feeds)
 
 ### Tech Stack
 - **Mobile/Web**: Expo SDK ~54.0, React Native 0.81.5, React 19, expo-router 6.x with typed routes
@@ -111,15 +111,20 @@ Admin routes are protected by `middleware.ts` which checks for a valid session A
 
 ### Admin Supabase Clients
 ```typescript
+// Client-side (browser components)
 import { supabase, supabaseAdmin } from '@/lib/supabase';
-// supabase - anon key for client-side operations
-// supabaseAdmin - service role key for server-side operations (bypasses RLS)
+// supabase - browser client (uses cookies via @supabase/ssr)
+// supabaseAdmin - service role client for admin operations (bypasses RLS)
+
+// Server-side (Server Components, Route Handlers, Middleware)
+import { createSupabaseServerClient } from '@/lib/supabase-server';
+const supabase = await createSupabaseServerClient(); // cookie-based session
 ```
 
 ### Path Aliases (Admin)
-Admin app uses `@/` prefix pointing to `src/`:
+Admin app uses `@/` prefix pointing to the admin app root (`apps/admin/`):
 ```typescript
-import { supabase } from '@/lib/supabase';  // apps/admin/src/lib/supabase.ts
+import { supabase } from '@/lib/supabase';  // apps/admin/lib/supabase.ts
 ```
 
 ### Database Types
@@ -129,7 +134,7 @@ import type { Database } from '@/types/database';
 const supabase = createClient<Database>(url, key);
 ```
 
-Type aliases: `User`, `Property`, `Reservation`, `CashflowEntry`, `LockedDate`, `SubscriptionPlan`, `PaymentMethod`, `Subscription`, `PaymentSubmission`, `SubscriptionReminder`, `CalendarShareToken`
+Type aliases: `User`, `Property`, `Reservation`, `CashflowEntry`, `LockedDate`, `SubscriptionPlan`, `PaymentMethod`, `Subscription`, `PaymentSubmission`, `SubscriptionReminder`, `CalendarShareToken`, `IcalSubscription`
 Joined types: `SubscriptionWithPlan`, `PaymentSubmissionWithDetails`
 Mutation types: `InsertTables<T>`, `UpdateTables<T>`
 
@@ -159,6 +164,13 @@ Property owners can generate public share links for their calendar:
 - **PDF Reports**: `services/pdfReport.ts` — generates HTML financial reports; web uses `window.open()` + `window.print()`, native uses `expo-print` + `expo-sharing`
 - **Recurring Expenses**: `cashflow_entries` has `is_recurring`, `recurrence_frequency`, `next_due_date`, `recurrence_end_date`, `parent_entry_id`; `process-recurring-expenses` edge function clones due entries daily
 - **Components**: `components/analytics/` (OccupancySection, MonthBreakdownModal), `components/reports/` (ReportOptionsModal)
+
+### iCal Calendar Sync
+Property calendars can import/export via iCal format for cross-platform sync (Airbnb, VRBO, Booking.com):
+- **Import**: `services/icalSync.ts` — manages iCal subscriptions per property; `sync-ical-feeds` edge function processes feeds and creates locked dates
+- **Export**: `ical-feed` edge function generates iCal feeds from property reservations/locked dates
+- **Sources**: `IcalSourceName` type: `'airbnb' | 'vrbo' | 'booking_com' | 'other'`
+- **Table**: `ical_subscriptions` stores feed URLs and sync state per property
 
 ### Subscription System
 The subscription system uses a manual payment verification flow (GCash/bank transfer screenshots reviewed by admin):
