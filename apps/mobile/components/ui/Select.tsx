@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: Typography.fontSize.sm,
     fontWeight: '500',
+    fontFamily: Typography.fontFamily.medium,
     color: Colors.neutral.gray700,
     marginBottom: Spacing.xs,
   },

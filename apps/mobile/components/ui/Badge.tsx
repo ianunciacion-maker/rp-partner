@@ -60,5 +60,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: Typography.fontSize.xs,
     fontWeight: Typography.fontWeight.semibold,
+    fontFamily: Typography.fontFamily.semibold,
   },
 });

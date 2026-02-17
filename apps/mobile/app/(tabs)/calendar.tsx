@@ -16,7 +16,7 @@ import { TogglePill } from '@/components/ui/TogglePill';
 import { useToast } from '@/components/ui/Toast';
 import { useResponsive } from '@/hooks/useResponsive';
 import type { Property, Reservation, LockedDate } from '@/types/database';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+import { Colors, Spacing, Typography, BorderRadius, Shadows, CardStyle } from '@/constants/theme';
 
 const isWeb = Platform.OS === 'web';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -963,14 +963,14 @@ const styles = StyleSheet.create({
   filterContainer: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, backgroundColor: Colors.neutral.white },
   filterChip: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, backgroundColor: Colors.neutral.gray100, marginRight: Spacing.sm },
   filterChipActive: { backgroundColor: Colors.primary.teal },
-  filterChipText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray600 },
-  filterChipTextActive: { color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold },
+  filterChipText: { fontSize: Typography.fontSize.sm, fontFamily: Typography.fontFamily.medium, color: Colors.neutral.gray600 },
+  filterChipTextActive: { color: Colors.neutral.white, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold },
   calendarHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   limitIndicatorContainer: { backgroundColor: Colors.neutral.white, paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm, alignItems: 'center' },
   calendarHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: Colors.neutral.white },
   navButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
   navButtonText: { fontSize: 28, color: Colors.primary.teal },
-  monthTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', color: Colors.neutral.gray900 },
+  monthTitle: { fontSize: Typography.fontSize.xl, fontWeight: '600', fontFamily: Typography.fontFamily.semibold, color: Colors.neutral.gray900 },
   calendarWrapper: { backgroundColor: Colors.neutral.white },
   calendarWrapperDesktop: { maxWidth: 600, alignSelf: 'center', width: '100%' },
   daysHeader: { flexDirection: 'row', backgroundColor: Colors.neutral.white, paddingBottom: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.neutral.gray100 },
@@ -995,20 +995,20 @@ const styles = StyleSheet.create({
   paxBadgeText: { fontSize: 9, fontWeight: Typography.fontWeight.bold, color: Colors.neutral.white },
   agendaSection: { padding: Spacing.lg },
   agendaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.md },
-  agendaTitle: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },
+  agendaTitle: { fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, color: Colors.primary.teal, letterSpacing: Typography.letterSpacing.wide, textTransform: 'uppercase' },
   historySubtitle: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500 },
   addButton: { fontSize: Typography.fontSize.md, color: Colors.primary.teal, fontWeight: '600' },
   emptyAgenda: { padding: Spacing.xl, alignItems: 'center' },
   emptyAgendaText: { color: Colors.neutral.gray500 },
-  reservationCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.neutral.white, borderRadius: BorderRadius.lg, marginBottom: Spacing.md, padding: Spacing.md, ...Shadows.sm },
+  reservationCard: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md, padding: Spacing.md, ...CardStyle },
   reservationContent: { flex: 1, marginLeft: Spacing.md },
-  guestName: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
+  guestName: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, color: Colors.neutral.gray900 },
   propertyName: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray500, marginTop: 2 },
   dateRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xs },
   dateText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray600 },
   nightsText: { fontSize: Typography.fontSize.sm, color: Colors.neutral.gray400, marginLeft: Spacing.sm },
   amountContainer: { justifyContent: 'center', alignItems: 'flex-end' },
-  amountText: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, color: Colors.neutral.gray900 },
+  amountText: { fontSize: Typography.fontSize.md, fontWeight: Typography.fontWeight.semibold, fontFamily: Typography.fontFamily.semibold, color: Colors.neutral.gray900 },
   statusBadge: { paddingHorizontal: Spacing.sm, paddingVertical: 2, borderRadius: BorderRadius.sm, marginTop: Spacing.xs },
   statusText: { fontSize: Typography.fontSize.xs, fontWeight: Typography.fontWeight.semibold, textTransform: 'capitalize' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: Spacing.lg },

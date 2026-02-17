@@ -1,7 +1,7 @@
 import React, { useState, memo } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
-import { Colors, Spacing, Typography, BorderRadius, Shadows } from '@/constants/theme';
+import { Colors, Spacing, Typography, BorderRadius, Shadows, CardStyle } from '@/constants/theme';
 import { Badge } from './Badge';
 import type { Property } from '@/types/database';
 
@@ -89,11 +89,10 @@ export const PropertyCard = memo(function PropertyCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Colors.neutral.white,
-    borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     marginBottom: Spacing.lg,
-    ...Shadows.card,
+    ...CardStyle,
+    borderRadius: BorderRadius.xl,
   },
   imageContainer: {
     height: IMAGE_HEIGHT,
@@ -149,6 +148,7 @@ const styles = StyleSheet.create({
   propertyName: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.semibold,
+    fontFamily: Typography.fontFamily.semibold,
     color: Colors.neutral.gray900,
     flex: 1,
   },
@@ -160,6 +160,7 @@ const styles = StyleSheet.create({
   price: {
     fontSize: Typography.fontSize.lg,
     fontWeight: Typography.fontWeight.extrabold,
+    fontFamily: Typography.fontFamily.extrabold,
     color: Colors.primary.teal,
   },
   perNight: {

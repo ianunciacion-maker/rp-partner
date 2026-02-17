@@ -1,20 +1,22 @@
+import { Platform } from 'react-native';
+
 export const Colors = {
   primary: {
-    navy: '#1a365d',
-    teal: '#38b2ac',
+    navy: '#0c1a2e',
+    teal: '#0d9488',
   },
   neutral: {
     white: '#ffffff',
-    gray50: '#f9fafb',
-    gray100: '#f3f4f6',
-    gray200: '#e5e7eb',
-    gray300: '#d1d5db',
-    gray400: '#9ca3af',
-    gray500: '#6b7280',
-    gray600: '#4b5563',
-    gray700: '#374151',
-    gray800: '#1f2937',
-    gray900: '#111827',
+    gray50: '#fafaf9',
+    gray100: '#f5f5f4',
+    gray200: '#e7e5e4',
+    gray300: '#d6d3d1',
+    gray400: '#a8a29e',
+    gray500: '#78716c',
+    gray600: '#57534e',
+    gray700: '#44403c',
+    gray800: '#292524',
+    gray900: '#1c1917',
     black: '#000000',
   },
   semantic: {
@@ -24,7 +26,7 @@ export const Colors = {
     info: '#3b82f6',
   },
   dark: {
-    background: '#0f172a',
+    background: '#0c1a2e',
     surface: '#1e293b',
     border: '#334155',
   },
@@ -86,6 +88,7 @@ export const Typography = {
     '2xl': 24,
     '3xl': 30,
     '4xl': 36,
+    '5xl': 48,
   },
   fontWeight: {
     normal: '400' as const,
@@ -93,6 +96,33 @@ export const Typography = {
     semibold: '600' as const,
     bold: '700' as const,
     extrabold: '800' as const,
+  },
+  fontFamily: {
+    regular: Platform.select({
+      web: "'Plus Jakarta Sans', sans-serif",
+      default: 'PlusJakartaSans_400Regular',
+    }),
+    medium: Platform.select({
+      web: "'Plus Jakarta Sans', sans-serif",
+      default: 'PlusJakartaSans_500Medium',
+    }),
+    semibold: Platform.select({
+      web: "'Plus Jakarta Sans', sans-serif",
+      default: 'PlusJakartaSans_600SemiBold',
+    }),
+    bold: Platform.select({
+      web: "'Plus Jakarta Sans', sans-serif",
+      default: 'PlusJakartaSans_700Bold',
+    }),
+    extrabold: Platform.select({
+      web: "'Plus Jakarta Sans', sans-serif",
+      default: 'PlusJakartaSans_800ExtraBold',
+    }),
+  },
+  letterSpacing: {
+    tight: -1.5,
+    normal: 0,
+    wide: 1.5,
   },
 };
 
@@ -103,6 +133,13 @@ export const BorderRadius = {
   xl: 20,
   xxl: 28,
   full: 9999,
+};
+
+export const CardStyle = {
+  backgroundColor: Colors.neutral.white,
+  borderWidth: 1,
+  borderColor: Colors.neutral.gray200,
+  borderRadius: BorderRadius.lg,
 };
 
 export const Shadows = {
