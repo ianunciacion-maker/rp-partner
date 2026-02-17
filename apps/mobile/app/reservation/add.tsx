@@ -103,7 +103,7 @@ export default function AddReservationScreen() {
   };
 
   const [form, setForm] = useState({
-    property_id: propertyId || '',
+    property_id: (propertyId && propertyId !== 'null') ? propertyId : '',
     guest_name: '',
     guest_phone: '',
     guest_email: '',

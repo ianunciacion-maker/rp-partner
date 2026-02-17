@@ -155,7 +155,6 @@ export default function CalendarScreen() {
       map.set(locked.date, { status, lockedDate: locked });
     }
 
-    // Pre-index reservations (expand date ranges)
     for (const r of reservations) {
       const checkIn = new Date(r.check_in);
       const checkOut = new Date(r.check_out);
@@ -163,7 +162,8 @@ export default function CalendarScreen() {
 
       while (current < checkOut) {
         const dateStr = current.toISOString().split('T')[0];
-        if (!map.has(dateStr)) {
+        const existing = map.get(dateStr);
+        if (!existing || existing.status === 'external') {
           const isCompleted = r.check_out <= today;
           map.set(dateStr, {
             status: isCompleted ? 'completed' : 'booked',
@@ -516,8 +516,7 @@ export default function CalendarScreen() {
                   onPress={() => {
                     if (status === 'external' && lockedDate) {
                       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                      const propertyId = selectedProperty || (properties.length === 1 ? properties[0].id : null);
-                      setLockModal({ visible: true, date: dateStr, propertyId, existingLock: lockedDate });
+                      setLockModal({ visible: true, date: dateStr, propertyId: lockedDate.property_id, existingLock: lockedDate });
                     } else if (status === 'locked') {
                       handleDateLongPress(day, status, lockedDate);
                     } else if (reservation) {
