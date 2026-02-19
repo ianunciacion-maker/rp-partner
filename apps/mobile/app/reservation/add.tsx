@@ -114,6 +114,7 @@ export default function AddReservationScreen() {
     notes: '',
     total_amount: '',
     deposit_amount: '0',
+    deposit_paid: false,
   });
 
   // Check if this is a backdated reservation
@@ -172,7 +173,9 @@ export default function AddReservationScreen() {
         return;
       }
 
-      const { error } = await supabase.from('reservations').insert({
+      const depositAmount = parseFloat(form.deposit_amount) || 0;
+
+      const { data: newReservation, error } = await supabase.from('reservations').insert({
         property_id: form.property_id,
         user_id: authUser?.id,
         guest_name: form.guest_name.trim(),
@@ -183,11 +186,12 @@ export default function AddReservationScreen() {
         check_out: formatDateLocal(form.check_out),
         base_amount: totalAmount,
         total_amount: totalAmount,
-        deposit_amount: parseFloat(form.deposit_amount) || 0,
+        deposit_amount: depositAmount,
+        deposit_paid: form.deposit_paid && depositAmount > 0,
         source: form.source,
         notes: form.notes.trim() || null,
         status: 'pending',
-      });
+      }).select().single();
 
       if (error) throw error;
 
@@ -199,11 +203,42 @@ export default function AddReservationScreen() {
         .gte('date', formatDateLocal(form.check_in))
         .lt('date', formatDateLocal(form.check_out));
 
+      let depositRecorded = false;
+      if (form.deposit_paid && depositAmount > 0 && newReservation) {
+        try {
+          const checkIn = form.check_in.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const checkOut = form.check_out.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+          const { error: cashflowError } = await supabase.from('cashflow_entries').insert({
+            property_id: form.property_id,
+            user_id: authUser?.id,
+            reservation_id: newReservation.id,
+            type: 'income',
+            category: 'deposits',
+            description: `Deposit received - ${form.guest_name.trim()} (${checkIn} - ${checkOut})`,
+            amount: depositAmount,
+            transaction_date: todayStr,
+            payment_method: null,
+            notes: 'Auto-recorded from reservation deposit.',
+          });
+
+          if (!cashflowError) depositRecorded = true;
+        } catch (err) {
+          console.error('Failed to record deposit income:', err);
+        }
+      }
+
+      const successMessage = depositRecorded
+        ? `Reservation created! Deposit of PHP ${depositAmount.toLocaleString()} has been recorded in Cashflow.`
+        : 'Reservation created successfully!';
+
       if (isWeb) {
-        window.alert('Reservation created successfully!');
+        window.alert(successMessage);
         router.replace('/(tabs)/calendar');
       } else {
-        Alert.alert('Success', 'Reservation created successfully!', [
+        Alert.alert('Success', successMessage, [
           { text: 'OK', onPress: () => router.back() },
         ]);
       }
@@ -392,6 +427,17 @@ export default function AddReservationScreen() {
             onChangeText={(v) => updateForm('deposit_amount', v)}
             keyboardType="decimal-pad"
           />
+          {parseFloat(form.deposit_amount) > 0 && (
+            <Pressable
+              style={styles.checkboxRow}
+              onPress={() => updateForm('deposit_paid', !form.deposit_paid)}
+            >
+              <View style={[styles.checkbox, form.deposit_paid && styles.checkboxChecked]}>
+                {form.deposit_paid && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.checkboxLabel}>Deposit has been paid</Text>
+            </Pressable>
+          )}
           <Input
             label="Notes"
             placeholder="Special requests, instructions..."
@@ -415,7 +461,7 @@ export default function AddReservationScreen() {
           </View>
           {parseFloat(form.deposit_amount) > 0 && (
             <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Deposit</Text>
+              <Text style={styles.summaryLabel}>Deposit {form.deposit_paid ? '(Paid)' : '(Unpaid)'}</Text>
               <Text style={styles.summaryValue}>PHP {parseFloat(form.deposit_amount).toLocaleString()}</Text>
             </View>
           )}
@@ -460,5 +506,10 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: Typography.fontSize.lg, fontWeight: '600', color: Colors.neutral.gray900 },
   totalValue: { fontSize: Typography.fontSize.lg, fontWeight: 'bold', color: Colors.primary.teal },
   balanceValue: { fontSize: Typography.fontSize.md, fontWeight: '600', color: Colors.semantic.warning },
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.sm, marginBottom: Spacing.md },
+  checkbox: { width: 24, height: 24, borderWidth: 2, borderColor: Colors.neutral.gray300, borderRadius: BorderRadius.sm, marginRight: Spacing.sm, justifyContent: 'center', alignItems: 'center' },
+  checkboxChecked: { backgroundColor: Colors.primary.teal, borderColor: Colors.primary.teal },
+  checkmark: { color: Colors.neutral.white, fontSize: 14, fontWeight: 'bold' },
+  checkboxLabel: { fontSize: Typography.fontSize.md, color: Colors.neutral.gray700 },
   buttonContainer: { padding: Spacing.lg },
 });

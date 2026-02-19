@@ -23,10 +23,50 @@ const STATUS_OPTIONS = [
   { label: 'No Show', value: 'no_show', color: Colors.semantic.error },
 ];
 
+// Helper to record deposit income
+const recordDepositIncome = async (reservation: ReservationWithProperty) => {
+  try {
+    const { data: existing } = await supabase
+      .from('cashflow_entries')
+      .select('id')
+      .eq('reservation_id', reservation.id)
+      .eq('type', 'income')
+      .eq('category', 'deposits')
+      .single();
+
+    if (existing) {
+      return { alreadyExists: true };
+    }
+
+    const checkIn = new Date(reservation.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const checkOut = new Date(reservation.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const { error } = await supabase.from('cashflow_entries').insert({
+      property_id: reservation.property_id,
+      user_id: reservation.user_id,
+      reservation_id: reservation.id,
+      type: 'income',
+      category: 'deposits',
+      description: `Deposit received - ${reservation.guest_name} (${checkIn} - ${checkOut})`,
+      amount: reservation.deposit_amount || 0,
+      transaction_date: todayStr,
+      payment_method: null,
+      notes: 'Auto-recorded from reservation deposit.',
+    });
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error('Error recording deposit income:', error);
+    return { error };
+  }
+};
+
 // Helper to record income when reservation is completed
 const recordReservationIncome = async (reservation: ReservationWithProperty) => {
   try {
-    // Check if income already recorded for this reservation
     const { data: existing } = await supabase
       .from('cashflow_entries')
       .select('id')
@@ -39,20 +79,26 @@ const recordReservationIncome = async (reservation: ReservationWithProperty) => 
       return { alreadyExists: true };
     }
 
-    // Format dates for description
     const checkIn = new Date(reservation.check_in).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const checkOut = new Date(reservation.check_out).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-    // Create income entry
+    const depositAmount = reservation.deposit_amount || 0;
+    const totalAmount = reservation.total_amount || 0;
+    const hasDeposit = depositAmount > 0;
+    const amount = hasDeposit ? totalAmount - depositAmount : totalAmount;
+    const description = hasDeposit
+      ? `Balance payment - ${reservation.guest_name} (${checkIn} - ${checkOut})`
+      : `Reservation payment - ${reservation.guest_name} (${checkIn} - ${checkOut})`;
+
     const { error } = await supabase.from('cashflow_entries').insert({
       property_id: reservation.property_id,
       user_id: reservation.user_id,
       reservation_id: reservation.id,
       type: 'income',
       category: 'rental_income',
-      description: `Reservation payment - ${reservation.guest_name} (${checkIn} - ${checkOut})`,
-      amount: reservation.total_amount || 0,
-      transaction_date: reservation.check_out, // Use checkout date as transaction date
+      description,
+      amount,
+      transaction_date: reservation.check_out,
       payment_method: null,
       notes: `Auto-recorded from completed reservation. ${reservation.nights} nights.`,
     });
@@ -105,12 +151,36 @@ export default function ReservationDetailScreen() {
 
         // Auto-record income when marking as completed
         if (newStatus === 'completed' && reservation.status !== 'completed') {
+          const depositAmount = reservation.deposit_amount || 0;
+          const totalAmount = reservation.total_amount || 0;
+          const hasDeposit = depositAmount > 0;
+          let depositRecorded = false;
+
+          if (hasDeposit && !reservation.deposit_paid) {
+            const depositResult = await recordDepositIncome(reservation);
+            if (depositResult.success && !depositResult.alreadyExists) {
+              depositRecorded = true;
+            }
+            await supabase
+              .from('reservations')
+              .update({ deposit_paid: true })
+              .eq('id', reservation.id);
+            setReservation((prev) => prev ? { ...prev, deposit_paid: true } : null);
+          }
+
           const incomeResult = await recordReservationIncome(reservation);
-          if (incomeResult.success) {
-            const message = `Status updated to Completed.\n\nIncome of PHP ${reservation.total_amount?.toLocaleString()} has been automatically recorded in Cashflow.`;
+          if (incomeResult.success && !incomeResult.alreadyExists) {
+            const balance = totalAmount - depositAmount;
+            let message: string;
+            if (hasDeposit && depositRecorded) {
+              message = `Status updated to Completed.\n\nDeposit of PHP ${depositAmount.toLocaleString()} and balance of PHP ${balance.toLocaleString()} have been recorded in Cashflow.`;
+            } else if (hasDeposit) {
+              message = `Status updated to Completed.\n\nBalance of PHP ${balance.toLocaleString()} has been recorded in Cashflow.`;
+            } else {
+              message = `Status updated to Completed.\n\nIncome of PHP ${totalAmount.toLocaleString()} has been recorded in Cashflow.`;
+            }
             if (isWeb) {
               window.alert(message);
-              // Refresh the page to show updated data
               setTimeout(() => window.location.reload(), 0);
             } else {
               Alert.alert('Reservation Completed', message);
@@ -161,10 +231,17 @@ export default function ReservationDetailScreen() {
         .eq('id', reservation.id);
       if (error) throw error;
       setReservation((prev) => prev ? { ...prev, deposit_paid: true } : null);
+
+      const depositResult = await recordDepositIncome(reservation);
+      const depositAmount = reservation.deposit_amount || 0;
+      const message = depositResult.success && !depositResult.alreadyExists
+        ? `Deposit marked as paid.\n\nIncome of PHP ${depositAmount.toLocaleString()} has been recorded in Cashflow.`
+        : 'Deposit marked as paid';
+
       if (isWeb) {
-        window.alert('Deposit marked as paid');
+        window.alert(message);
       } else {
-        Alert.alert('Success', 'Deposit marked as paid');
+        Alert.alert('Success', message);
       }
     } catch (error: any) {
       if (isWeb) {

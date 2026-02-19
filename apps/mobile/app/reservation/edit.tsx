@@ -83,24 +83,21 @@ const STATUS_OPTIONS = [
   { label: 'No Show', value: 'no_show' },
 ];
 
-// Helper to record income when reservation is completed
-// Throws on error so caller can handle it properly
-const recordReservationIncome = async (reservation: Reservation, formData: {
+// Helper to record deposit income
+const recordDepositIncome = async (reservation: Reservation, formData: {
   guest_name: string;
   check_in: Date;
   check_out: Date;
-  total_amount: string;
+  deposit_amount: string;
 }): Promise<{ success: boolean; alreadyExists?: boolean }> => {
-  // Check if income already recorded for this reservation
   const { data: existing, error: checkError } = await supabase
     .from('cashflow_entries')
     .select('id')
     .eq('reservation_id', reservation.id)
     .eq('type', 'income')
-    .eq('category', 'rental_income')
+    .eq('category', 'deposits')
     .single();
 
-  // PGRST116 = no rows returned, which is expected when no entry exists
   if (checkError && checkError.code !== 'PGRST116') {
     throw checkError;
   }
@@ -109,20 +106,73 @@ const recordReservationIncome = async (reservation: Reservation, formData: {
     return { success: true, alreadyExists: true };
   }
 
-  // Format dates for description
+  const checkIn = formData.check_in.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const checkOut = formData.check_out.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const { error } = await supabase.from('cashflow_entries').insert({
+    property_id: reservation.property_id,
+    user_id: reservation.user_id,
+    reservation_id: reservation.id,
+    type: 'income',
+    category: 'deposits',
+    description: `Deposit received - ${formData.guest_name} (${checkIn} - ${checkOut})`,
+    amount: parseFloat(formData.deposit_amount) || 0,
+    transaction_date: todayStr,
+    payment_method: null,
+    notes: 'Auto-recorded from reservation deposit.',
+  });
+
+  if (error) throw error;
+  return { success: true };
+};
+
+// Helper to record income when reservation is completed
+// Throws on error so caller can handle it properly
+const recordReservationIncome = async (reservation: Reservation, formData: {
+  guest_name: string;
+  check_in: Date;
+  check_out: Date;
+  total_amount: string;
+  deposit_amount: string;
+}): Promise<{ success: boolean; alreadyExists?: boolean }> => {
+  const { data: existing, error: checkError } = await supabase
+    .from('cashflow_entries')
+    .select('id')
+    .eq('reservation_id', reservation.id)
+    .eq('type', 'income')
+    .eq('category', 'rental_income')
+    .single();
+
+  if (checkError && checkError.code !== 'PGRST116') {
+    throw checkError;
+  }
+
+  if (existing) {
+    return { success: true, alreadyExists: true };
+  }
+
   const checkIn = formData.check_in.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const checkOut = formData.check_out.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const nights = Math.ceil((formData.check_out.getTime() - formData.check_in.getTime()) / 86400000);
 
-  // Create income entry
+  const depositAmount = parseFloat(formData.deposit_amount) || 0;
+  const totalAmount = parseFloat(formData.total_amount) || 0;
+  const hasDeposit = depositAmount > 0;
+  const amount = hasDeposit ? totalAmount - depositAmount : totalAmount;
+  const description = hasDeposit
+    ? `Balance payment - ${formData.guest_name} (${checkIn} - ${checkOut})`
+    : `Reservation payment - ${formData.guest_name} (${checkIn} - ${checkOut})`;
+
   const { error } = await supabase.from('cashflow_entries').insert({
     property_id: reservation.property_id,
     user_id: reservation.user_id,
     reservation_id: reservation.id,
     type: 'income',
     category: 'rental_income',
-    description: `Reservation payment - ${formData.guest_name} (${checkIn} - ${checkOut})`,
-    amount: parseFloat(formData.total_amount) || 0,
+    description,
+    amount,
     transaction_date: formatDateLocal(formData.check_out),
     payment_method: null,
     notes: `Auto-recorded from completed reservation. ${nights} nights.`,
@@ -268,19 +318,60 @@ export default function EditReservationScreen() {
 
       if (error) throw error;
 
-      // Auto-record income when status changes to completed
-      const wasCompleted = reservation.status === 'completed';
-      const isNowCompleted = form.status === 'completed';
+      const depositAmount = parseFloat(form.deposit_amount) || 0;
+      const hasDeposit = depositAmount > 0;
+      let depositRecorded = false;
       let incomeRecorded = false;
       let incomeError: Error | null = null;
 
+      // Record deposit income when deposit_paid transitions to true
+      const wasDepositPaid = reservation.deposit_paid;
+      const isNowDepositPaid = form.deposit_paid;
+      if (isNowDepositPaid && !wasDepositPaid && hasDeposit) {
+        try {
+          const depositResult = await recordDepositIncome(reservation, {
+            guest_name: form.guest_name.trim(),
+            check_in: form.check_in,
+            check_out: form.check_out,
+            deposit_amount: form.deposit_amount,
+          });
+          if (depositResult.success && !depositResult.alreadyExists) {
+            depositRecorded = true;
+          }
+        } catch (err) {
+          console.error('Failed to record deposit income:', err);
+        }
+      }
+
+      // Auto-record income when status changes to completed
+      const wasCompleted = reservation.status === 'completed';
+      const isNowCompleted = form.status === 'completed';
+
       if (isNowCompleted && !wasCompleted) {
+        // If deposit wasn't paid yet, record it now
+        if (hasDeposit && !isNowDepositPaid) {
+          try {
+            const depositResult = await recordDepositIncome(reservation, {
+              guest_name: form.guest_name.trim(),
+              check_in: form.check_in,
+              check_out: form.check_out,
+              deposit_amount: form.deposit_amount,
+            });
+            if (depositResult.success && !depositResult.alreadyExists) {
+              depositRecorded = true;
+            }
+          } catch (err) {
+            console.error('Failed to record deposit income:', err);
+          }
+        }
+
         try {
           const incomeResult = await recordReservationIncome(reservation, {
             guest_name: form.guest_name.trim(),
             check_in: form.check_in,
             check_out: form.check_out,
             total_amount: form.total_amount,
+            deposit_amount: form.deposit_amount,
           });
           if (incomeResult.success && !incomeResult.alreadyExists) {
             incomeRecorded = true;
@@ -291,9 +382,16 @@ export default function EditReservationScreen() {
         }
       }
 
+      const balance = totalAmount - depositAmount;
       let message = 'Reservation updated successfully!';
-      if (incomeRecorded) {
-        message = `Reservation updated successfully!\n\nIncome of PHP ${totalAmount.toLocaleString()} has been automatically recorded in Cashflow.`;
+      if (incomeRecorded && hasDeposit && depositRecorded) {
+        message = `Reservation updated successfully!\n\nDeposit of PHP ${depositAmount.toLocaleString()} and balance of PHP ${balance.toLocaleString()} have been recorded in Cashflow.`;
+      } else if (incomeRecorded && hasDeposit) {
+        message = `Reservation updated successfully!\n\nBalance of PHP ${balance.toLocaleString()} has been recorded in Cashflow.`;
+      } else if (incomeRecorded) {
+        message = `Reservation updated successfully!\n\nIncome of PHP ${totalAmount.toLocaleString()} has been recorded in Cashflow.`;
+      } else if (depositRecorded) {
+        message = `Reservation updated successfully!\n\nDeposit of PHP ${depositAmount.toLocaleString()} has been recorded in Cashflow.`;
       } else if (incomeError) {
         message = `Reservation updated, but failed to record income: ${incomeError.message}\n\nPlease add the income entry manually in Cashflow.`;
       }
